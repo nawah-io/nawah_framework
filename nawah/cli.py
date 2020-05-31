@@ -43,11 +43,6 @@ def nawah_cli():
 		help='Path of the app to discover its dependencies. [default .]',
 		default='.',
 	)
-	parser_install.add_argument(
-		'--install-user',
-		help='Install dependencies with `--user` option',
-		action='store_true',
-	)
 
 	parser_launch = subparsers.add_parser('launch', help='Launch Nawah app')
 	parser_launch.set_defaults(func=launch)
@@ -134,13 +129,7 @@ def install_deps(args: argparse.Namespace):
 	logger.setLevel(logging.DEBUG)
 	logger.debug('Beginning to install dependencies')
 	# [DOC] Create standard call command list
-	pip_command = [sys.executable, '-m', 'pip', 'install']
-	# [DOC] Check for install_user flag to install dependencies with --user option
-	if args.install_user:
-		logger.debug('Detected install_user flag')
-		pip_command.append('--user')
-	# [DOC] Add -r option to use requirements.txt files.
-	pip_command.append('-r')
+	pip_command = [sys.executable, '-m', 'pip', 'install', '--user', '-r']
 
 	dirs = [
 		d
