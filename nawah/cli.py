@@ -17,19 +17,19 @@ def nawah_cli():
 	global sys, os
 
 	if sys.version_info.major != 3 or sys.version_info.minor != 8:
-		print('Nawah CLI can only run with Python3.8. Exiting.')
+		print('Nawah framework CLI can only run with Python3.8. Exiting.')
 		exit()
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument(
 		'--version',
-		help='Show Nawah version and exit',
+		help='Show Nawah framework version and exit',
 		action='version',
-		version=f'Nawah CLI v{__version__}',
+		version=f'Nawah framework v{__version__}',
 	)
 
 	subparsers = parser.add_subparsers(
-		title='Command', description='Nawah CLI command to run', dest='command'
+		title='Command', description='Nawah framework CLI command to run', dest='command'
 	)
 
 	parser_install = subparsers.add_parser(
@@ -416,7 +416,7 @@ def launch(
 
 
 def test(args: argparse.Namespace):
-	# [DOC] Update Config with Nawah CLI args
+	# [DOC] Update Config with Nawah framework CLI args
 	from nawah.config import Config
 
 	Config.test = args.test_name
@@ -428,7 +428,7 @@ def test(args: argparse.Namespace):
 
 
 def generate_ref(args: argparse.Namespace):
-	# [DOC] Update Config with Nawah CLI args
+	# [DOC] Update Config with Nawah framework CLI args
 	from nawah.config import Config
 
 	Config.generate_ref = True
