@@ -1,10 +1,6 @@
-name: Python test
+name: Python Package Test and Build
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -16,19 +12,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r dev_requirements.txt
+
     - name: Test with pytest
       run: |
         pytest --cov=./
+
     - name: Upload Codecov report
       run: |
         codecov -t ${{ secrets.CODECOV_REPO_TOKEN }}
-

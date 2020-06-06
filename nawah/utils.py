@@ -603,9 +603,11 @@ async def validate_dot_notated(
 
 	try:
 		for i in range(attr_path_len):
-			# [DOC] Iterate over attr_path to reach last valide Attr Type
+			# [DOC] Iterate over attr_path to reach last valid Attr Type
 			if type(attr_type) == dict:
 				attr_type = attr_type[attr_path[i]]
+			elif type(attr_type) == ATTR and attr_type._type == 'ANY':
+				return doc[attr]
 			elif type(attr_type) == ATTR and attr_type._type == 'LOCALE':
 				if attr_path[i] not in Config.locales:
 					raise Exception()

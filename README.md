@@ -1,5 +1,4 @@
-![Python package](https://github.com/nawah-io/workflows/Python%20test/badge.svg)
-![Codecov](https://codecov.io/gh/nawah-io/master/graphs/badge.svg)
+![Codecov](https://codecov.io/gh/nawah-io/nawah_framework/graphs/badge.svg)
 
 # Nawah Framework
 Nawah is a framework that is designed for rapid app development. It uses `HTTP/2 Websocket` as primary protocol of communication with clients. However, it also provides an `HTTP/1 GET`, `POST` interfaces for additional communication windows.

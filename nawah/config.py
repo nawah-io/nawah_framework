@@ -63,7 +63,7 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 class Config:
 	debug: bool = False
 	env: str = None
-	port: int = None
+	port: int = 8081
 
 	_sys_conn: AsyncIOMotorClient
 	_sys_env: Dict[str, Any]
@@ -303,9 +303,7 @@ class Config:
 
 		# [DOC] Check SSL settings
 		if cls.data_ca:
-			__location__ = os.path.realpath(
-				os.path.join(os.getcwd(), os.path.dirname(__file__))
-			)
+			__location__ = os.path.realpath(os.path.join('.'))
 			if not os.path.exists(os.path.join(__location__, 'certs')):
 				os.makedirs(os.path.join(__location__, 'certs'))
 			with open(os.path.join(__location__, 'certs', cls.data_ca_name), 'w') as f:
@@ -348,9 +346,7 @@ class Config:
 		# [DOC] Check test mode
 		if cls.test or cls.test_collections:
 			logger.debug('Test mode or Test Collections Mode detected.')
-			__location__ = os.path.realpath(
-				os.path.join(os.getcwd(), os.path.dirname(__file__))
-			)
+			__location__ = os.path.realpath(os.path.join('.'))
 			if not os.path.exists(os.path.join(__location__, 'tests')):
 				os.makedirs(os.path.join(__location__, 'tests'))
 			if not cls.test_env:
