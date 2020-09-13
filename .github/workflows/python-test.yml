@@ -31,7 +31,7 @@ jobs:
       run: |
         pytest --cov=./
     
-    - name: Build and Deploy Framework
+    - name: Build Framework
       run: |
         export PYTHON=python
         chmod +x ./deploy_version.sh
