@@ -2,7 +2,6 @@ from nawah.base_module import BaseModule
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
 from nawah.config import Config
-from nawah.registry import Registry
 from nawah.utils import validate_attr, encode_attr_type
 
 from bson import ObjectId
@@ -92,7 +91,7 @@ class User(BaseModule):
 			for auth_attr in Config.user_attrs.keys():
 				del user[f'{auth_attr}_hash']
 			if len(Config.user_doc_settings):
-				setting_results = await Registry.module('setting').read(
+				setting_results = await Config.modules['setting'].read(
 					skip_events=[Event.PERM, Event.ARGS],
 					env=env,
 					query=[
@@ -115,7 +114,7 @@ class User(BaseModule):
 	async def pre_create(self, skip_events, env, query, doc, payload):
 		if Event.ARGS not in skip_events:
 			if Config.realm:
-				realm_results = await Registry.module('realm').read(
+				realm_results = await Config.modules['realm'].read(
 					skip_events=[Event.PERM], env=env
 				)
 				realm = realm_results.args.docs[0]
@@ -156,7 +155,7 @@ class User(BaseModule):
 	async def on_create(self, results, skip_events, env, query, doc, payload):
 		if 'user_settings' in payload.keys():
 			for setting in payload['user_settings'].keys():
-				setting_results = await Registry.module('setting').create(
+				setting_results = await Config.modules['setting'].create(
 					skip_events=[Event.PERM, Event.ARGS],
 					env=env,
 					doc={
@@ -182,7 +181,7 @@ class User(BaseModule):
 			)
 		user = results.args.docs[0]
 		for group in user.groups:
-			group_results = await Registry.module('group').read(
+			group_results = await Config.modules['group'].read(
 				skip_events=[Event.PERM], env=env, query=[{'_id': group}]
 			)
 			group = group_results.args.docs[0]
@@ -210,7 +209,7 @@ class User(BaseModule):
 		# [DOC] Confirm all basic args are provided
 		doc['group'] = ObjectId(doc['group'])
 		# [DOC] Confirm group is valid
-		results = await Registry.module('group').read(
+		results = await Config.modules['group'].read(
 			skip_events=[Event.PERM], env=env, query=[{'_id': doc['group']}]
 		)
 		if not results.args.count:
@@ -240,7 +239,7 @@ class User(BaseModule):
 
 	async def delete_group(self, skip_events=[], env={}, query=[], doc={}):
 		# [DOC] Confirm group is valid
-		results = await Registry.module('group').read(
+		results = await Config.modules['group'].read(
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['group'][0]}]
 		)
 		if not results.args.count:
