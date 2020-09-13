@@ -2,7 +2,6 @@ from nawah.base_module import BaseModule
 from nawah.enums import Event
 from nawah.classes import ATTR, PERM, EXTN
 from nawah.config import Config
-from nawah.registry import Registry
 
 from bson import ObjectId
 
@@ -52,14 +51,14 @@ class Realm(BaseModule):
 				'realm': doc['name'],
 			}
 		)
-		user_results = await Registry.module('user').create(
+		user_results = await Config.modules['user'].create(
 			skip_events=[Event.PERM, Event.ARGS, Event.PRE], env=env, doc=user_doc
 		)
 		if user_results.status != 200:
 			return user_results
 		user = user_results.args.docs[0]
 
-		group_results = await Registry.module('group').create(
+		group_results = await Config.modules['group'].create(
 			skip_events=[Event.PERM, Event.ARGS],
 			env=env,
 			doc={

@@ -180,6 +180,7 @@ class BaseMethod:
 			)
 			logger.debug(f'permissions_check: {permissions_check}.')
 			if permissions_check == False:
+				breakpoint()
 				return await self.return_results(
 					ws=env['ws'],
 					results=DictObj(
@@ -205,7 +206,7 @@ class BaseMethod:
 					for query_set in query_set_list:
 						for attr in query_set.keys():
 							# [DOC] Flag attr for deletion if value is None
-							if query_set[attr] == None or type(query_set[attr]) == ATTR_MOD:
+							if query_set[attr] == None:
 								del_args.append(attr)
 						for attr in del_args:
 							del query_set[attr]

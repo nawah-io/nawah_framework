@@ -883,7 +883,9 @@ class EXTN:
 	def __repr__(self):
 		return f'<EXTN:{self.module},{self.attrs},{self.force}>'
 
-	def __init__(self, *, module: str, query: NAWAH_QUERY = None, attrs: List[str], force: bool = False):
+	def __init__(self, *, module: str, query: NAWAH_QUERY = None, attrs: List[str] = None, force: bool = False):
+		if not attrs:
+			attrs = ['*']
 		self.module = module
 		self.query = query
 		self.attrs = attrs
