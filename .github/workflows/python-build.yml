@@ -26,8 +26,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r dev_requirements.txt
+
+    - name: Test with pytest
+      run: |
+        pytest --cov=./
+
+    - name: Upload Codecov report
+      run: |
+        codecov -t ${{ secrets.CODECOV_REPO_TOKEN }}
     
     - name: Build and Deploy Framework
       run: |
         export PYTHON=python
-        ./deploy_version.sh
+        chmod +x ./deploy_version.sh
+        ./deploy_version.sh --deploy
