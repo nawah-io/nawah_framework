@@ -1,7 +1,7 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
 from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
-from nawah.utils import InvalidAttrException, validate_attr, generate_dynamic_attr
+from nawah.utils import InvalidAttrException, validate_doc, generate_dynamic_attr
 from nawah.config import Config
 
 
@@ -47,8 +47,8 @@ class Setting(BaseModule):
 						'user': '$__user',
 						'type': ATTR_MOD(
 							condition=lambda skip_events, env, query, doc: 'type'
-							in doc.keys()
-							and doc['type'] == 'user_sys',
+							not in query
+							or query['type'][0] == 'user_sys',
 							default=lambda skip_events, env, query, doc: InvalidAttrException(
 								attr_name='type',
 								attr_type=ATTR.LITERAL(literal=['global', 'user']),
@@ -99,7 +99,6 @@ class Setting(BaseModule):
 					'type': ATTR.LITERAL(literal=['user', 'user_sys']),
 				},
 			],
-			'doc_args': {'val': ATTR.ANY()},
 		},
 		'delete': {
 			'permissions': [PERM(privilege='admin', query_mod={'$limit': 1})],
@@ -121,6 +120,17 @@ class Setting(BaseModule):
 		return (results, skip_events, env, query, doc, payload)
 
 	async def pre_update(self, skip_events, env, query, doc, payload):
+		for attr in doc.keys():
+			if attr == 'val' or attr.startswith('val.'):
+				val_attr = attr
+				break
+		else:
+			return self.status(
+				status=400,
+				msg='Could not match doc with any of the required doc_args. Failed sets:[\'val\': Missing]',
+				args={'code': 'INVALID_DOC'},
+			)
+
 		setting_results = await self.read(
 			skip_events=[Event.PERM], env=env, query=query
 		)
@@ -131,37 +141,52 @@ class Setting(BaseModule):
 		setting = setting_results.args.docs[0]
 		# [DOC] Attempt to validate val against Setting val_type
 		try:
+			exception_raised: Exception = None
 			setting_val_type, _ = generate_dynamic_attr(dynamic_attr=setting.val_type)
-			doc['val'] = await validate_attr(
-				attr_name=setting.var, attr_type=setting_val_type, attr_val=doc['val']
+			await validate_doc(
+				doc=doc,
+				attrs={
+					'val':setting_val_type
+				},
+				allow_update=True,
+				skip_events=skip_events,
+				env=env,
+				query=query
 			)
-		except:
+		except Exception as exception_raised:
+			pass
+
+		if exception_raised or doc[val_attr] == None:
 			return self.status(
 				status=400,
-				msg=f'Invalid value for for Setting doc of type \'{type(doc["val"])}\' with required type \'{setting_val_type}\'',
+				msg=f'Invalid value for for Setting doc of type \'{type(doc[val_attr])}\' with required type \'{setting_val_type}\'',
 				args={'code': 'INVALID_ATTR'},
 			)
+			
 		return (skip_events, env, query, doc, payload)
 
 	async def on_update(self, results, skip_events, env, query, doc, payload):
-		if (
-			query['type'][0] in ['user', 'user_sys']
-			and query['user'][0] == env['session'].user._id
-			and query['var'][0] in Config.user_doc_settings
-		):
-			if type(doc['val']) == dict and '$add' in doc['val'].keys():
-				env['session'].user[query['var'][0]] += doc['val']['$add']
-			elif type(doc['val']) == dict and '$multiply' in doc['val'].keys():
-				env['session'].user[query['var'][0]] *= doc['val']['$multiply']
-			elif type(doc['val']) == dict and '$append' in doc['val'].keys():
-				env['session'].user[query['var'][0]].append(doc['val']['$append'])
-			elif type(doc['val']) == dict and '$set_index' in doc['val'].keys():
-				env['session'].user[query['var'][0]][doc['val']['$index']] = doc['val']['$set_index']
-			elif type(doc['val']) == dict and '$del_val' in doc['val'].keys():
-				for val in doc['val']['$del_val']:
-					env['session'].user[query['var'][0]].remove(val)
-			elif type(doc['val']) == dict and '$del_index' in doc['val'].keys():
-				del env['session'].user[query['var'][0]][doc['val']['$index']]
-			else:
-				env['session'].user[query['var'][0]] = doc['val']
+		try:
+			if (
+				query['type'][0] in ['user', 'user_sys']
+				and query['user'][0] == env['session'].user._id
+				and query['var'][0] in Config.user_doc_settings
+			):
+				if type(doc['val']) == dict and '$add' in doc['val'].keys():
+					env['session'].user[query['var'][0]] += doc['val']['$add']
+				elif type(doc['val']) == dict and '$multiply' in doc['val'].keys():
+					env['session'].user[query['var'][0]] *= doc['val']['$multiply']
+				elif type(doc['val']) == dict and '$append' in doc['val'].keys():
+					env['session'].user[query['var'][0]].append(doc['val']['$append'])
+				elif type(doc['val']) == dict and '$set_index' in doc['val'].keys():
+					env['session'].user[query['var'][0]][doc['val']['$index']] = doc['val']['$set_index']
+				elif type(doc['val']) == dict and '$del_val' in doc['val'].keys():
+					for val in doc['val']['$del_val']:
+						env['session'].user[query['var'][0]].remove(val)
+				elif type(doc['val']) == dict and '$del_index' in doc['val'].keys():
+					del env['session'].user[query['var'][0]][doc['val']['$index']]
+				else:
+					env['session'].user[query['var'][0]] = doc['val']
+		except:
+			pass
 		return (results, skip_events, env, query, doc, payload)
