@@ -13,10 +13,13 @@ cp requirements.txt nawah_framework_wheels/$NAWAH_API_LEVEL
 mv out/nawah/stubs.tar.gz nawah_framework_wheels/$NAWAH_API_LEVEL
 echo -n $NAWAH_VERSION > nawah_framework_wheels/$NAWAH_API_LEVEL/version.txt
 
-git log -1 --pretty=%B > commit_msg
-cd nawah_framework_wheels
-git add .
-git commit -m "$(cat ../commit_msg)"
-git tag v$NAWAH_VERSION
-# git push
-# git push --tags
+if [[ "$*" == *--deploy* ]]
+then
+    git log -1 --pretty=%B > commit_msg
+	cd nawah_framework_wheels
+	git add .
+	git commit -m "$(cat ../commit_msg)"
+	git tag v$NAWAH_VERSION
+	git push
+	git push --tags
+fi
