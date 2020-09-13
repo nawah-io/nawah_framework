@@ -15,13 +15,13 @@ echo -n $NAWAH_VERSION > nawah_framework_wheels/$NAWAH_API_LEVEL/version.txt
 
 if [[ "$*" == *--deploy* ]]
 then
+	git config --global user.email "actions.bot@nawah.masaar.com"
+	git config --global user.name "Github Actions [Bot]"
     git log -1 --pretty=%B > commit_msg
 	cd nawah_framework_wheels
 	git add .
 	git commit -m "$(cat ../commit_msg)"
 	git tag v$NAWAH_VERSION
-	git config --global user.email "actions.bot@nawah.masaar.com"
-	git config --global user.name "Github Actions [Bot]"
 	git push
 	git push --tags
 fi
