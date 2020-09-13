@@ -20,6 +20,8 @@ then
 	git add .
 	git commit -m "$(cat ../commit_msg)"
 	git tag v$NAWAH_VERSION
+	git config --global user.email "actions.bot@nawah.masaar.com"
+	git config --global user.name "Github Actions [Bot]"
 	git push
 	git push --tags
 fi
