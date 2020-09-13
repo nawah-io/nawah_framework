@@ -2,7 +2,6 @@ from nawah.base_module import BaseModule
 from nawah.enums import Event
 from nawah.classes import ATTR, PERM
 from nawah.config import Config
-from nawah.registry import Registry
 from nawah.utils import extract_attr, validate_attr
 
 from bson import ObjectId
@@ -48,7 +47,7 @@ class File(BaseModule):
 					'name': doc[b'name'][3].decode('utf-8'),
 				},
 			)
-		if (module := doc[b'__module'][3].decode('utf-8')) not in Registry._modules.keys():
+		if (module := doc[b'__module'][3].decode('utf-8')) not in Config.modules.keys():
 			return self.status(
 				status=400,
 				msg=f'Invalid module \'{module}\'',
@@ -56,7 +55,7 @@ class File(BaseModule):
 			)
 		try:
 			attr_type = extract_attr(
-				scope=Registry.module(module).attrs,
+				scope=Config.modules[module].attrs,
 				attr_path='$__' + (attr := doc[b'__attr'][3].decode('utf-8')),
 			)
 			doc = {

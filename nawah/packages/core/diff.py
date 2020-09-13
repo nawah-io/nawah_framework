@@ -1,7 +1,7 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
 from nawah.classes import ATTR, PERM, NAWAH_DOC
-from nawah.registry import Registry
+from nawah.config import Config
 
 from bson import ObjectId
 
@@ -38,7 +38,7 @@ class Diff(BaseModule):
 		doc = self.format_doc_oper(doc=doc)
 		# [DOC] Detect non-_id update query:
 		if '_id' not in query:
-			results = await Registry.module(doc['module']).read(
+			results = await Config.modules[doc['module']].read(
 				skip_events=[Event.PERM], env=env, query=query
 			)
 			if results.args.count > 1:
