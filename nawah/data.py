@@ -867,7 +867,7 @@ class Data:
 			elif type(doc[attr]) == dict and '$del_index' in doc[attr].keys():
 				if '$unset' not in update_doc.keys():
 					update_doc['$unset'] = {}
-				update_doc['$unset'][f'{attr}.{doc[attr]["$del_index"]}'] = True
+				update_doc['$unset'][f'{attr}.{doc[attr]["$index"]}'] = True
 				del_attrs.append(attr)
 		for del_attr in del_attrs:
 			del doc[del_attr]
@@ -879,34 +879,10 @@ class Data:
 			update_count = 0
 			for _id in docs:
 				results = await collection.update_one({'_id': _id}, update_doc)
-				if '$unset' in update_doc:
-					logger.debug(f'Doc Oper $del_index is in-use, will update to remove `None` value')
-					update_doc_pull_all = {}
-					for attr in update_doc['$unset']:
-						attr_parent = '.'.join(attr.split('.')[:-1])
-						if attr_parent not in update_doc_pull_all.keys():
-							update_doc_pull_all[attr_parent] = [None]
-					logger.debug(f'Follow-up update doc: {update_doc_pull_all}')
-					await collection.update_one({'_id': _id}, {'$pullAll': update_doc_pull_all})
 				update_count += results.modified_count
 		else:
 			results = await collection.update_many({'_id': {'$in': docs}}, update_doc)
 			update_count = results.modified_count
-			if '$unset' in update_doc:
-				logger.debug(f'Doc Oper $del_index is in-use, will update to remove `None` value')
-				update_doc_pull_all = {}
-				for attr in update_doc['$unset']:
-					attr_parent = '.'.join(attr.split('.')[:-1])
-					if attr_parent not in update_doc_pull_all.keys():
-						update_doc_pull_all[attr_parent] = [None]
-				logger.debug(f'Follow-up update doc: {update_doc_pull_all}')
-				try:
-					await collection.update_many(
-						{'_id': {'$in': docs}}, {'$pullAll': update_doc_pull_all}
-					)
-				except Exception as err:
-					if str(err) != 'Cannot apply $pull to a non-array value':
-						logger.error(f'Error occurred while removing `None` values. Details: {err}')
 		return {'count': update_count, 'docs': [{'_id': doc} for doc in docs]}
 
 	@classmethod
