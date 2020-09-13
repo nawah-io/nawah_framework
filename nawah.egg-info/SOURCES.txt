@@ -10,6 +10,7 @@ nawah/config.py
 nawah/data.py
 nawah/enums.py
 nawah/gateway.py
+nawah/registry.py
 nawah/test.py
 nawah/utils.py
 nawah.egg-info/PKG-INFO

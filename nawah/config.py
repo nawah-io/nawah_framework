@@ -26,38 +26,38 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 	app_only_attrs = APP_CONFIG.__annotations__.keys() # pylint: disable=no-member
 
 	for config_attr in dir(config):
-			config_attr_val = getattr(config, config_attr)
+		config_attr_val = getattr(config, config_attr)
 
-			# [DOC] Check existence of of api_level, version Config Attrs
-			if type(config) == PACKAGE_CONFIG and config_attr in ['api_level', 'version']:
-				if config_attr_val == None:
-					logger.error(
-						f'Package \'{pkgname}\' is missing \'{config_attr}\' Config Attr. Exiting.'
-					)
-					exit()
-				# [DOC] Check type of api_level, version Config Attrs
-				elif type(config_attr_val) != str:
-					logger.error(
-						f'Package \'{pkgname}\' is having invalid type of \'{config_attr}\'. Exiting.'
-					)
-					exit()
-				else:
-					# [DOC] Update corresponding Config
-					getattr(Config, f'packages_{config_attr}s')[pkgname] = config_attr_val
-			elif config_attr.startswith('__') or config_attr_val == None or config_attr in app_only_attrs:
-				continue
-			# [DOC] Skip non Config Attr attrs
-			elif config_attr == ['user_attrs', 'user_settings']:
-				setattr(Config, config_attr, config_attr_val)
-			elif type(config_attr_val) == dict:
-				if not getattr(Config, config_attr):
-					setattr(Config, config_attr, {})
-				deep_update(
-					target=getattr(Config, config_attr), new_values=config_attr_val
+		# [DOC] Check existence of of api_level, version Config Attrs
+		if type(config) == PACKAGE_CONFIG and config_attr in ['api_level', 'version']:
+			if config_attr_val == None:
+				logger.error(
+					f'Package \'{pkgname}\' is missing \'{config_attr}\' Config Attr. Exiting.'
 				)
+				exit()
+			# [DOC] Check type of api_level, version Config Attrs
+			elif type(config_attr_val) != str:
+				logger.error(
+					f'Package \'{pkgname}\' is having invalid type of \'{config_attr}\'. Exiting.'
+				)
+				exit()
 			else:
-				setattr(Config, config_attr, config_attr_val)
-	pass
+				# [DOC] Update corresponding Config
+				getattr(Config, f'packages_{config_attr}s')[pkgname] = config_attr_val
+		# [DOC] Skip non Config Attr attrs
+		elif config_attr.startswith('__') or config_attr_val == None or config_attr in app_only_attrs:
+			continue
+		elif type(config_attr_val) == list:
+			for j in config_attr_val:
+				getattr(Config, config_attr).append(j)
+		elif type(config_attr_val) == dict:
+			if not getattr(Config, config_attr):
+				setattr(Config, config_attr, {})
+			deep_update(
+				target=getattr(Config, config_attr), new_values=config_attr_val
+			)
+		else:
+			setattr(Config, config_attr, config_attr_val)
 
 
 class Config:

@@ -778,21 +778,23 @@ async def validate_attr(
 			attr_val = [attr_val['$append']]
 		elif '$set_index' in attr_val.keys():
 			attr_oper = '$set_index'
-			attr_oper_args['$index'] = attr_val['$index']
+			attr_oper_args['$index'] = attr_val['$set_index']
 			attr_val = [attr_val['$set_index']]
 		elif '$del_val' in attr_val.keys():
 			attr_oper = '$del_val'
 			attr_val = attr_val['$del_val']
-			if attr_type._type != 'LIST' or type(attr_val['$del_val']) != list:
+			if attr_type._type != 'LIST' or type(attr_val) != list:
 				raise InvalidAttrException(attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val))
 			return return_valid_attr(attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args)
 		elif '$del_index' in attr_val.keys():
 			attr_oper = '$del_index'
-			attr_oper_args['$index'] = attr_val['$index']
+			attr_oper_args['$index'] = attr_val['$del_index']
 			attr_val = attr_val['$del_index']
-			if attr_type._type != 'LIST' or type(attr_val['$index']) != int:
+			if (attr_type._type == 'LIST' and type(attr_val) == int) or (attr_type._type == 'KV_DICT' and type(attr_val) == str):
+				return return_valid_attr(attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args)
+			else:
 				raise InvalidAttrException(attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val))
-			return return_valid_attr(attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args)
+			
 
 	# [DOC] Deepcopy attr_val to eliminate changes in in original object
 	attr_val = copy.deepcopy(attr_val)
@@ -1345,7 +1347,7 @@ def return_valid_attr(
 	elif attr_oper == '$set_index':
 		return {'$set_index': attr_val[0], '$index': attr_oper_args['$index']}
 	elif attr_oper == '$del_index':
-		return {'$index': attr_oper_args['$index']}
+		return {'$del_index': attr_oper_args['$index']}
 
 
 def generate_dynamic_attr(*, dynamic_attr: Dict[str, Any]) -> Tuple[ATTR, Dict[str, Any]]:

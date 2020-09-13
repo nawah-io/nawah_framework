@@ -31,3 +31,8 @@ jobs:
     - name: Upload Codecov report
       run: |
         codecov -t ${{ secrets.CODECOV_REPO_TOKEN }}
+    
+    - name: Build and Deploy Framework
+      run: |
+        export PYTHON=python
+        ./deploy_version.sh
