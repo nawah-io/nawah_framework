@@ -1,8 +1,8 @@
-name: Python Package Test
+name: Python Package Build
 
 on:
   push:
-    pull_request:
+    branches:
       - master
 
 jobs:
@@ -30,9 +30,13 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=./
+
+    - name: Upload Codecov report
+      run: |
+        codecov -t ${{ secrets.CODECOV_REPO_TOKEN }}
     
-    - name: Build Framework
+    - name: Build and Deploy Framework
       run: |
         export PYTHON=python
         chmod +x ./deploy_version.sh
-        ./deploy_version.sh
+        ./deploy_version.sh --deploy
