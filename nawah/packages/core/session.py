@@ -1,5 +1,6 @@
 from nawah.base_module import BaseModule, BaseModel
 from nawah.config import Config
+from nawah.registry import Registry
 from nawah.enums import Event
 from nawah.classes import (
 	ATTR,
@@ -46,7 +47,7 @@ class Session(BaseModule):
 		),
 	}
 	defaults = {'groups': []}
-	extns = {'user': EXTN(module='user', force=True)}
+	extns = {'user': EXTN(module='user', attrs=['*'], force=True)}
 	methods = {
 		'read': {
 			'permissions': [PERM(privilege='read', query_mod={'user': '$__user'})]
@@ -85,7 +86,7 @@ class Session(BaseModule):
 	}
 
 	async def auth(self, skip_events=[], env={}, query=[], doc={}):
-		for attr in Config.modules['user'].unique_attrs:
+		for attr in Registry.module('user').unique_attrs:
 			if attr in doc.keys():
 				key = attr
 				break
@@ -94,7 +95,7 @@ class Session(BaseModule):
 			user_query.append(
 				[{'groups': {'$in': doc['groups']}}, {'privileges': {'*': ['*']}}]
 			)
-		user_results = await Config.modules['user'].read(
+		user_results = await Registry.module('user').read(
 			skip_events=[Event.PERM, Event.ON], env=env, query=user_query
 		)
 		if not user_results.args.count or not pbkdf2_sha512.verify(
@@ -144,7 +145,7 @@ class Session(BaseModule):
 		results.args.docs[0] = BaseModel(session)
 
 		# [DOC] read user privileges and return them
-		user_results = await Config.modules['user'].read_privileges(
+		user_results = await Registry.module('user').read_privileges(
 			skip_events=[Event.PERM], env=env, query=[{'_id': user._id}]
 		)
 		if user_results.status != 200:
@@ -163,7 +164,7 @@ class Session(BaseModule):
 					'HTTP_USER_AGENT': env['HTTP_USER_AGENT'],
 				},
 			}
-			analytic_results = await Config.modules['analytic'].create(
+			analytic_results = await Registry.module('analytic').create(
 				skip_events=[Event.PERM], env=env, doc=analytic_doc
 			)
 			if analytic_results.status != 200:
@@ -182,7 +183,7 @@ class Session(BaseModule):
 					'client_app': env['client_app'],
 				},
 			}
-			analytic_results = await Config.modules['analytic'].create(
+			analytic_results = await Registry.module('analytic').create(
 				skip_events=[Event.PERM], env=env, doc=analytic_doc
 			)
 			if analytic_results.status != 200:
@@ -233,7 +234,7 @@ class Session(BaseModule):
 				status=403, msg='Session had expired.', args={'code': 'SESSION_EXPIRED'}
 			)
 		# [DOC] update user's last_login timestamp
-		await Config.modules['user'].update(
+		await Registry.module('user').update(
 			skip_events=[Event.PERM],
 			env=env,
 			query=[{'_id': results.args.docs[0].user}],
@@ -250,7 +251,7 @@ class Session(BaseModule):
 			},
 		)
 		# [DOC] read user privileges and return them
-		user_results = await Config.modules['user'].read_privileges(
+		user_results = await Registry.module('user').read_privileges(
 			skip_events=[Event.PERM],
 			env=env,
 			query=[{'_id': results.args.docs[0].user._id}],
@@ -269,7 +270,7 @@ class Session(BaseModule):
 					'HTTP_USER_AGENT': env['HTTP_USER_AGENT'],
 				},
 			}
-			analytic_results = await Config.modules['analytic'].create(
+			analytic_results = await Registry.module('analytic').create(
 				skip_events=[Event.PERM], env=env, doc=analytic_doc
 			)
 			if analytic_results.status != 200:
@@ -288,7 +289,7 @@ class Session(BaseModule):
 					'client_app': env['client_app'],
 				},
 			}
-			analytic_results = await Config.modules['analytic'].create(
+			analytic_results = await Registry.module('analytic').create(
 				skip_events=[Event.PERM], env=env, doc=analytic_doc
 			)
 			if analytic_results.status != 200:
@@ -333,7 +334,7 @@ class Session(BaseModule):
 					'HTTP_USER_AGENT': env['HTTP_USER_AGENT'],
 				},
 			}
-			analytic_results = await Config.modules['analytic'].create(
+			analytic_results = await Registry.module('analytic').create(
 				skip_events=[Event.PERM], env=env, doc=analytic_doc
 			)
 			if analytic_results.status != 200:
@@ -352,7 +353,7 @@ class Session(BaseModule):
 					'client_app': env['client_app'],
 				},
 			}
-			analytic_results = await Config.modules['analytic'].create(
+			analytic_results = await Registry.module('analytic').create(
 				skip_events=[Event.PERM], env=env, doc=analytic_doc
 			)
 			if analytic_results.status != 200:
