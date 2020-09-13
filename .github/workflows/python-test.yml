@@ -38,4 +38,5 @@ jobs:
     - name: Build and Deploy Framework
       run: |
         export PYTHON=python
+        chmod +x ./deploy_version.sh
         ./deploy_version.sh
