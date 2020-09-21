@@ -51,3 +51,6 @@ __pycache
 # Codecov
 .coverage
 coverage.xml
+
+# Deplyment
+nawah_framework_wheels

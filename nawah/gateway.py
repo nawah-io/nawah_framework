@@ -7,7 +7,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 
-import smtplib
+import smtplib, logging
+
+logger = logging.getLogger('nawah')
 
 
 def email_gateway(
@@ -48,6 +50,10 @@ def email_gateway(
 class Gateway:
 	@staticmethod
 	def send(*, gateway: str, **kwargs):
+		if Config.test:
+			logger.debug('Skipping \'Gateway.send\' action due to test mode.')
+			return
+
 		if gateway == 'email':
 			return email_gateway(**kwargs)
 		else:
