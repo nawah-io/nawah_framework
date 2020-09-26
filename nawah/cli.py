@@ -16,8 +16,8 @@ logger.setLevel(logging.INFO)
 def nawah_cli():
 	global sys, os
 
-	if sys.version_info.major != 3 or sys.version_info.minor != 8:
-		print('Nawah framework CLI can only run with Python3.8. Exiting.')
+	if sys.version_info.major != 3 or sys.version_info.minor < 8:
+		print('Nawah framework CLI can only run with Python >= 3.8. Exiting.')
 		exit()
 
 	parser = argparse.ArgumentParser()
@@ -103,9 +103,7 @@ def nawah_cli():
 	)
 	parser_test.add_argument('--debug', help='Enable debug mode', action='store_true')
 
-	parser_ref = subparsers.add_parser(
-		'generate_ref', help='Generate Nawah app reference'
-	)
+	parser_ref = subparsers.add_parser('generate_ref', help='Generate Nawah app reference')
 	parser_ref.set_defaults(func=generate_ref)
 	parser_ref.add_argument(
 		'app_path',
@@ -146,13 +144,10 @@ def install_deps(args: argparse.Namespace):
 				'File \'requirements.txt\' found! Attempting to install package dependencies.'
 			)
 			pip_call = subprocess.call(
-				pip_command
-				+ [os.path.join(args.app_path, 'packages', package, 'requirements.txt')]
+				pip_command + [os.path.join(args.app_path, 'packages', package, 'requirements.txt')]
 			)
 			if pip_call != 0:
-				logger.error(
-					'Last \'pip\' call failed. Check console for more details. Exiting.'
-				)
+				logger.error('Last \'pip\' call failed. Check console for more details. Exiting.')
 				exit(1)
 
 
@@ -184,9 +179,7 @@ def launch(
 			os.makedirs(os.path.join(args.app_path, 'logs'))
 		handler = logging.FileHandler(
 			filename=os.path.join(
-				args.app_path,
-				'logs',
-				f'{datetime.datetime.utcnow().strftime("%d-%b-%Y")}.log',
+				args.app_path, 'logs', f'{datetime.datetime.utcnow().strftime("%d-%b-%Y")}.log',
 			)
 		)
 		handler.setFormatter(formatter)
@@ -227,9 +220,7 @@ def launch(
 				exit()
 			if args.env:
 				if args.env in app_config.envs.keys():
-					logger.info(
-						f'Setting \'env\' Config Attr to \'env\' CLI Arg value \'{args.env}\''
-					)
+					logger.info(f'Setting \'env\' Config Attr to \'env\' CLI Arg value \'{args.env}\'')
 				else:
 					logger.error(
 						f'Found value \'{args.env}\' for \'env\' CLI Arg, but not defined in \'envs\' App Config Attr. Exiting.'
@@ -253,9 +244,7 @@ def launch(
 						)
 						Config.env = env
 					else:
-						logger.error(
-							f'No value found for Env Variable \'{env_env_var}\'. Exiting.'
-						)
+						logger.error(f'No value found for Env Variable \'{env_env_var}\'. Exiting.')
 						exit()
 				else:
 					logger.error(
@@ -271,18 +260,12 @@ def launch(
 					or getattr(app_config.envs[Config.env], config_attr) == None
 				):
 					continue
-				logger.info(
-					f'Extracting \'{config_attr}\' Config Attr to App Config Attr'
+				logger.info(f'Extracting \'{config_attr}\' Config Attr to App Config Attr')
+				setattr(
+					app_config, config_attr, getattr(app_config.envs[Config.env], config_attr),
 				)
 				setattr(
-					app_config,
-					config_attr,
-					getattr(app_config.envs[Config.env], config_attr),
-				)
-				setattr(
-					Config,
-					config_attr,
-					getattr(app_config.envs[Config.env], config_attr),
+					Config, config_attr, getattr(app_config.envs[Config.env], config_attr),
 				)
 		# [DOC] Check port Config Attr
 		if not custom_launch and app_config.port:
@@ -300,9 +283,7 @@ def launch(
 				if type(app_config.port) == int:
 					Config.port = app_config.port
 					logger.info(f'Setting \'port\' Config Attr to \'{Config.port}\'.')
-				elif type(app_config.port) == str and app_config.port.startswith(
-					'$__env.'
-				):
+				elif type(app_config.port) == str and app_config.port.startswith('$__env.'):
 					logger.info(
 						'Found Env Variable for \'port\' App Config Attr. Attempting to process it.'
 					)
@@ -314,9 +295,7 @@ def launch(
 						)
 						Config.port = port
 					else:
-						logger.error(
-							f'No value found for Env Variable \'{port_env_var}\'. Exiting.'
-						)
+						logger.error(f'No value found for Env Variable \'{port_env_var}\'. Exiting.')
 						exit()
 				else:
 					logger.error(
@@ -331,15 +310,11 @@ def launch(
 				)
 				Config.debug = args.debug
 			else:
-				logger.info(
-					'Found \'debug\' App Config Attr. Attempting to process it.'
-				)
+				logger.info('Found \'debug\' App Config Attr. Attempting to process it.')
 				if type(app_config.debug) == bool:
 					Config.debug = app_config.debug
 					logger.info(f'Setting \'debug\' Config Attr to \'{Config.debug}\'.')
-				elif type(app_config.debug) == str and app_config.debug.startswith(
-					'$__env.'
-				):
+				elif type(app_config.debug) == str and app_config.debug.startswith('$__env.'):
 					logger.info(
 						'Found Env Variable for \'debug\' App Config Attr. Attempting to process it.'
 					)
@@ -433,4 +408,3 @@ def generate_ref(args: argparse.Namespace):
 
 	Config.generate_ref = True
 	launch(args=args, custom_launch='generate_ref')
-

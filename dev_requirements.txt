@@ -1,3 +1,5 @@
+setuptools==47.1.1
+wheel==0.35.1
 pylint>=2.5.2
 pytest>=5.4.1
 pytest-asyncio>=0.12.0
