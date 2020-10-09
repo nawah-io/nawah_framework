@@ -4,7 +4,6 @@ from typing import Dict, Any, Union, List
 async def run_app():
 	from nawah.utils import (
 		import_modules,
-		SignalHandler,
 		process_multipart,
 		process_file_obj,
 		validate_doc,
@@ -21,16 +20,14 @@ async def run_app():
 	from bson import ObjectId
 	from passlib.hash import pbkdf2_sha512
 
-	import aiohttp.web, asyncio, nest_asyncio, traceback, jwt, argparse, json, re, signal, urllib.parse, os, datetime, logging
+	import aiohttp.web, asyncio, nest_asyncio, traceback, jwt, argparse, json, re, urllib.parse, os, datetime, time, logging
 
 	nest_asyncio.apply()
-
-	signal.signal(signal.SIGINT, SignalHandler.sigint_handler)
 
 	logger = logging.getLogger('nawah')
 
 	# [DOC] Use import_modules to load and initialise modules
-	import_modules()
+	await import_modules()
 	# [DOC] If realm mode is not enabled drop realm module.
 	if not Config.realm:
 		del Config.modules['realm']
@@ -48,13 +45,9 @@ async def run_app():
 						get_args = ''
 					if Config.realm:
 						get_args = get_args.replace('/{realm}', '')
-						get_routes.append(
-							f'/{{realm}}/{module.module_name}/{method.method}{get_args}'
-						)
+						get_routes.append(f'/{{realm}}/{module.module_name}/{method.method}{get_args}')
 					else:
-						get_routes.append(
-							f'/{module.module_name}/{method.method}{get_args}'
-						)
+						get_routes.append(f'/{module.module_name}/{method.method}{get_args}')
 			elif method.post_method:
 				for post_args_set in method.query_args:
 					if post_args_set:
@@ -63,13 +56,9 @@ async def run_app():
 						post_args = ''
 					if Config.realm:
 						post_args = post_args.replace('/{realm}', '')
-						post_routes.append(
-							f'/{{realm}}/{module.module_name}/{method.method}{post_args}'
-						)
+						post_routes.append(f'/{{realm}}/{module.module_name}/{method.method}{post_args}')
 					else:
-						post_routes.append(
-							f'/{module.module_name}/{method.method}{post_args}'
-						)
+						post_routes.append(f'/{module.module_name}/{method.method}{post_args}')
 
 	logger.debug(
 		'Loaded modules: %s',
@@ -160,7 +149,10 @@ async def run_app():
 				status=200,
 				headers=headers,
 				body=JSONEncoder().encode(
-					{'status': 200, 'msg': 'OPTIONS request is allowed.',}
+					{
+						'status': 200,
+						'msg': 'OPTIONS request is allowed.',
+					}
 				),
 			)
 
@@ -315,7 +307,11 @@ async def run_app():
 				session_results = await Config.modules['session'].read(
 					skip_events=[Event.PERM],
 					env=env,
-					query=[{'_id': request.headers['X-Auth-Bearer'],}],
+					query=[
+						{
+							'_id': request.headers['X-Auth-Bearer'],
+						}
+					],
 				)
 			except:
 				headers.append(('Content-Type', 'application/json; charset=utf-8'))
@@ -351,9 +347,7 @@ async def run_app():
 			if not session_results.args.count or not pbkdf2_sha512.verify(
 				request.headers['X-Auth-Token'], session_results.args.docs[0].token_hash
 			):
-				logger.debug(
-					'Denying request due to missing failed Call Authorisation.'
-				)
+				logger.debug('Denying request due to missing failed Call Authorisation.')
 				headers.append(('Content-Type', 'application/json; charset=utf-8'))
 				return aiohttp.web.Response(
 					status=403,
@@ -441,9 +435,7 @@ async def run_app():
 			headers.append(('lastModified', str(results.args.docs[0].lastModified)))
 			headers.append(('Content-Type', results.args.docs[0].type))
 			headers.append(('Cache-Control', 'public, max-age=31536000'))
-			headers.append(
-				('Expires', expiry_time.strftime('%a, %d %b %Y %H:%M:%S GMT'))
-			)
+			headers.append(('Expires', expiry_time.strftime('%a, %d %b %Y %H:%M:%S GMT')))
 			return aiohttp.web.Response(
 				status=results.status,
 				headers=headers,
@@ -452,9 +444,7 @@ async def run_app():
 		elif results.args['return'] == 'msg':
 			del results.args['return']
 			headers.append(('Content-Type', 'application/json; charset=utf-8'))
-			return aiohttp.web.Response(
-				status=results.status, headers=headers, body=results.msg
-			)
+			return aiohttp.web.Response(status=results.status, headers=headers, body=results.msg)
 
 		headers.append(('Content-Type', 'application/json; charset=utf-8'))
 		return aiohttp.web.Response(
@@ -465,9 +455,7 @@ async def run_app():
 
 	async def websocket_handler(request: aiohttp.web.Request):
 		conn = Data.create_conn()
-		logger.debug(
-			f'Websocket connection starting with client at \'{request.remote}\''
-		)
+		logger.debug(f'Websocket connection starting with client at \'{request.remote}\'')
 		ws = aiohttp.web.WebSocketResponse()
 		await ws.prepare(request)
 
@@ -532,14 +520,10 @@ async def run_app():
 			if 'conn' not in env:
 				await ws.close()
 				break
-			logger.debug(
-				f'Received new message from session #\'{env["id"]}\': {msg.data[:256]}'
-			)
+			logger.debug(f'Received new message from session #\'{env["id"]}\': {msg.data[:256]}')
 			if msg.type == aiohttp.WSMsgType.TEXT:
 				logger.debug(f'ip_quota on session #\'{env["id"]}\': {ip_quota}')
-				logger.debug(
-					f'session_quota: on session #\'{env["id"]}\': {env["quota"]}'
-				)
+				logger.debug(f'session_quota: on session #\'{env["id"]}\': {env["quota"]}')
 				# [DOC] Check for IP quota
 				if str(request.remote) not in ip_quota:
 					ip_quota[str(request.remote)] = {
@@ -548,12 +532,9 @@ async def run_app():
 					}
 				else:
 					if (
-						datetime.datetime.utcnow()
-						- ip_quota[str(request.remote)]['last_check']
+						datetime.datetime.utcnow() - ip_quota[str(request.remote)]['last_check']
 					).seconds > 59:
-						ip_quota[str(request.remote)][
-							'last_check'
-						] = datetime.datetime.utcnow()
+						ip_quota[str(request.remote)]['last_check'] = datetime.datetime.utcnow()
 						ip_quota[str(request.remote)]['counter'] = Config.quota_ip_min
 					else:
 						if ip_quota[str(request.remote)]['counter'] - 1 <= 0:
@@ -561,27 +542,32 @@ async def run_app():
 								f'Denying Websocket request from \'{request.remote}\' for hitting IP quota.'
 							)
 							asyncio.create_task(
-								handle_msg(env=env, msg=msg, decline_quota='ip',)
+								handle_msg(
+									env=env,
+									msg=msg,
+									decline_quota='ip',
+								)
 							)
 							continue
 						else:
 							ip_quota[str(request.remote)]['counter'] -= 1
 				# [DOC] Check for session quota
-				if (
-					datetime.datetime.utcnow() - env['quota']['last_check']
-				).seconds > 59:
+				if (datetime.datetime.utcnow() - env['quota']['last_check']).seconds > 59:
 					env['quota']['last_check'] = datetime.datetime.utcnow()
 					env['quota']['counter'] = (
 						(Config.quota_anon_min - 1)
-						if not env['session']
-						or env['session'].token == Config.anon_token
+						if not env['session'] or env['session'].token == Config.anon_token
 						else (Config.quota_auth_min - 1)
 					)
 					asyncio.create_task(handle_msg(env=env, msg=msg))
 				else:
 					if env['quota']['counter'] - 1 <= 0:
 						asyncio.create_task(
-							handle_msg(env=env, msg=msg, decline_quota='session',)
+							handle_msg(
+								env=env,
+								msg=msg,
+								decline_quota='session',
+							)
 						)
 						continue
 					else:
@@ -594,7 +580,9 @@ async def run_app():
 		return ws
 
 	async def handle_msg(
-		env: NAWAH_ENV, msg: aiohttp.WSMessage, decline_quota: str = None,
+		env: NAWAH_ENV,
+		msg: aiohttp.WSMessage,
+		decline_quota: str = None,
 	):
 		try:
 			env['last_call'] = datetime.datetime.utcnow()
@@ -607,9 +595,7 @@ async def run_app():
 				env['session'] = DictObj(anon_session)
 			res = json.loads(msg.data)
 			try:
-				res = jwt.decode(
-					res['token'], env['session'].token, algorithms=['HS256']
-				)
+				res = jwt.decode(res['token'], env['session'].token, algorithms=['HS256'])
 			except Exception:
 				await env['ws'].send_str(
 					JSONEncoder().encode(
@@ -617,9 +603,7 @@ async def run_app():
 							'status': 403,
 							'msg': 'Request token is not accepted.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_REQ_INVALID_TOKEN',
 							},
 						}
@@ -639,9 +623,7 @@ async def run_app():
 							'status': 429,
 							'msg': 'You have hit calls quota from this IP.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_REQ_IP_QUOTA_HIT',
 							},
 						}
@@ -655,9 +637,7 @@ async def run_app():
 							'status': 429,
 							'msg': 'You have hit calls quota.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_REQ_SESSION_QUOTA_HIT',
 							},
 						}
@@ -674,9 +654,7 @@ async def run_app():
 							'status': 400,
 							'msg': 'Request missing endpoint.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_REQ_NO_ENDPOINT',
 							},
 						}
@@ -692,9 +670,7 @@ async def run_app():
 								'status': 1008,
 								'msg': 'Request token is not accepted.',
 								'args': {
-									'call_id': res['call_id']
-									if 'call_id' in res.keys()
-									else None,
+									'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 									'code': 'CORE_REQ_NO_VERIFY',
 								},
 							}
@@ -709,8 +685,7 @@ async def run_app():
 						or res['doc']['app'] not in Config.client_apps.keys()
 						or (
 							Config.client_apps[res['doc']['app']]['type'] == 'web'
-							and env['HTTP_ORIGIN']
-							not in Config.client_apps[res['doc']['app']]['hosts']
+							and env['HTTP_ORIGIN'] not in Config.client_apps[res['doc']['app']]['hosts']
 						)
 					):
 						await env['ws'].send_str(
@@ -719,9 +694,7 @@ async def run_app():
 									'status': 1008,
 									'msg': 'Request token is not accepted.',
 									'args': {
-										'call_id': res['call_id']
-										if 'call_id' in res.keys()
-										else None,
+										'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 										'code': 'CORE_REQ_NO_VERIFY',
 									},
 								}
@@ -735,9 +708,7 @@ async def run_app():
 							env['client_app'] = '__public'
 						else:
 							env['client_app'] = res['doc']['app']
-						logger.debug(
-							f'Connection on session #\'{env["id"]}\' is verified.'
-						)
+						logger.debug(f'Connection on session #\'{env["id"]}\' is verified.')
 						if Config.analytics_events['app_conn_verified']:
 							asyncio.create_task(
 								Config.modules['analytic'].create(
@@ -759,9 +730,7 @@ async def run_app():
 									'status': 200,
 									'msg': 'Connection established',
 									'args': {
-										'call_id': res['call_id']
-										if 'call_id' in res.keys()
-										else None,
+										'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 										'code': 'CORE_CONN_OK',
 									},
 								}
@@ -770,25 +739,19 @@ async def run_app():
 						return
 
 			if res['endpoint'] == 'conn/close':
-				logger.debug(
-					f'Received connection close instructions on session #\'{env["id"]}\'.'
-				)
+				logger.debug(f'Received connection close instructions on session #\'{env["id"]}\'.')
 				await env['ws'].close()
 				return
 
 			if res['endpoint'] == 'heart/beat':
-				logger.debug(
-					f'Received connection heartbeat on session #\'{env["id"]}\'.'
-				)
+				logger.debug(f'Received connection heartbeat on session #\'{env["id"]}\'.')
 				await env['ws'].send_str(
 					JSONEncoder().encode(
 						{
 							'status': 200,
 							'msg': 'Heartbeat received.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_HEARTBEAT_OK',
 							},
 						}
@@ -807,9 +770,7 @@ async def run_app():
 							'status': 400,
 							'msg': 'You are already authed.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_SESSION_ALREADY_AUTHED',
 							},
 						}
@@ -826,9 +787,7 @@ async def run_app():
 							'status': 400,
 							'msg': 'Singout is not allowed for \'__ANON\' user.',
 							'args': {
-								'call_id': res['call_id']
-								if 'call_id' in res.keys()
-								else None,
+								'call_id': res['call_id'] if 'call_id' in res.keys() else None,
 								'code': 'CORE_SESSION_ANON_SIGNOUT',
 							},
 						}
@@ -892,12 +851,8 @@ async def run_app():
 						)
 						env['watch_tasks'] = {}
 					else:
-						env['watch_tasks'][request['query'][0]['watch']][
-							'stream'
-						].close()
-						env['watch_tasks'][request['query'][0]['watch']][
-							'task'
-						].cancel()
+						env['watch_tasks'][request['query'][0]['watch']]['stream'].close()
+						env['watch_tasks'][request['query'][0]['watch']]['task'].cancel()
 						await env['ws'].send_str(
 							JSONEncoder().encode(
 								{
@@ -1026,15 +981,11 @@ async def run_app():
 				except Exception as e:
 					logger.error(f'task close error: {e}')
 
-			logger.debug(
-				f'Closing data connection for session #\'{sessions[id]["id"]}\''
-			)
+			logger.debug(f'Closing data connection for session #\'{sessions[id]["id"]}\'')
 			sessions[id]['conn'].close()
 
 			logger.debug('Done closing data connection.')
-			logger.debug(
-				f'Websocket connection status: {not sessions[id]["ws"].closed}'
-			)
+			logger.debug(f'Websocket connection status: {not sessions[id]["ws"].closed}')
 
 			if not sessions[id]['ws'].closed:
 				await sessions[id]['ws'].close()
@@ -1056,8 +1007,7 @@ async def run_app():
 					if 'last_call' not in session.keys():
 						continue
 					if datetime.datetime.utcnow() > (
-						session['last_call']
-						+ datetime.timedelta(seconds=Config.conn_timeout)
+						session['last_call'] + datetime.timedelta(seconds=Config.conn_timeout)
 					):
 						logger.debug(
 							f'Session #\'{session["id"]}\' with REMOTE_ADDR \'{session["REMOTE_ADDR"]}\' HTTP_USER_AGENT: \'{session["HTTP_USER_AGENT"]}\' is idle. Closing.'
@@ -1071,9 +1021,7 @@ async def run_app():
 				logger.debug('Time to check for IPs quotas!')
 				del_ip_quota = []
 				for ip in ip_quota.keys():
-					if (
-						datetime.datetime.utcnow() - ip_quota[ip]['last_check']
-					).seconds > 59:
+					if (datetime.datetime.utcnow() - ip_quota[ip]['last_check']).seconds > 59:
 						logger.debug(
 							f'IP \'{ip}\' with quota \'{ip_quota[ip]["counter"]}\' is idle. Cleaning-up.'
 						)
@@ -1102,7 +1050,8 @@ async def run_app():
 						if job['type'] == 'job':
 							logger.debug('-Type of job: job.')
 							job['job'](
-								env=Config._sys_env, session=Config._sys_env,
+								env=Config._sys_env,
+								session=Config._sys_env,
 							)
 						elif job['type'] == 'call':
 							logger.debug('-Type of job: call.')
@@ -1123,9 +1072,7 @@ async def run_app():
 								session = session_results.args.docs[0]
 							else:
 								session = Config._sys_env
-							job_results = Config.modules[job['module']].methods[
-								job['method']
-							](
+							job_results = Config.modules[job['module']].methods[job['method']](
 								skip_events=job['skip_events'],
 								env=Config._sys_env,
 								query=job['query'],
@@ -1140,16 +1087,11 @@ async def run_app():
 							if not results_accepted:
 								logger.warning(f'Job has failed: {job}.')
 								logger.warning(f'-Job results: {job_results}.')
-								if (
-									'prevent_disable' not in job.keys()
-									or job['prevent_disable'] != True
-								):
+								if 'prevent_disable' not in job.keys() or job['prevent_disable'] != True:
 									logger.warning('-Disabling job.')
 									job['disabled'] = True
 								else:
-									logger.warning(
-										'-Detected job prevent_disable. Skipping disabling job..'
-									)
+									logger.warning('-Detected job prevent_disable. Skipping disabling job..')
 					else:
 						logger.debug('-Not yet due.')
 			except Exception:
@@ -1165,9 +1107,7 @@ async def run_app():
 							'create_time': {
 								'$lt': (
 									datetime.datetime.utcnow()
-									- datetime.timedelta(
-										seconds=Config.file_upload_timeout
-									)
+									- datetime.timedelta(seconds=Config.file_upload_timeout)
 								).isoformat()
 							}
 						}
@@ -1200,7 +1140,12 @@ async def run_app():
 	async def web_loop():
 		app = aiohttp.web.Application()
 		app.middlewares.append(
-			create_error_middleware({404: not_found_handler, 405: not_allowed_handler,})
+			create_error_middleware(
+				{
+					404: not_found_handler,
+					405: not_allowed_handler,
+				}
+			)
 		)
 		app.router.add_route('GET', '/', root_handler)
 		if Config.realm:
@@ -1218,4 +1163,16 @@ async def run_app():
 	async def loop_gather():
 		await asyncio.gather(jobs_loop(), web_loop())
 
-	asyncio.run(loop_gather())
+	try:
+		asyncio.run(loop_gather())
+	except KeyboardInterrupt:
+		if time.localtime().tm_hour >= 21 or time.localtime().tm_hour <= 4:
+			msg = 'night'
+		elif time.localtime().tm_hour >= 18:
+			msg = 'evening'
+		elif time.localtime().tm_hour >= 12:
+			msg = 'afternoon'
+		elif time.localtime().tm_hour >= 5:
+			msg = 'morning'
+		logger.info(f'Have a great {msg}!')
+		exit()
