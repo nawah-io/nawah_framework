@@ -1,6 +1,14 @@
 from nawah.enums import Event, LOCALE_STRATEGY
 from nawah.utils import generate_attr, deep_update
-from nawah.classes import NAWAH_MODULE, DictObj, BaseModel, NAWAH_DOC, ATTR, APP_CONFIG, PACKAGE_CONFIG
+from nawah.classes import (
+	NAWAH_MODULE,
+	DictObj,
+	BaseModel,
+	NAWAH_DOC,
+	ATTR,
+	APP_CONFIG,
+	PACKAGE_CONFIG,
+)
 
 from typing import List, Dict, Callable, Any, Union, Set, Tuple, Literal, TypedDict
 
@@ -18,12 +26,14 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 	if type(config) not in [APP_CONFIG, PACKAGE_CONFIG]:
 		logger.error(f'Config object of type \'{type(config)}\' is invalid. Exiting.')
 		exit(1)
-	
+
 	if type(config) == PACKAGE_CONFIG and not pkgname:
-		logger.error('Provided Config object of type \'PACKAGE_CONFIG\' without \'pkgname\'. Exiting.')
+		logger.error(
+			'Provided Config object of type \'PACKAGE_CONFIG\' without \'pkgname\'. Exiting.'
+		)
 		exit(1)
 
-	app_only_attrs = APP_CONFIG.__annotations__.keys() # pylint: disable=no-member
+	app_only_attrs = APP_CONFIG.__annotations__.keys()  # pylint: disable=no-member
 
 	for config_attr in dir(config):
 		config_attr_val = getattr(config, config_attr)
@@ -45,17 +55,23 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 				# [DOC] Update corresponding Config
 				getattr(Config, f'packages_{config_attr}s')[pkgname] = config_attr_val
 		# [DOC] Skip non Config Attr attrs
-		elif config_attr.startswith('__') or config_attr_val == None or config_attr in app_only_attrs:
+		elif (
+			config_attr.startswith('__')
+			or config_attr_val == None
+			or config_attr in app_only_attrs
+		):
 			continue
+		# [DOC] For vars_types Config Attr, preserve package name for debugging purposes
+		elif config_attr == 'vars_types':
+			for var in config_attr_val.keys():
+				Config.vars_types[var] = {'package': pkgname, 'type': config_attr_val[var]}
 		elif type(config_attr_val) == list:
 			for j in config_attr_val:
 				getattr(Config, config_attr).append(j)
 		elif type(config_attr_val) == dict:
 			if not getattr(Config, config_attr):
 				setattr(Config, config_attr, {})
-			deep_update(
-				target=getattr(Config, config_attr), new_values=config_attr_val
-			)
+			deep_update(target=getattr(Config, config_attr), new_values=config_attr_val)
 		else:
 			setattr(Config, config_attr, config_attr_val)
 
@@ -77,6 +93,7 @@ class Config:
 
 	_app_name: str = None
 	_app_version: str = None
+	_app_default_package: str = None
 	_app_path: str = None
 	_app_packages: Dict[str, str] = None
 
@@ -96,6 +113,7 @@ class Config:
 
 	realm: bool = False
 
+	vars_types: Dict[str, ATTR] = {}
 	vars: Dict[str, Any] = {}
 
 	client_apps: Dict[
@@ -184,14 +202,47 @@ class Config:
 		# [TODO] Add validator for user_attrs, user_settings, user_doc_settings
 
 		# [DOC] Check app packages
-		if cls._app_packages:
-			logger.debug('Found \'_app_packages\' Config Attr. Attempting to validate all loaded packages are matching _app_packages Config Attr value.')
+		if cls._app_packages or len(cls.packages_versions.keys()) > 2:
+			logger.debug(
+				'Found \'_app_packages\' Config Attr. Attempting to validate all loaded packages are matching _app_packages Config Attr value.'
+			)
+
+			cls._app_packages['core'] = cls.packages_versions['core']
+			cls._app_packages[cls._app_default_package] = cls.packages_versions[
+				cls._app_default_package
+			]
+
+			missing_packages = [
+				package
+				for package in cls._app_packages.keys()
+				if package not in cls.packages_versions.keys()
+			]
+			if missing_packages:
+				logger.error(
+					f'At least one package is missing that is required by app. Missing package[s]: \'{", ".join(missing_packages)}\'. Exiting.'
+				)
+				exit(1)
+
+			extra_packages = [
+				package
+				for package in cls.packages_versions.keys()
+				if package not in cls._app_packages.keys()
+			]
+			if extra_packages:
+				logger.error(
+					f'At least one extra package is present in \'packages\' folder that is not required by app. Extra package[s]: \'{", ".join(extra_packages)}\'. Exiting.'
+				)
+				exit(1)
+
+			# [DOC] Check for version mismatch
 			for package, version in cls._app_packages.items():
-				if package not in cls.packages_versions.keys():
-					logger.error(f'Package \'{package}\' is required by \'_app_packages\' Config Attr, but not loaded. Exiting.')
-					exit(1)
+				# [DOC] Skip core and default_packages
+				if package in ['core', cls._app_default_package]:
+					continue
 				if version != cls.packages_versions[package]:
-					logger.error(f'Package \'{package}\' version \'{cls.packages_versions[package]}\' is loaded but not matching required version \'{version}\'. Exiting.')
+					logger.error(
+						f'Package \'{package}\' version \'{cls.packages_versions[package]}\' is added to app but not matching required version \'{version}\'. Exiting.'
+					)
 					exit(1)
 
 		# [DOC] Check API version
@@ -240,9 +291,7 @@ class Config:
 			cls._jobs_base = datetime.datetime.utcnow()
 			for job in cls.jobs:
 				if not croniter.is_valid(job['schedule']):
-					logger.error(
-						f'Job with schedule \'{job["schedule"]}\' is invalid. Exiting.'
-					)
+					logger.error(f'Job with schedule \'{job["schedule"]}\' is invalid. Exiting.')
 					exit()
 				else:
 					job['schedule'] = croniter(job['schedule'], cls._jobs_base)
@@ -252,17 +301,13 @@ class Config:
 
 		# [DOC] Check for presence of user_auth_attrs
 		if not cls.user_attrs.keys():
-			logger.error(
-				'No \'user_attrs\' are provided. Exiting.'
-			)
+			logger.error('No \'user_attrs\' are provided. Exiting.')
 			exit()
 
 		# [DOC] Check default values
 		security_warning = '[SECURITY WARNING] {config_attr} is not explicitly set. It has been defaulted to \'{val}\' but in production environment you should consider setting it to your own to protect your app from breaches.'
 		if cls.admin_password == '__ADMIN':
-			logger.warning(
-				security_warning.format(config_attr='Admin password', val='__ADMIN')
-			)
+			logger.warning(security_warning.format(config_attr='Admin password', val='__ADMIN'))
 		if cls.anon_token == '__ANON_TOKEN_f00000000000000000000012':
 			logger.warning(
 				security_warning.format(
@@ -282,9 +327,7 @@ class Config:
 		for data_attr_name in data_attrs.keys():
 			data_attr = getattr(cls, f'data_{data_attr_name}')
 			if type(data_attr) == str and data_attr.startswith('$__env.'):
-				logger.debug(
-					f'Detected Env Variable for config attr \'data_{data_attr_name}\''
-				)
+				logger.debug(f'Detected Env Variable for config attr \'data_{data_attr_name}\'')
 				if not os.getenv(data_attr[7:]):
 					logger.warning(
 						f'Couldn\'t read Env Variable for config attr \'data_{data_attr_name}\'. Defaulting to \'{data_attrs[data_attr_name]}\''
@@ -355,13 +398,9 @@ class Config:
 						logger.debug(
 							f'Updating collection name \'{cls.modules[module].collection}\' of module {module}'
 						)
-						cls.modules[
-							module
-						].collection = f'test_{cls.modules[module].collection}'
+						cls.modules[module].collection = f'test_{cls.modules[module].collection}'
 						if cls.test and not cls.test_skip_flush:
-							logger.debug(
-								f'Flushing test collection \'{cls.modules[module].collection}\''
-							)
+							logger.debug(f'Flushing test collection \'{cls.modules[module].collection}\'')
 							await Data.drop(
 								env=cls._sys_env,
 								collection=cls.modules[module].collection,
@@ -387,15 +426,11 @@ class Config:
 						# [DOC] Attempt required changes to query_args to add realm query_arg
 						if not cls.modules[module].methods[method].query_args:
 							cls.modules[module].methods[method].query_args = [{}]
-						elif (
-							type(cls.modules[module].methods[method].query_args) == dict
-						):
+						elif type(cls.modules[module].methods[method].query_args) == dict:
 							cls.modules[module].methods[method].query_args = [
 								cls.modules[module].methods[method].query_args
 							]
-						for query_args_set in (
-							cls.modules[module].methods[method].query_args
-						):
+						for query_args_set in cls.modules[module].methods[method].query_args:
 							query_args_set['realm'] = ATTR.STR()
 						# [DOC] Attempt required changes to doc_args to add realm doc_arg
 						if not cls.modules[module].methods[method].doc_args:
@@ -404,9 +439,7 @@ class Config:
 							cls.modules[module].methods[method].doc_args = [
 								cls.modules[module].methods[method].doc_args
 							]
-						for doc_args_set in (
-							cls.modules[module].methods[method].doc_args
-						):
+						for doc_args_set in cls.modules[module].methods[method].doc_args:
 							doc_args_set['realm'] = ATTR.STR()
 			# [DOC] Query all realms to provide access to available realms and to add realm docs to _sys_docs
 			realm_results = await cls.modules['realm'].read(
@@ -437,7 +470,7 @@ class Config:
 					exit()
 
 		# [DOC] Checking users collection
-		# [TODO] Updated sequence to handle users 
+		# [TODO] Updated sequence to handle users
 		logger.debug('Testing users collection.')
 		user_results = await cls.modules['user'].read(
 			skip_events=[Event.PERM, Event.ON],
@@ -458,9 +491,7 @@ class Config:
 			admin_doc.update(cls.admin_doc)
 
 			for auth_attr in cls.user_attrs.keys():
-				admin_doc[
-					f'{auth_attr}_hash'
-				] = pbkdf2_sha512.using(  # pylint: disable=no-member
+				admin_doc[f'{auth_attr}_hash'] = pbkdf2_sha512.using(  # pylint: disable=no-member
 					rounds=100000
 				).hash(
 					f'{auth_attr}{admin_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
@@ -483,9 +514,7 @@ class Config:
 				'ADMIN user found, skipping check due to force_admin_check Config Attr.'
 			)
 		else:
-			logger.warning(
-				'ADMIN user found, checking it due to force_admin_check Config Attr.'
-			)
+			logger.warning('ADMIN user found, checking it due to force_admin_check Config Attr.')
 			admin_doc = user_results.args.docs[0]
 			admin_doc_update = {}
 			for attr in cls.admin_doc.keys():
@@ -501,16 +530,13 @@ class Config:
 						and (
 							(
 								cls.locale in admin_doc[attr].keys()
-								and cls.admin_doc[attr][cls.locale]
-								== admin_doc[attr][cls.locale]
+								and cls.admin_doc[attr][cls.locale] == admin_doc[attr][cls.locale]
 							)
 							or (cls.locale not in admin_doc[attr].keys())
 						)
 					):
 						continue
-					logger.debug(
-						f'Detected change in \'admin_doc.{attr}\' Config Attr.'
-					)
+					logger.debug(f'Detected change in \'admin_doc.{attr}\' Config Attr.')
 					admin_doc_update[attr] = cls.admin_doc[attr]
 			for auth_attr in cls.user_attrs.keys():
 				auth_attr_hash = pbkdf2_sha512.using(  # pylint: disable=no-member
@@ -527,9 +553,7 @@ class Config:
 					logger.debug(f'Detected change in \'admin_password\' Config Attr.')
 					admin_doc_update[f'{auth_attr}_hash'] = auth_attr_hash
 			if len(admin_doc_update.keys()):
-				logger.debug(
-					f'Attempting to update ADMIN user with doc: \'{admin_doc_update}\''
-				)
+				logger.debug(f'Attempting to update ADMIN user with doc: \'{admin_doc_update}\'')
 				admin_results = await cls.modules['user'].update(
 					skip_events=[Event.PERM, Event.PRE, Event.ON],
 					env=cls._sys_env,
@@ -569,17 +593,13 @@ class Config:
 			for attr in cls.user_attrs.keys():
 				if attr not in anon_doc or not anon_doc[attr]:
 					logger.debug(f'Detected change in \'anon_doc.{attr}\' Config Attr.')
-					anon_doc_update[attr] = generate_attr(
-						attr_type=cls.user_attrs[attr]
-					)
+					anon_doc_update[attr] = generate_attr(attr_type=cls.user_attrs[attr])
 			for module in cls.anon_privileges.keys():
 				if module not in anon_doc or set(anon_doc[module]) != set(
 					cls.anon_privileges[module]
 				):
 					logger.debug(f'Detected change in \'anon_privileges\' Config Attr.')
-					anon_doc_update[f'privileges.{module}'] = cls.anon_privileges[
-						module
-					]
+					anon_doc_update[f'privileges.{module}'] = cls.anon_privileges[module]
 			for auth_attr in cls.user_attrs.keys():
 				if (
 					f'{auth_attr}_hash' not in anon_doc
@@ -589,9 +609,7 @@ class Config:
 					anon_doc_update[attr] = cls.anon_token
 				anon_doc_update[f'{auth_attr}_hash'] = cls.anon_token
 			if len(anon_doc_update.keys()):
-				logger.debug(
-					f'Attempting to update ANON user with doc: \'{anon_doc_update}\''
-				)
+				logger.debug(f'Attempting to update ANON user with doc: \'{anon_doc_update}\'')
 				anon_results = await cls.modules['user'].update(
 					skip_events=[Event.PERM, Event.PRE, Event.ON],
 					env=cls._sys_env,
@@ -662,12 +680,8 @@ class Config:
 				if module not in default_doc.privileges.keys() or set(
 					default_doc.privileges[module]
 				) != set(cls.default_privileges[module]):
-					logger.debug(
-						f'Detected change in \'default_privileges\' Config Attr.'
-					)
-					default_doc_update[f'privileges.{module}'] = cls.default_privileges[
-						module
-					]
+					logger.debug(f'Detected change in \'default_privileges\' Config Attr.')
+					default_doc_update[f'privileges.{module}'] = cls.default_privileges[module]
 			if len(default_doc_update.keys()):
 				logger.debug(
 					f'Attempting to update DEFAULT group with doc: \'{default_doc_update}\''
@@ -726,9 +740,7 @@ class Config:
 							logger.debug(
 								f'Detected change in \'privileges\' Doc Arg for group with name \'{group["name"]}\'.'
 							)
-							group_doc_update[f'privileges.{module}'] = group[
-								'privileges'
-							][module]
+							group_doc_update[f'privileges.{module}'] = group['privileges'][module]
 				if len(group_doc_update.keys()):
 					logger.debug(
 						f'Attempting to update group with name \'{group["name"]}\' with doc: \'{group_doc_update}\''
@@ -754,9 +766,7 @@ class Config:
 		logger.debug('Testing data indexes')
 		for index in cls.data_indexes:
 			logger.debug(f'Attempting to create data index: {index}')
-			cls._sys_conn[cls.data_name][index['collection']].create_index(
-				index['index']
-			)
+			cls._sys_conn[cls.data_name][index['collection']].create_index(index['index'])
 		logger.debug(
 			'Creating \'var\', \'type\', \'user\' data indexes for settings collections.'
 		)
@@ -775,9 +785,9 @@ class Config:
 				logger.debug(
 					f'Attempting to create \'__deleted\' data index for collection: {cls.modules[module].collection}'
 				)
-				cls._sys_conn[cls.data_name][
-					cls.modules[module].collection
-				].create_index([('__deleted', 1)])
+				cls._sys_conn[cls.data_name][cls.modules[module].collection].create_index(
+					[('__deleted', 1)]
+				)
 		if cls.realm:
 			logger.debug('Creating \'realm\' data indexes for all collections.')
 			for module in cls.modules:
@@ -785,9 +795,9 @@ class Config:
 					logger.debug(
 						f'Attempting to create \'realm\' data index for collection: {cls.modules[module].collection}'
 					)
-					cls._sys_conn[cls.data_name][
-						cls.modules[module].collection
-					].create_index([('realm', 'text')])
+					cls._sys_conn[cls.data_name][cls.modules[module].collection].create_index(
+						[('realm', 'text')]
+					)
 
 		# [DOC] Test app-specific docs
 		logger.debug('Testing docs.')
@@ -818,9 +828,7 @@ class Config:
 				if doc_results.status != 200:
 					logger.error('Config step failed. Exiting.')
 					exit()
-			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = {
-				'module': doc['module']
-			}
+			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = {'module': doc['module']}
 
 		# [DOC] Check for test mode
 		if cls.test:
