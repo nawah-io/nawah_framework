@@ -56,18 +56,14 @@ class Core(BaseModule):
 			msg='Module Cache Sets queries retrieved.',
 			args={
 				'queries': list(
-					Registry.module(query['module'][0])
-					.cache[query['cache_set'][0]]
-					.queries.keys()
+					Registry.module(query['module'][0]).cache[query['cache_set'][0]].queries.keys()
 				)
 			},
 		)
-		
+
 	async def retrieve_cache_results(self, skip_events=[], env={}, query=[], doc={}):
 		cache_set_query = list(
-			Registry.module(query['module'][0])
-			.cache[query['cache_set'][0]]
-			.queries.keys()
+			Registry.module(query['module'][0]).cache[query['cache_set'][0]].queries.keys()
 		)[query['query'][0]]
 		return self.status(
 			status=200,
@@ -83,4 +79,3 @@ class Core(BaseModule):
 				.query_time.isoformat(),
 			},
 		)
-

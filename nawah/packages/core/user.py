@@ -20,9 +20,7 @@ class User(BaseModule):
 		'create_time': ATTR.DATETIME(
 			desc='Python `datetime` ISO format of the doc creation.'
 		),
-		'login_time': ATTR.DATETIME(
-			desc='Python `datetime` ISO format of the last login.'
-		),
+		'login_time': ATTR.DATETIME(desc='Python `datetime` ISO format of the last login.'),
 		'groups': ATTR.LIST(
 			desc='List of `_id` for every group the user is member of.',
 			list=[ATTR.ID(desc='`_id` of Group doc the user is member of.')],
@@ -95,9 +93,7 @@ class User(BaseModule):
 				setting_results = await Registry.module('setting').read(
 					skip_events=[Event.PERM, Event.ARGS],
 					env=env,
-					query=[
-						{'user': user._id, 'var': {'$in': Config.user_doc_settings}}
-					],
+					query=[{'user': user._id, 'var': {'$in': Config.user_doc_settings}}],
 				)
 				user_doc_settings = copy.copy(Config.user_doc_settings)
 				if setting_results.args.count:
@@ -132,7 +128,7 @@ class User(BaseModule):
 						await validate_attr(
 							attr_name=attr,
 							attr_type=Config.user_settings[attr]['val_type'],
-							attr_val=doc[attr]
+							attr_val=doc[attr],
 						)
 						user_settings[attr] = doc[attr]
 					except:
@@ -177,9 +173,7 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(
-				status=400, msg='User is invalid.', args={'code': 'INVALID_USER'}
-			)
+			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
 		user = results.args.docs[0]
 		for group in user.groups:
 			group_results = await Registry.module('group').read(
@@ -191,9 +185,7 @@ class User(BaseModule):
 					user.privileges[privilege] = []
 				for i in range(len(group.privileges[privilege])):
 					if group.privileges[privilege][i] not in user.privileges[privilege]:
-						user.privileges[privilege].append(
-							group.privileges[privilege][i]
-						)
+						user.privileges[privilege].append(group.privileges[privilege][i])
 		return results
 
 	async def add_group(self, skip_events=[], env={}, query=[], doc={}):
@@ -220,9 +212,7 @@ class User(BaseModule):
 		# [DOC] Get user details
 		results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 		if not results.args.count:
-			return self.status(
-				status=400, msg='User is invalid.', args={'code': 'INVALID_USER'}
-			)
+			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
 		user = results.args.docs[0]
 		# [DOC] Confirm group was not added before
 		if doc['group'] in user.groups:
@@ -252,9 +242,7 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(
-				status=400, msg='User is invalid.', args={'code': 'INVALID_USER'}
-			)
+			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
 		user = results.args.docs[0]
 		# [DOC] Confirm group was not added before
 		if query['group'][0] not in user.groups:

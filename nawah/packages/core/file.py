@@ -23,7 +23,10 @@ class File(BaseModule):
 	}
 	methods = {
 		'read': {'permissions': [PERM(privilege='__sys')]},
-		'create': {'permissions': [PERM(privilege='create')], 'post_method': True,},
+		'create': {
+			'permissions': [PERM(privilege='create')],
+			'post_method': True,
+		},
 		'delete': {'permissions': [PERM(privilege='__sys')]},
 	}
 
@@ -35,10 +38,7 @@ class File(BaseModule):
 		return (results, skip_events, env, query, doc, payload)
 
 	async def pre_create(self, skip_events, env, query, doc, payload):
-		if (
-			Config.file_upload_limit != -1
-			and len(doc[b'file'][3]) > Config.file_upload_limit
-		):
+		if Config.file_upload_limit != -1 and len(doc[b'file'][3]) > Config.file_upload_limit:
 			return self.status(
 				status=400,
 				msg=f'File size is beyond allowed limit.',
@@ -48,7 +48,7 @@ class File(BaseModule):
 					'name': doc[b'name'][3].decode('utf-8'),
 				},
 			)
-		if (module := doc[b'__module'][3].decode('utf-8')) not in Registry._modules.keys():
+		if (module := doc[b'__module'][3].decode('utf-8')) not in Config.modules.keys():
 			return self.status(
 				status=400,
 				msg=f'Invalid module \'{module}\'',
@@ -69,7 +69,10 @@ class File(BaseModule):
 				},
 			}
 			try:
-				validate_attr(attr_name=attr, attr_type=attr_type, attr_val=doc['file'])
+				attr_val = doc['file']
+				if attr_type._type == 'LIST':
+					attr_val = [doc['file']]
+				await validate_attr(attr_name=attr, attr_type=attr_type, attr_val=attr_val)
 			except:
 				return self.status(
 					status=400,

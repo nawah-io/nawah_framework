@@ -222,9 +222,7 @@ class BaseMethod:
 				# [DOC] Update doc with doc permissions args
 				doc.update(permissions_check['doc'])
 				doc = {
-					attr: doc[attr]
-					for attr in doc.keys()
-					if doc[attr] != NAWAH_VALUES.NONE_VALUE
+					attr: doc[attr] for attr in doc.keys() if doc[attr] != NAWAH_VALUES.NONE_VALUE
 				}
 
 		if Event.ARGS not in skip_events:
@@ -310,9 +308,7 @@ class BaseMethod:
 			# [DOC] Check for proxy module
 			if self.module.proxy:
 				if not getattr(self.module, f'_method_{self.method}', None):
-					method = getattr(
-						Config.modules[self.module.proxy], f'_method_{self.method}'
-					)
+					method = getattr(Config.modules[self.module.proxy], f'_method_{self.method}')
 				else:
 					method = getattr(self.module, f'_method_{self.method}')
 			else:
@@ -333,9 +329,7 @@ class BaseMethod:
 					)
 				)
 				env['watch_tasks'][call_id] = {
-					'watch': method(
-						skip_events=skip_events, env=env, query=query, doc=doc
-					)
+					'watch': method(skip_events=skip_events, env=env, query=query, doc=doc)
 				}
 				env['watch_tasks'][call_id]['watch'] = self.watch_loop(
 					ws=env['ws'],
@@ -348,13 +342,9 @@ class BaseMethod:
 				)
 				return
 			else:
-				results = await method(
-					skip_events=skip_events, env=env, query=query, doc=doc
-				)
+				results = await method(skip_events=skip_events, env=env, query=query, doc=doc)
 				if type(results) == coroutine:
-					raise TypeError(
-						'Method returned coroutine rather than acceptable results format.'
-					)
+					raise TypeError('Method returned coroutine rather than acceptable results format.')
 				results = DictObj(results)
 				try:
 					results['args'] = DictObj(results.args)
@@ -371,9 +361,7 @@ class BaseMethod:
 						# [DOC] Updating session to user
 						env['session'] = results.args.session
 
-				return await self.return_results(
-					ws=env['ws'], results=results, call_id=call_id
-				)
+				return await self.return_results(ws=env['ws'], results=results, call_id=call_id)
 			# query = Query([])
 		except Exception as e:
 			logger.error(f'An error occurred. Details: {traceback.format_exc()}.')
@@ -384,9 +372,7 @@ class BaseMethod:
 				while current is not None:
 					prev = current
 					current = current.tb_next
-				logger.error(
-					f'Scope variables: {JSONEncoder().encode(prev.tb_frame.f_locals)}'
-				)
+				logger.error(f'Scope variables: {JSONEncoder().encode(prev.tb_frame.f_locals)}')
 			query = Query([])
 			if Config.debug:
 				return await self.return_results(

@@ -41,9 +41,7 @@ class Analytic(BaseModule):
 							key=ATTR.STR(),
 							val=ATTR.ANY(),
 						),
-						'score': ATTR.INT(
-							desc='Numerical score for occurrence of the event.'
-						),
+						'score': ATTR.INT(desc='Numerical score for occurrence of the event.'),
 						'create_time': ATTR.DATETIME(
 							desc='Python `datetime` ISO format of the occurrence of the event.'
 						),
