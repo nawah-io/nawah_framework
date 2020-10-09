@@ -27,7 +27,6 @@ then
 	cd nawah_framework_wheels
 	git add .
 	git commit -m "$(cat ../commit_msg)"
-	git tag v$NAWAH_VERSION
-	git push
-	git push --tags
+	git tag APIv$NAWAH_VERSION
+	echo 'Inspect and push changes and tags from nawah_framework_wheels'
 fi
