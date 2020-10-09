@@ -32,14 +32,10 @@ class Session(BaseModule):
 		'user': ATTR.ID(desc='`_id` of `User` doc the doc belongs to.'),
 		'groups': ATTR.LIST(
 			desc='List of `_id` for every group the session is authenticated against. This attr is set by `auth` method when called with `groups` Doc Arg for Controller Auth Sequence.',
-			list=[
-				ATTR.ID(desc='`_id` of Group doc the session is authenticated against.')
-			],
+			list=[ATTR.ID(desc='`_id` of Group doc the session is authenticated against.')],
 		),
 		'host_add': ATTR.IP(desc='IP of the host the user used to authenticate.'),
-		'user_agent': ATTR.STR(
-			desc='User-agent of the app the user used to authenticate.'
-		),
+		'user_agent': ATTR.STR(desc='User-agent of the app the user used to authenticate.'),
 		'expiry': ATTR.DATETIME(desc='Python `datetime` ISO format of session expiry.'),
 		'token_hash': ATTR.STR(desc='Hashed system-generated session token.'),
 		'create_time': ATTR.DATETIME(
@@ -49,9 +45,7 @@ class Session(BaseModule):
 	defaults = {'groups': []}
 	extns = {'user': EXTN(module='user', attrs=['*'], force=True)}
 	methods = {
-		'read': {
-			'permissions': [PERM(privilege='read', query_mod={'user': '$__user'})]
-		},
+		'read': {'permissions': [PERM(privilege='read', query_mod={'user': '$__user'})]},
 		'create': {'permissions': [PERM(privilege='create')]},
 		'update': {
 			'permissions': [
@@ -92,9 +86,7 @@ class Session(BaseModule):
 				break
 		user_query = [{key: doc[key], '$limit': 1}]
 		if 'groups' in doc.keys():
-			user_query.append(
-				[{'groups': {'$in': doc['groups']}}, {'privileges': {'*': ['*']}}]
-			)
+			user_query.append([{'groups': {'$in': doc['groups']}}, {'privileges': {'*': ['*']}}])
 		user_results = await Registry.module('user').read(
 			skip_events=[Event.PERM, Event.ON], env=env, query=user_query
 		)
@@ -128,10 +120,10 @@ class Session(BaseModule):
 			'groups': doc['groups'] if 'groups' in doc.keys() else [],
 			'host_add': env['REMOTE_ADDR'],
 			'user_agent': env['HTTP_USER_AGENT'],
-			'expiry': (
-				datetime.datetime.utcnow() + datetime.timedelta(days=30)
-			).isoformat(),
-			'token_hash': pbkdf2_sha512.using(rounds=100000).hash(token),  # pylint: disable=no-member
+			'expiry': (datetime.datetime.utcnow() + datetime.timedelta(days=30)).isoformat(),
+			'token_hash': pbkdf2_sha512.using(rounds=100000).hash(
+				token
+			),  # pylint: disable=no-member
 		}
 
 		results = await self.create(skip_events=[Event.PERM], env=env, doc=session)
@@ -207,9 +199,7 @@ class Session(BaseModule):
 		session_query = [{'_id': query['_id'][0]}]
 		if 'groups' in query:
 			session_query.append({'groups': {'$in': query['groups'][0]}})
-		results = await self.read(
-			skip_events=[Event.PERM], env=env, query=session_query
-		)
+		results = await self.read(skip_events=[Event.PERM], env=env, query=session_query)
 		if not results.args.count:
 			return self.status(
 				status=403, msg='Session is invalid.', args={'code': 'INVALID_SESSION'}
@@ -245,9 +235,7 @@ class Session(BaseModule):
 			env=env,
 			query=[{'_id': results.args.docs[0]._id}],
 			doc={
-				'expiry': (
-					datetime.datetime.utcnow() + datetime.timedelta(days=30)
-				).isoformat()
+				'expiry': (datetime.datetime.utcnow() + datetime.timedelta(days=30)).isoformat()
 			},
 		)
 		# [DOC] read user privileges and return them
@@ -381,9 +369,7 @@ class Session(BaseModule):
 		permissions = copy.deepcopy(permissions)
 
 		for permission in permissions:
-			logger.debug(
-				f'checking permission: {permission} against: {user.privileges}'
-			)
+			logger.debug(f'checking permission: {permission} against: {user.privileges}')
 			permission_pass = False
 			if permission.privilege == '*':
 				permission_pass = True
@@ -396,18 +382,14 @@ class Session(BaseModule):
 					permission_module = permission.privilege.split('.')[0]
 					permission_attr = permission.privilege.split('.')[1]
 
-				if ('*' in user.privileges.keys()):
-					user.privileges[permission_module] = copy.deepcopy(
-						user.privileges['*']
-					)
+				if '*' in user.privileges.keys():
+					user.privileges[permission_module] = copy.deepcopy(user.privileges['*'])
 				if permission_module in user.privileges.keys():
 					if (
 						type(user.privileges[permission_module]) == list
 						and '*' in user.privileges[permission_module]
 					):
-						user.privileges[permission_module] += copy.deepcopy(
-							module.privileges
-						)
+						user.privileges[permission_module] += copy.deepcopy(module.privileges)
 				if permission_module not in user.privileges.keys():
 					user.privileges[permission_module] = []
 

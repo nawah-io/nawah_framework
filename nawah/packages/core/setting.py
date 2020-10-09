@@ -46,8 +46,7 @@ class Setting(BaseModule):
 					query_mod={
 						'user': '$__user',
 						'type': ATTR_MOD(
-							condition=lambda skip_events, env, query, doc: 'type'
-							not in query
+							condition=lambda skip_events, env, query, doc: 'type' not in query
 							or query['type'][0] == 'user_sys',
 							default=lambda skip_events, env, query, doc: InvalidAttrException(
 								attr_name='type',
@@ -64,7 +63,10 @@ class Setting(BaseModule):
 					'_id': ATTR.ID(),
 					'type': ATTR.LITERAL(literal=['global', 'user', 'user_sys']),
 				},
-				{'var': ATTR.STR(), 'type': ATTR.LITERAL(literal=['global']),},
+				{
+					'var': ATTR.STR(),
+					'type': ATTR.LITERAL(literal=['global']),
+				},
 				{
 					'var': ATTR.STR(),
 					'user': ATTR.ID(),
@@ -92,7 +94,10 @@ class Setting(BaseModule):
 					'_id': ATTR.ID(),
 					'type': ATTR.LITERAL(literal=['global', 'user', 'user_sys']),
 				},
-				{'var': ATTR.STR(), 'type': ATTR.LITERAL(literal=['global']),},
+				{
+					'var': ATTR.STR(),
+					'type': ATTR.LITERAL(literal=['global']),
+				},
 				{
 					'var': ATTR.STR(),
 					'user': ATTR.ID(),
@@ -112,10 +117,7 @@ class Setting(BaseModule):
 
 	async def on_create(self, results, skip_events, env, query, doc, payload):
 		if doc['type'] in ['user', 'user_sys']:
-			if (
-				doc['user'] == env['session'].user._id
-				and doc['var'] in Config.user_doc_settings
-			):
+			if doc['user'] == env['session'].user._id and doc['var'] in Config.user_doc_settings:
 				env['session'].user[doc['var']] = doc['val']
 		return (results, skip_events, env, query, doc, payload)
 
@@ -131,9 +133,7 @@ class Setting(BaseModule):
 				args={'code': 'INVALID_DOC'},
 			)
 
-		setting_results = await self.read(
-			skip_events=[Event.PERM], env=env, query=query
-		)
+		setting_results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 		if not setting_results.args.count:
 			return self.status(
 				status=400, msg='Invalid Setting doc', args={'code': 'INVALID_SETTING'}
@@ -145,24 +145,22 @@ class Setting(BaseModule):
 			setting_val_type, _ = generate_dynamic_attr(dynamic_attr=setting.val_type)
 			await validate_doc(
 				doc=doc,
-				attrs={
-					'val':setting_val_type
-				},
+				attrs={'val': setting_val_type},
 				allow_update=True,
 				skip_events=skip_events,
 				env=env,
-				query=query
+				query=query,
 			)
-		except Exception as exception_raised:
-			pass
+		except Exception as e:
+			exception_raised = e
 
 		if exception_raised or doc[val_attr] == None:
 			return self.status(
 				status=400,
-				msg=f'Invalid value for for Setting doc of type \'{type(doc[val_attr])}\' with required type \'{setting_val_type}\'',
+				msg=f'Invalid value for for Setting doc of type \'{type(doc[val_attr])}\' with required type \'{setting.val_type}\'',
 				args={'code': 'INVALID_ATTR'},
 			)
-			
+
 		return (skip_events, env, query, doc, payload)
 
 	async def on_update(self, results, skip_events, env, query, doc, payload):
@@ -179,7 +177,9 @@ class Setting(BaseModule):
 				elif type(doc['val']) == dict and '$append' in doc['val'].keys():
 					env['session'].user[query['var'][0]].append(doc['val']['$append'])
 				elif type(doc['val']) == dict and '$set_index' in doc['val'].keys():
-					env['session'].user[query['var'][0]][doc['val']['$index']] = doc['val']['$set_index']
+					env['session'].user[query['var'][0]][doc['val']['$index']] = doc['val'][
+						'$set_index'
+					]
 				elif type(doc['val']) == dict and '$del_val' in doc['val'].keys():
 					for val in doc['val']['$del_val']:
 						env['session'].user[query['var'][0]].remove(val)

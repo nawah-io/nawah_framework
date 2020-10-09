@@ -113,10 +113,7 @@ class STEP:
 				raise InvalidTestStepException(
 					msg=f'Test step arg \'module\' is invalid. Unknown Nawah module \'{step._args["module"]}\'.'
 				)
-			if (
-				step._args['method']
-				not in Config.modules[step._args['module']].methods.keys()
-			):
+			if step._args['method'] not in Config.modules[step._args['module']].methods.keys():
 				raise InvalidTestStepException(
 					msg=f'Test step arg \'method\' is invalid. Unknown method \'{step._args["method"]}\'.'
 				)
@@ -264,14 +261,10 @@ class Test:
 						},
 					)
 				except InvalidTestStepException as e:
-					logger.error(
-						f'Can\'t process test step \'AUTH\' with error: {e} Exiting.'
-					)
+					logger.error(f'Can\'t process test step \'AUTH\' with error: {e} Exiting.')
 					exit(1)
 			elif step._step == 'SIGNOUT':
-				step = STEP.CALL(
-					module='session', method='signout', query=[{'_id': '$__session'}]
-				)
+				step = STEP.CALL(module='session', method='signout', query=[{'_id': '$__session'}])
 			else:
 				try:
 					await STEP.validate_step(step=step)
@@ -282,9 +275,7 @@ class Test:
 			if step._step == 'CALL':
 				call_results = await cls.run_call(results=results, **step._args)
 				if 'session' in call_results.keys():
-					logger.debug(
-						'Updating session after detecting \'session\' in call results.'
-					)
+					logger.debug('Updating session after detecting \'session\' in call results.')
 					if str(call_results['session']._id) == 'f00000000000000000000012':
 						cls.session = DictObj(
 							{
@@ -309,9 +300,7 @@ class Test:
 			elif step._step == 'SET_REALM':
 				try:
 					if step._args['realm'].startswith('$__'):
-						step._args['realm'] = extract_attr(
-							scope=results, attr_path=step._args['realm']
-						)
+						step._args['realm'] = extract_attr(scope=results, attr_path=step._args['realm'])
 					logger.debug(f'Updating realm to \'{step._args["realm"]}\'.')
 					cls.env['realm'] = step._args['realm']
 					results['steps'].append(
@@ -492,15 +481,9 @@ class Test:
 			elif type(obj[j]) in [CALC, CAST, JOIN]:
 				obj[j] = obj[j].execute(scope=results)
 			elif type(obj[j]) == dict:
-				obj[j] = cls.process_obj(
-					results=results, obj=obj[j], call_results=call_results
-				)
+				obj[j] = cls.process_obj(results=results, obj=obj[j], call_results=call_results)
 			elif type(obj[j]) == list:
-				if (
-					len(obj[j])
-					and type(obj[j][0]) == dict
-					and '__attr' in obj[j][0].keys()
-				):
+				if len(obj[j]) and type(obj[j][0]) == dict and '__attr' in obj[j][0].keys():
 					if 'count' not in obj[j][0].keys():
 						obj[j][0]['count'] = 1
 					obj[j] = [
@@ -508,16 +491,12 @@ class Test:
 						for ii in range(obj[j][0]['count'])
 					]
 				else:
-					obj[j] = cls.process_obj(
-						results=results, obj=obj[j], call_results=call_results
-					)
+					obj[j] = cls.process_obj(results=results, obj=obj[j], call_results=call_results)
 			elif type(obj[j]) == str and obj[j].startswith('$__'):
 				if obj[j] == '$__session':
 					obj[j] = cls.session
 				elif obj[j].startswith('$__session.'):
-					obj[j] = extract_attr(
-						scope=cls.session, attr_path=obj[j].replace('session.', '')
-					)
+					obj[j] = extract_attr(scope=cls.session, attr_path=obj[j].replace('session.', ''))
 				else:
 					obj[j] = extract_attr(scope=results, attr_path=obj[j])
 			elif callable(obj[j]):
@@ -527,9 +506,7 @@ class Test:
 		return obj
 
 	@classmethod
-	def break_debugger(
-		cls, scope: Dict[str, Any], call_results: Dict[str, Any]
-	) -> None:
+	def break_debugger(cls, scope: Dict[str, Any], call_results: Dict[str, Any]) -> None:
 		from .config import Config
 
 		if Config.test_breakpoint:
@@ -538,7 +515,5 @@ class Test:
 			)
 			logger.debug('All variables are available under \'scope\' dict.')
 			if call_results:
-				logger.debug(
-					'Call test raised exception available under \'call_results\' dict'
-				)
+				logger.debug('Call test raised exception available under \'call_results\' dict')
 			breakpoint()

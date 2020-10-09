@@ -96,10 +96,18 @@ ATTRS_TYPES: Dict[str, Dict[str, Type]] = {
 	'BOOL': {},
 	'LOCALE': {},
 	'LOCALES': {},
-	'EMAIL': {'allowed_domains': List[str], 'disallowed_domains': List[str], 'strict_matching': bool},
+	'EMAIL': {
+		'allowed_domains': List[str],
+		'disallowed_domains': List[str],
+		'strict_matching': bool,
+	},
 	'PHONE': {'codes': List[str]},
 	'IP': {},
-	'URI_WEB': {'allowed_domains': List[str], 'disallowed_domains': List[str], 'strict_matching': bool},
+	'URI_WEB': {
+		'allowed_domains': List[str],
+		'disallowed_domains': List[str],
+		'strict_matching': bool,
+	},
 	'DATETIME': {'ranges': List[List[datetime.datetime]]},
 	'DATE': {'ranges': List[List[datetime.date]]},
 	'DYNAMIC_ATTR': {'types': List[str]},
@@ -571,7 +579,7 @@ class ATTR:
 	@classmethod
 	def DYNAMIC_ATTR(cls, *, desc: str = None, types: List[str] = None):
 		return ATTR(attr_type='DYNAMIC_ATTR', desc=desc, types=types)
-	
+
 	@classmethod
 	def DYNAMIC_VAL(cls, *, desc: str = None, dynamic_attr: str):
 		return ATTR(attr_type='DYNAMIC_VAL', desc=desc, dynamic_attr=dynamic_attr)
@@ -609,7 +617,12 @@ class ATTR:
 
 	@classmethod
 	def LIST(
-		cls, *, desc: str = None, list: List['ATTR'], min: int = None, max: int = None,
+		cls,
+		*,
+		desc: str = None,
+		list: List['ATTR'],
+		min: int = None,
+		max: int = None,
 	):
 		return ATTR(attr_type='LIST', desc=desc, list=list, min=min, max=max)
 
@@ -697,9 +710,7 @@ class ATTR:
 					)
 					raise InvalidAttrTypeException(attr_type=attr_type)
 				if '$__counters.' not in attr_type._args['pattern']:
-					logger.warning(
-						'Attr Type COUNTER is defined with not \'$__counters\'.'
-					)
+					logger.warning('Attr Type COUNTER is defined with not \'$__counters\'.')
 				for group in counter_groups:
 					if group.startswith('$__counters.'):
 						Config.docs.append(
@@ -708,14 +719,8 @@ class ATTR:
 								'key': 'var',
 								'doc': {
 									'user': ObjectId('f00000000000000000000010'),
-									'var': '__counter:'
-									+ group.replace('$__counters.', ''),
-									'val_type': {
-										'type': 'INT',
-										'args': {},
-										'allow_none': False,
-										'default': None
-									},
+									'var': '__counter:' + group.replace('$__counters.', ''),
+									'val_type': {'type': 'INT', 'args': {}, 'allow_none': False, 'default': None},
 									'val': 0,
 									'type': 'global',
 								},
@@ -791,10 +796,13 @@ class ATTR:
 				)
 			return
 		elif arg_type == datetime.datetime:
-			if not re.match(
-				r'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]{6})?)?$',
-				arg_val,
-			) and not re.match(r'^[\-\+][0-9]+[dsmhw]$', arg_val):
+			if (
+				not re.match(
+					r'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]{6})?)?$',
+					arg_val,
+				)
+				and not re.match(r'^[\-\+][0-9]+[dsmhw]$', arg_val)
+			):
 				raise InvalidAttrTypeArgException(
 					arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
 				)
@@ -842,9 +850,7 @@ class ATTR_MOD:
 		self,
 		*,
 		condition: Callable[[List[str], Dict[str, Any], 'Query', NAWAH_DOC], bool],
-		default: Union[
-			Callable[[List[str], Dict[str, Any], 'Query', NAWAH_DOC], Any], Any
-		],
+		default: Union[Callable[[List[str], Dict[str, Any], 'Query', NAWAH_DOC], Any], Any],
 	):
 		self.condition = condition
 		self.default = default
@@ -883,7 +889,9 @@ class EXTN:
 	def __repr__(self):
 		return f'<EXTN:{self.module},{self.attrs},{self.force}>'
 
-	def __init__(self, *, module: str, query: NAWAH_QUERY = None, attrs: List[str], force: bool = False):
+	def __init__(
+		self, *, module: str, query: NAWAH_QUERY = None, attrs: List[str], force: bool = False
+	):
 		self.module = module
 		self.query = query
 		self.attrs = attrs
@@ -901,9 +909,7 @@ class CACHE:
 	def __init__(
 		self,
 		*,
-		condition: Callable[
-			[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY]], bool
-		],
+		condition: Callable[[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY]], bool],
 		period: int = None,
 	):
 		self.condition = condition
@@ -956,6 +962,7 @@ class PACKAGE_CONFIG:
 	port: int = None
 	env: str = None
 	force_admin_check: bool = None
+	vars_types: Dict[str, ATTR] = None
 	vars: Dict[str, Any] = None
 	client_apps: Dict[
 		str,
@@ -1013,6 +1020,7 @@ class PACKAGE_CONFIG:
 class APP_CONFIG(PACKAGE_CONFIG):
 	name: str = None
 	version: str = None
+	default_package: str = None
 	debug: bool = False
 	port: int = None
 	env: str = None
@@ -1149,7 +1157,9 @@ class UnknownQueryArgException(Exception):
 		self.arg_oper = arg_oper
 
 	def __str__(self):
-		return f'Unknown Query Arg Oper \'{self.arg_oper}\' for Query Arg \'{self.arg_name}\'.'
+		return (
+			f'Unknown Query Arg Oper \'{self.arg_oper}\' for Query Arg \'{self.arg_name}\'.'
+		)
 
 
 class Query(list):
@@ -1190,9 +1200,7 @@ class Query(list):
 							self._index[attr] = []
 						if isinstance(query[i][attr], DictObj):
 							query[i][attr] = query[i][attr]._id
-						Query.validate_arg(
-							arg_name=attr, arg_oper=attr_oper, arg_val=query[i][attr]
-						)
+						Query.validate_arg(arg_name=attr, arg_oper=attr_oper, arg_val=query[i][attr])
 						self._index[attr].append(
 							{
 								'oper': attr_oper,
@@ -1296,10 +1304,7 @@ class Query(list):
 					i
 					for i in range(len(self._index[index_attr]))
 					if not oper_filter
-					or (
-						oper_filter
-						and self._index[index_attr][i]['oper'] == oper_filter
-					)
+					or (oper_filter and self._index[index_attr][i]['oper'] == oper_filter)
 				]
 			return QueryAttrList(self, attrs, paths, indexes, vals)
 

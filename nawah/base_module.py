@@ -91,9 +91,7 @@ class BaseModule:
 		Config.modules = {}
 
 		# [DOC] Populate package and module names for in-context use.
-		self.package_name = (
-			self.__module__.replace('modules.', '').upper().split('.')[0]
-		)
+		self.package_name = self.__module__.replace('modules.', '').upper().split('.')[0]
 		self.module_name = re.sub(
 			r'([A-Z])',
 			r'_\1',
@@ -122,9 +120,7 @@ class BaseModule:
 				# [DOC] Copy method attrs if not present in proxy
 				if method not in self.methods.keys():
 					if type(Config.modules[self.proxy].methods[method]) == dict:
-						self.methods[method] = copy.deepcopy(
-							Config.modules[self.proxy].methods[method]
-						)
+						self.methods[method] = copy.deepcopy(Config.modules[self.proxy].methods[method])
 					elif type(Config.modules[self.proxy].methods[method]) == BaseMethod:
 						self.methods[method] = {
 							'permissions': copy.deepcopy(
@@ -133,12 +129,8 @@ class BaseModule:
 							'query_args': copy.deepcopy(
 								Config.modules[self.proxy].methods[method].query_args
 							),
-							'doc_args': copy.deepcopy(
-								Config.modules[self.proxy].methods[method].doc_args
-							),
-							'get_method': Config.modules[self.proxy]
-							.methods[method]
-							.get_method,
+							'doc_args': copy.deepcopy(Config.modules[self.proxy].methods[method].doc_args),
+							'get_method': Config.modules[self.proxy].methods[method].get_method,
 						}
 				# [DOC] Create methods functions in proxy module if not present
 				if not getattr(self, method, None):
@@ -175,9 +167,7 @@ class BaseModule:
 			# [DOC] Update default value
 			for default in self.defaults.keys():
 				if (
-					default == attr
-					or default.startswith(f'{attr}.')
-					or default.startswith(f'{attr}:')
+					default == attr or default.startswith(f'{attr}.') or default.startswith(f'{attr}:')
 				):
 					logger.debug(
 						f'Updating default value for attr \'{attr}\' to: \'{self.defaults[default]}\''
@@ -190,14 +180,8 @@ class BaseModule:
 					)
 			# [DOC] Update extn value
 			for extn in self.extns.keys():
-				if (
-					extn == attr
-					or extn.startswith(f'{attr}.')
-					or extn.startswith(f'{attr}:')
-				):
-					logger.debug(
-						f'Updating extn value for attr \'{extn}\' to: \'{self.extns[extn]}\''
-					)
+				if extn == attr or extn.startswith(f'{attr}.') or extn.startswith(f'{attr}:'):
+					logger.debug(f'Updating extn value for attr \'{extn}\' to: \'{self.extns[extn]}\'')
 					update_attr_values(
 						attr=ATTR.TYPED_DICT(dict=self.attrs),
 						value='extn',
@@ -215,9 +199,7 @@ class BaseModule:
 			# [DOC] Check method query_args attr, set it or update it if required.
 			if 'query_args' not in self.methods[method].keys():
 				if method == 'create_file':
-					self.methods[method]['query_args'] = [
-						{'_id': ATTR.ID(), 'attr': ATTR.STR()}
-					]
+					self.methods[method]['query_args'] = [{'_id': ATTR.ID(), 'attr': ATTR.STR()}]
 				elif method == 'delete_file':
 					self.methods[method]['query_args'] = [
 						{
@@ -230,9 +212,7 @@ class BaseModule:
 				else:
 					self.methods[method]['query_args'] = False
 			elif type(self.methods[method]['query_args']) == dict:
-				self.methods[method]['query_args'] = [
-					self.methods[method]['query_args']
-				]
+				self.methods[method]['query_args'] = [self.methods[method]['query_args']]
 			# [DOC] Check method doc_args attr, set it or update it if required.
 			if 'doc_args' not in self.methods[method].keys():
 				if method == 'create_file':
@@ -411,10 +391,7 @@ class BaseModule:
 		if self.cache:
 			results = False
 			for cache_set in self.cache:
-				if (
-					cache_set.condition(skip_events=skip_events, env=env, query=query)
-					== True
-				):
+				if cache_set.condition(skip_events=skip_events, env=env, query=query) == True:
 					cache_key = f'{str(query._query)}____{str(query._special)}'
 					if cache_key in cache_set.queries.keys():
 						if cache_set.period:
@@ -429,19 +406,13 @@ class BaseModule:
 										attrs=self.attrs,
 										query=query,
 									)
-								cache_set.queries[cache_key] = CACHED_QUERY(
-									results=results
-								)
+								cache_set.queries[cache_key] = CACHED_QUERY(results=results)
 							else:
 								results = cache_set.queries[cache_key].results
-								results['cache'] = cache_set.queries[
-									cache_key
-								].query_time.isoformat()
+								results['cache'] = cache_set.queries[cache_key].query_time.isoformat()
 						else:
 							results = cache_set.queries[cache_key].results
-							results['cache'] = cache_set.queries[
-								cache_key
-							].query_time.isoformat()
+							results['cache'] = cache_set.queries[cache_key].query_time.isoformat()
 					else:
 						if not results:
 							results = await Data.read(
@@ -505,9 +476,7 @@ class BaseModule:
 						}
 					)
 
-		return self.status(
-			status=200, msg=f'Found {results["count"]} docs.', args=results
-		)
+		return self.status(status=200, msg=f'Found {results["count"]} docs.', args=results)
 
 	async def pre_watch(
 		self,
@@ -617,9 +586,7 @@ class BaseModule:
 								if attr in results['docs'][i]._attrs()
 							}
 						)
-			yield self.status(
-				status=200, msg=f'Detected {results["count"]} docs.', args=results
-			)
+			yield self.status(status=200, msg=f'Detected {results["count"]} docs.', args=results)
 
 		logger.debug('Generator ended at BaseModule.')
 
@@ -735,9 +702,8 @@ class BaseModule:
 					if type(attr) == str:
 						unique_attrs_query[0].append({attr: doc[attr]})
 					elif type(attr) == tuple:
-						unique_attrs_query[0].append(
-							{child_attr: doc[child_attr] for child_attr in attr}
-						)
+						unique_attrs_query[0].append({child_attr: doc[child_attr] for child_attr in attr})
+					# [TODO] Implement use of single-item dict with LITERAL Attr Type for dynamic unique check based on doc value
 				unique_attrs_query.append({'$limit': 1})
 				unique_results = await self.read(
 					skip_events=[Event.PERM], env=env, query=unique_attrs_query
@@ -745,9 +711,7 @@ class BaseModule:
 				if unique_results.args.count:
 					unique_attrs_str = ', '.join(
 						map(
-							lambda _: ('(' + ', '.join(_) + ')')
-							if type(_) == tuple
-							else _,
+							lambda _: ('(' + ', '.join(_) + ')') if type(_) == tuple else _,
 							self.unique_attrs,
 						)
 					)
@@ -796,9 +760,7 @@ class BaseModule:
 		# [DOC] Module collection is updated, update_cache
 		asyncio.create_task(self.update_cache(env=env))
 
-		return self.status(
-			status=200, msg=f'Created {results["count"]} docs.', args=results
-		)
+		return self.status(status=200, msg=f'Created {results["count"]} docs.', args=results)
 
 	async def pre_update(
 		self,
@@ -934,11 +896,7 @@ class BaseModule:
 							unique_attrs_query[0].append({attr: doc[attr]})
 					elif type(attr) == tuple:
 						unique_attrs_query[0].append(
-							{
-								child_attr: doc[child_attr]
-								for child_attr in attr
-								if attr in doc.keys()
-							}
+							{child_attr: doc[child_attr] for child_attr in attr if attr in doc.keys()}
 						)
 				unique_attrs_query.append(
 					{'_id': {'$nin': [doc._id for doc in docs_results['docs']]}}
@@ -950,9 +908,7 @@ class BaseModule:
 				if unique_results.args.count:
 					unique_attrs_str = ', '.join(
 						map(
-							lambda _: ('(' + ', '.join(_) + ')')
-							if type(_) == tuple
-							else _,
+							lambda _: ('(' + ', '.join(_) + ')') if type(_) == tuple else _,
 							self.unique_attrs,
 						)
 					)
@@ -999,9 +955,7 @@ class BaseModule:
 			# [DOC] If diff is a ATTR_MOD, Check condition for valid diff case
 			if type(self.diff) == ATTR_MOD:
 				self.diff: ATTR_MOD
-				if self.diff.condition(
-					skip_events=skip_events, env=env, query=query, doc=doc
-				):
+				if self.diff.condition(skip_events=skip_events, env=env, query=query, doc=doc):
 					# [DOC] if condition passed, create Diff doc with default callable
 					diff_vars = doc
 					if self.diff.default and callable(self.diff.default):
@@ -1015,9 +969,7 @@ class BaseModule:
 						doc={'module': self.module_name, 'vars': diff_vars},
 					)
 					if diff_results.status != 200:
-						logger.error(
-							f'Failed to create Diff doc, results: {diff_results}'
-						)
+						logger.error(f'Failed to create Diff doc, results: {diff_results}')
 				else:
 					logger.debug(f'Skipped Diff Workflow due to failed condition.')
 			else:
@@ -1037,9 +989,7 @@ class BaseModule:
 		# [DOC] Module collection is updated, update_cache
 		asyncio.create_task(self.update_cache(env=env))
 
-		return self.status(
-			status=200, msg=f'Updated {results["count"]} docs.', args=results
-		)
+		return self.status(status=200, msg=f'Updated {results["count"]} docs.', args=results)
 
 	async def pre_delete(
 		self,
@@ -1150,9 +1100,7 @@ class BaseModule:
 		# [DOC] Module collection is updated, update_cache
 		asyncio.create_task(self.update_cache(env=env))
 
-		return self.status(
-			status=200, msg=f'Deleted {results["count"]} docs.', args=results
-		)
+		return self.status(status=200, msg=f'Deleted {results["count"]} docs.', args=results)
 
 	def pre_create_file(
 		self,
@@ -1206,9 +1154,7 @@ class BaseModule:
 			or type(self.attrs[query['attr'][0]]) != list
 			or not self.attrs[query['attr'][0]][0].startswith('file')
 		):
-			return self.status(
-				status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'}
-			)
+			return self.status(status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'})
 
 		results = self.update(
 			skip_events=[Event.PERM],
@@ -1281,17 +1227,13 @@ class BaseModule:
 			or type(self.attrs[query['attr'][0]]) != list
 			or not self.attrs[query['attr'][0]][0].startswith('file')
 		):
-			return self.status(
-				status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'}
-			)
+			return self.status(status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'})
 
 		results = await self.read(
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(
-				status=400, msg='Doc is invalid.', args={'code': 'INVALID_DOC'}
-			)
+			return self.status(status=400, msg='Doc is invalid.', args={'code': 'INVALID_DOC'})
 		doc = results.args.docs[0]
 
 		if query['attr'][0] not in doc:
@@ -1327,11 +1269,7 @@ class BaseModule:
 			skip_events=[Event.PERM],
 			env=env,
 			query=[{'_id': query['_id'][0]}],
-			doc={
-				query['attr'][0]: {
-					'$del_val': [doc[query['attr'][0]][query['index'][0]]]
-				}
-			},
+			doc={query['attr'][0]: {'$del_val': [doc[query['attr'][0]][query['index'][0]]]}},
 		)
 
 		if Event.ON not in skip_events:
@@ -1469,14 +1407,7 @@ class BaseModule:
 					pass
 
 			if Event.ON not in skip_events:
-				(
-					results,
-					skip_events,
-					env,
-					query,
-					doc,
-					payload,
-				) = await self.on_retrieve_file(
+				(results, skip_events, env, query, doc, payload,) = await self.on_retrieve_file(
 					results=results,
 					skip_events=skip_events,
 					env=env,
@@ -1486,9 +1417,7 @@ class BaseModule:
 				)
 
 			results['return'] = 'file'
-			return self.status(
-				status=200, msg='File attached to response.', args=results
-			)
+			return self.status(status=200, msg='File attached to response.', args=results)
 		else:
 			# [DOC] No filename match
 			return self.status(
