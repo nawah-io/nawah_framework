@@ -68,6 +68,8 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 		elif type(config_attr_val) == list:
 			for j in config_attr_val:
 				getattr(Config, config_attr).append(j)
+			if config_attr == 'locales':
+				Config.locales = list(set(Config.locales))
 		elif type(config_attr_val) == dict:
 			if not getattr(Config, config_attr):
 				setattr(Config, config_attr, {})
@@ -110,6 +112,9 @@ class Config:
 
 	generate_ref: bool = False
 	_api_ref: str = None
+
+	generate_models: bool = False
+	_api_models: str = None
 
 	realm: bool = False
 

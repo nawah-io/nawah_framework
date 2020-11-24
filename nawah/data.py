@@ -460,62 +460,68 @@ class Data:
 		if not extn_models:
 			extn_models = {}
 
+		# [DOC] If scope is missing attr_name skip
 		if type(scope) == dict and attr_name not in scope.keys():
 			return
 
-		if attr_type._type == 'DICT':
+		# [DOC] Check attr_type for possible types that require deep checking for extending
+		if attr_type._type == 'KV_DICT':
 			if scope[attr_name] and type(scope[attr_name]) == dict:
-				if '__key' in attr_type._args['dict'].keys():
-					for child_attr in scope[attr_name].keys():
-						await cls._extend_attr(
-							doc=doc,
-							scope=scope[attr_name],
-							attr_name=child_attr,
-							attr_type=attr_type._args['dict']['__val'],
-							env=env,
-							extn_models=extn_models,
-						)
-				else:
-					for child_attr in attr_type._args['dict'].keys():
-						await cls._extend_attr(
-							doc=doc,
-							scope=scope[attr_name],
-							attr_name=child_attr,
-							attr_type=attr_type._args['dict'][child_attr],
-							env=env,
-							extn_models=extn_models,
-						)
+				for child_attr in scope[attr_name].keys():
+					# [DOC] attr_type is KV_DICT where Attr Type Arg val could be extended
+					await cls._extend_attr(
+						doc=doc,
+						scope=scope[attr_name],
+						attr_name=child_attr,
+						attr_type=attr_type._args['val'],
+						env=env,
+						extn_models=extn_models,
+					)
+		if attr_type._type == 'TYPED_DICT':
+			if scope[attr_name] and type(scope[attr_name]) == dict:
+				for child_attr in attr_type._args['dict'].keys():
+					# [DOC] attr_type is TYPED_DICT where each dict item could be extended
+					await cls._extend_attr(
+						doc=doc,
+						scope=scope[attr_name],
+						attr_name=child_attr,
+						attr_type=attr_type._args['dict'][child_attr],
+						env=env,
+						extn_models=extn_models,
+					)
 
 		elif attr_type._type == 'LIST':
 			if scope[attr_name] and type(scope[attr_name]) == list:
 				for child_attr in attr_type._args['list']:
-					if child_attr._type == 'DICT':
+					# [DOC] attr_type is LIST where it could have KV_DICT, TYPED_DICT, ID Attrs Types that can be [deep-]extended
+					if child_attr._type == 'KV_DICT':
 						for child_scope in scope[attr_name]:
 							if type(child_scope) == dict:
-								if '__key' in child_attr._args['dict'].keys():
-									for child_child_attr in child_scope.keys():
-										await cls._extend_attr(
-											doc=doc,
-											scope=child_scope,
-											attr_name=child_child_attr,
-											attr_type=child_attr._args['dict']['__val'],
-											env=env,
-											extn_models=extn_models,
-										)
-								else:
-									for child_child_attr in child_attr._args[
-										'dict'
-									].keys():
-										await cls._extend_attr(
-											doc=doc,
-											scope=child_scope,
-											attr_name=child_child_attr,
-											attr_type=child_attr._args['dict'][
-												child_child_attr
-											],
-											env=env,
-											extn_models=extn_models,
-										)
+								for child_child_attr in child_scope.keys():
+									await cls._extend_attr(
+										doc=doc,
+										scope=child_scope,
+										attr_name=child_child_attr,
+										attr_type=child_attr._args['val'],
+										env=env,
+										extn_models=extn_models,
+									)
+					elif child_attr._type == 'TYPED_DICT':
+						for child_scope in scope[attr_name]:
+							if type(child_scope) == dict:
+								for child_child_attr in child_attr._args[
+									'dict'
+								].keys():
+									await cls._extend_attr(
+										doc=doc,
+										scope=child_scope,
+										attr_name=child_child_attr,
+										attr_type=child_attr._args['dict'][
+											child_child_attr
+										],
+										env=env,
+										extn_models=extn_models,
+									)
 					elif child_attr._type == 'ID':
 						for i in range(len(scope[attr_name])):
 							await cls._extend_attr(
@@ -527,7 +533,9 @@ class Data:
 								extn_models=extn_models,
 							)
 
+		# [DOC] Attempt to extend the attr unto doc
 		if type(attr_type._extn) == ATTR_MOD:
+			# [DOC] Attr is having ATTR_MOD for _extn value, call the condition callable and attempt to resolve
 			if attr_type._extn.condition(
 				skip_events=[], env=env, query=[], doc=doc, scope=scope[attr_name]
 			):
@@ -557,6 +565,7 @@ class Data:
 					]
 
 		elif type(attr_type._extn) == EXTN:
+			# [DOC] Attr is having EXTN for _extn value, attempt to extend attr based on scope type
 			if type(scope[attr_name]) == ObjectId:
 				scope[attr_name] = await cls._extend_doc(
 					env=env,
@@ -625,7 +634,7 @@ class Data:
 		# [DOC] Read doc if not in extn_models
 		if str(extn_id) not in extn_models.keys():
 			extn_results = await extn_module.methods['read'](
-				skip_events=skip_events, env=env, query=[{'_id': extn_id}] + (extn.query or [])
+				skip_events=skip_events + (extn.skip_events or []), env=env, query=[{'_id': extn_id}] + (extn.query or [])
 			)
 			if extn_results['args']['count']:
 				extn_models[str(extn_id)] = extn_results['args']['docs'][0]

@@ -450,7 +450,8 @@ class ATTR:
 		'FILE',
 		'GEO',
 		'LIST',
-		'DICT',
+		'KV_DICT',
+		'TYPED_DICT',
 		'LITERAL',
 		'UNION',
 		'TYPE',
@@ -882,6 +883,7 @@ class PERM:
 
 class EXTN:
 	module: str
+	skip_events: List[Event]
 	query: NAWAH_QUERY
 	attrs: List[str]
 	force: bool = False
@@ -890,12 +892,17 @@ class EXTN:
 		return f'<EXTN:{self.module},{self.attrs},{self.force}>'
 
 	def __init__(
-		self, *, module: str, query: NAWAH_QUERY = None, attrs: List[str], force: bool = False
+		self, *, module: str, skip_events: List[Event] = None, query: NAWAH_QUERY = None, attrs: List[str], force: bool = False
 	):
 		self.module = module
+		self.skip_events = skip_events
 		self.query = query
 		self.attrs = attrs
 		self.force = force
+
+		# [DOC] Wrap query in list if it is a dict
+		if type(query) == dict:
+			self.query = [self.query]
 
 
 class CACHE:
@@ -1257,7 +1264,7 @@ class Query(list):
 
 			if attr_index in self._index.keys():
 				for val in self._index[attr_index]:
-					if val['oper'] == attr_oper:
+					if val['oper'] == attr_oper or attr_oper == '*':
 						return True
 			return False
 
