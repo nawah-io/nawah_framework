@@ -121,6 +121,11 @@ def nawah_cli():
 	parser_ref.set_defaults(func=generate_ref)
 	parser_ref.add_argument('--debug', help='Enable debug mode', action='store_true')
 
+	parser_ref = subparsers.add_parser('generate_models', help='Generate Nawah app models')
+	parser_ref.set_defaults(func=generate_models)
+	parser_ref.add_argument('format', help='Format of models', choices=['js', 'ts'])
+	parser_ref.add_argument('--debug', help='Enable debug mode', action='store_true')
+
 	args = parser.parse_args()
 
 	if args.command:
@@ -171,7 +176,7 @@ def launch(
 	from nawah.config import Config, process_config
 
 	Config._nawah_version = __version__
-	if custom_launch != 'generate_ref':
+	if custom_launch not in ['generate_ref', 'generate_models']:
 		Config.env = args.env
 	if not custom_launch:
 		Config.test_collections = args.test_collections
@@ -230,7 +235,7 @@ def launch(
 		Config._app_path = os.path.realpath('.')
 		# [DOC] Read app_config and update Config accordingly
 		# [DOC] Check envs, env
-		if custom_launch not in ['generate_ref'] and app_config.envs:
+		if custom_launch not in ['generate_ref', 'generate_models'] and app_config.envs:
 			if not args.env and not app_config.env:
 				logger.error(
 					'App Config Attr \'envs\' found, but no \'env\' App Config Attr, or CLI Attr were defined.'
@@ -599,3 +604,11 @@ def generate_ref(args: argparse.Namespace):
 
 	Config.generate_ref = True
 	launch(args=args, custom_launch='generate_ref')
+
+
+def generate_models(args: argparse.Namespace):
+	# [DOC] Update Config with Nawah framework CLI args
+	from nawah.config import Config
+
+	Config.generate_models = True
+	launch(args=args, custom_launch='generate_models')

@@ -146,6 +146,9 @@ async def import_modules():
 	# [DOC] Write api_ref if generate_ref mode
 	if Config.generate_ref:
 		generate_ref(modules_packages=modules_packages, modules=modules)
+	# [DOC] Write api_models if generate_models mode
+	if Config.generate_models:
+		generate_models(modules_packages=modules_packages, modules=modules)
 
 
 def extract_lambda_body(lambda_func):
@@ -320,6 +323,181 @@ def generate_ref(
 		logger.info(f'API reference generated and saved to: \'{ref_file}\'. Exiting.')
 		exit(0)
 
+
+def generate_models(
+	*, modules_packages: Dict[str, List[str]], modules: Dict[str, 'BaseModule']
+):
+	from nawah.config import Config
+	from nawah.base_module import BaseModule
+
+	# [DOC] Initialise _api_models Config Attr
+	Config._api_models = '// Nawah Models\n'
+	# [DOC] Add interface for DOC, LOCALE, LOCALES, FILE typing
+	Config._api_models += 'interface Doc { _id: string; };\n'
+	Config._api_models += 'export interface LOCALE { '
+	for locale in Config.locales:
+		Config._api_models += locale
+		if locale != Config.locale:
+			Config._api_models += '?'
+		Config._api_models += ': string; '
+	Config._api_models +=  '};\n'
+	Config._api_models += 'export type LOCALES = \'' + '\' | \''.join(Config.locales) + '\';\n'
+	Config._api_models += 'export type ID<T> = string & T;'
+	Config._api_models += 'export interface FILE<T> { name: string; lastModified: number; type: T; size: number; content: string | boolean; };\n'
+	# [DOC] Iterate over packages in ascending order
+	for package in sorted(modules_packages.keys()):
+		# [DOC] Add package header
+		Config._api_models += f'\n// Package: {package.replace("modules.", "")}\n'
+		if not len(modules_packages[package]):
+			Config._api_models += f'// No modules\n'
+		# [DOC] Iterate over package modules in ascending order
+		for module in sorted(modules_packages[package]):
+			module_class = str(modules[module].__class__).split('.')[-1].split('\'')[0]
+			# [DOC] Add module header
+			Config._api_models += f'// Module: {module_class}\n'
+			
+			# [DOC] Add module interface definition
+			Config._api_models += f'export interface {module_class} extends String, Doc {{\n'
+			# [DOC] Iterate over module attrs to add attrs types, defaults (if any)
+			for attr in modules[module].attrs.keys():
+				attr_model = ''
+				if modules[module].attrs[attr]._desc:
+					attr_model += f'\t// @property {{__TYPE__}} {modules[module].attrs[attr]._desc}\n'
+				attr_model += f'\t{attr}__DEFAULT__: __TYPE__;\n'
+				for default_attr in modules[module].defaults.keys():
+					if (
+						default_attr == attr
+						or default_attr.startswith(f'{attr}.')
+						or default_attr.startswith(f'{attr}:')
+					):
+						# [DOC] Attr is in defaults, indicate the same
+						attr_model = attr_model.replace('__DEFAULT__', '?')
+				# [DOC] Attempt to replace __DEFAULT__ with empty string if it still exists, effectively no default value
+				attr_model = attr_model.replace('__DEFAULT__', '')
+
+				# [DOC] Add typing
+				if not _generate_model_typing(modules[module].attrs[attr]):
+					breakpoint()
+				attr_model = attr_model.replace('__TYPE__', _generate_model_typing(modules[module].attrs[attr]))
+
+				Config._api_models += attr_model
+			
+			# [DOC] Add closing braces
+			Config._api_models += '};\n'
+		Config._api_models += '\n'
+	import os
+
+	models_file = os.path.join(
+		Config._app_path,
+		'models',
+		f'NAWAH_API_MODELS_{datetime.datetime.utcnow().strftime("%d-%b-%Y")}.ts',
+	)
+	with open(models_file, 'w') as f:
+		f.write(Config._api_models)
+		logger.info(f'API models generated and saved to: \'{models_file}\'. Exiting.')
+		exit(0)
+
+
+def _generate_model_typing(attr_type: ATTR):
+	if attr_type._type == 'ANY':
+		return 'any'
+
+	elif attr_type._type == 'ACCESS':
+		return '{ anon: boolean; users: Array<string>; groups: Array<string>; }'
+
+	elif attr_type._type == 'BOOL':
+		return 'boolean'
+	
+	elif attr_type._type == 'COUNTER':
+		return 'string'
+
+	elif attr_type._type == 'DATE':
+		return 'string'
+
+	elif attr_type._type == 'DATETIME':
+		return 'string'
+
+	elif attr_type._type == 'DYNAMIC_ATTR':
+		return '{ type: string; args: { [key: string]: any; }; allow_none?: boolean; default: any; }'
+
+	elif attr_type._type == 'DYNAMIC_VAL':
+		return 'any'
+
+	elif attr_type._type == 'KV_DICT':
+		key_typing = _generate_model_typing(attr_type._args['key'])
+		val_typing = _generate_model_typing(attr_type._args['val'])
+		return f'{{ [key: {key_typing}]: {val_typing} }}'
+
+	elif attr_type._type == 'TYPED_DICT':
+		typing = '{ '
+		for child_attr_type in attr_type._args['dict'].keys():
+			typing += child_attr_type
+			typing += ': '
+			typing += _generate_model_typing(attr_type._args['dict'][child_attr_type])
+			typing += '; '
+		typing += '}'
+		return typing
+
+	elif attr_type._type == 'EMAIL':
+		return 'string'
+
+	elif attr_type._type == 'FILE':
+		types = 'string'
+		if attr_type._args['types']:
+			types = '\'' + '\' | \''.join(attr_type._args['types']) + '\''
+			if '*' in types:
+				types = 'string'
+		
+		return f'FILE<{types}>'
+
+	elif attr_type._type == 'FLOAT':
+		return 'number'
+
+	elif attr_type._type == 'GEO':
+		return '{ type: \'Point\'; coordinates: [number, number]; }'
+
+	elif attr_type._type == 'ID':
+		return 'ID<string>'
+
+	elif attr_type._type == 'INT':
+		return 'number'
+
+	elif attr_type._type == 'IP':
+		return 'string'
+
+	elif attr_type._type == 'LIST':
+		list_typings = []
+		for child_attr_type in attr_type._args['list']:
+			list_typings.append(_generate_model_typing(child_attr_type))
+		list_typing = ' | '.join(list_typings)
+		return f'Array<{list_typing}>'
+
+	elif attr_type._type == 'LOCALE':
+		return 'LOCALE'
+
+	elif attr_type._type == 'LOCALES':
+		return 'LOCALES'
+
+	elif attr_type._type == 'PHONE':
+		return 'string'
+
+	elif attr_type._type == 'STR':
+		return 'string'
+
+	elif attr_type._type == 'TIME':
+		return 'string'
+
+	elif attr_type._type == 'URI_WEB':
+		return 'string'
+
+	elif attr_type._type == 'LITERAL':
+		return '\'' + '\' | \''.join(attr_type._args['literal']) + '\''
+
+	elif attr_type._type == 'UNION':
+		return ' | '.join([_generate_model_typing(child_attr_type) for child_attr_type in attr_type._args['union']])
+	
+	elif attr_type._type == 'TYPE':
+		return 'any'
 
 def update_attr_values(
 	*, attr: ATTR, value: Literal['default', 'extn'], value_path: str, value_val: Any
