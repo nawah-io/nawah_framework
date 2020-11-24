@@ -1263,7 +1263,7 @@ class Query(list):
 
 			if attr_index in self._index.keys():
 				for val in self._index[attr_index]:
-					if val['oper'] == attr_oper:
+					if val['oper'] == attr_oper or attr_oper == '*':
 						return True
 			return False
 
