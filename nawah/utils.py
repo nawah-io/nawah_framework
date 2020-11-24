@@ -68,7 +68,9 @@ async def import_modules():
 			elif modname.endswith('__l10n__'):
 				for l10n_name in dir(module):
 					if type(getattr(module, l10n_name)) == L10N:
-						Config.l10n[l10n_name] = getattr(module, l10n_name)
+						if l10n_name not in Config.l10n.keys():
+							Config.l10n[l10n_name] = {}
+						Config.l10n[l10n_name].update(getattr(module, l10n_name))
 				continue
 
 			for clsname in dir(module):
