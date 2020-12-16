@@ -554,29 +554,6 @@ async def process_file_obj(
 			await process_file_obj(doc=doc[j], modules=modules, env=env)
 
 
-def process_multipart(*, rfile: bytes, boundary: bytes) -> Dict[bytes, List[bytes]]:
-	boundary = b'--' + boundary
-	rfile = rfile.replace(b'\r\n', b'\n')
-	rfile = re.compile(boundary + b'(?:\n)').split(
-		rfile.replace(b'\n' + boundary + b'--', b'')
-	)
-	pattern = rb'content-disposition: form-data; name="?([\$a-zA-Z0-9\.\-_\\\:]+)"?(?:; filename="?([a-zA-Z0-9\.\-_]+)"?(?:\n)content-type: ([a-zA-Z0-9\.\-_]+\/[a-zA-Z0-9\.\-_]+))?\n\n(.+(?=\n))'
-	multipart = {}
-	for part in rfile:
-		try:
-			# [REF]: https://stackoverflow.com/a/30651316/2393762
-			multipart_key = re.match(pattern, part, re.IGNORECASE | re.DOTALL).group(1)
-			multipart[multipart_key] = [
-				group for group in re.match(pattern, part, re.IGNORECASE | re.DOTALL).groups()
-			]
-			# [DOC] Check if value of multipart item ends with newline character (\n, charcode: 10)
-			if multipart[multipart_key][3][-1] == 10:
-				multipart[multipart_key][3] = multipart[multipart_key][3][:-1]
-		except:
-			continue
-	return multipart
-
-
 def extract_attr(*, scope: Dict[str, Any], attr_path: str):
 	if attr_path.startswith('$__'):
 		attr_path = attr_path[3:].split('.')
