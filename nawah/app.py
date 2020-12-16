@@ -4,7 +4,6 @@ from typing import Dict, Any, Union, List
 async def run_app():
 	from nawah.utils import (
 		import_modules,
-		process_multipart,
 		process_file_obj,
 		validate_doc,
 		InvalidAttrException,
@@ -19,6 +18,7 @@ async def run_app():
 
 	from bson import ObjectId
 	from passlib.hash import pbkdf2_sha512
+	from requests_toolbelt.multipart import decoder
 
 	import aiohttp.web, asyncio, nest_asyncio, traceback, jwt, argparse, json, re, urllib.parse, os, datetime, time, logging
 
@@ -397,10 +397,11 @@ async def run_app():
 			doc = json.loads(doc)
 		except:
 			try:
-				multipart_boundary = request.headers['Content-Type'][
-					request.headers['Content-Type'].index('=') + 1 :
-				].encode('utf-8')
-				doc = process_multipart(rfile=doc, boundary=multipart_boundary)
+				multipart_content_type = request.headers['Content-Type']
+				doc = {
+					part.headers[b'Content-Disposition'].decode('utf-8').replace('form-data; name=', '').replace('"', '').split(';')[0]: part.content
+					for part in decoder.MultipartDecoder(doc, multipart_content_type).parts
+				}
 			except Exception as e:
 				doc = {}
 
