@@ -849,7 +849,7 @@ class BaseModule:
 		doc = {
 			attr: doc[attr]
 			for attr in ['_id', *doc.keys()]
-			if attr.split('.')[0] in self.attrs.keys() and doc[attr] != None
+			if attr.split('.')[0] in self.attrs.keys() and ((type(doc[attr]) != dict and doc[attr] != None) or (type(doc[attr]) == dict and doc[attr].keys() and list(doc[attr].keys())[0][0] != '$') or (type(doc[attr]) == dict and doc[attr].keys() and list(doc[attr].keys())[0][0] == '$' and doc[attr][list(doc[attr].keys())[0]] != None))
 		}
 		# [DOC] Check if there is anything yet to update
 		if not len(doc.keys()):

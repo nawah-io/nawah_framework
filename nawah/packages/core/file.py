@@ -38,17 +38,17 @@ class File(BaseModule):
 		return (results, skip_events, env, query, doc, payload)
 
 	async def pre_create(self, skip_events, env, query, doc, payload):
-		if Config.file_upload_limit != -1 and len(doc[b'file'][3]) > Config.file_upload_limit:
+		if Config.file_upload_limit != -1 and len(doc['file']) > Config.file_upload_limit:
 			return self.status(
 				status=400,
 				msg=f'File size is beyond allowed limit.',
 				args={
 					'code': 'INVALID_SIZE',
-					'attr': doc[b'__attr'][3].decode('utf-8'),
-					'name': doc[b'name'][3].decode('utf-8'),
+					'attr': doc['__attr'].decode('utf-8'),
+					'name': doc['name'].decode('utf-8'),
 				},
 			)
-		if (module := doc[b'__module'][3].decode('utf-8')) not in Config.modules.keys():
+		if (module := doc['__module'].decode('utf-8')) not in Config.modules.keys():
 			return self.status(
 				status=400,
 				msg=f'Invalid module \'{module}\'',
@@ -57,15 +57,15 @@ class File(BaseModule):
 		try:
 			attr_type = extract_attr(
 				scope=Registry.module(module).attrs,
-				attr_path='$__' + (attr := doc[b'__attr'][3].decode('utf-8')),
+				attr_path='$__' + (attr := doc['__attr'].decode('utf-8')),
 			)
 			doc = {
 				'file': {
-					'name': doc[b'name'][3].decode('utf-8'),
-					'type': doc[b'type'][3].decode('utf-8'),
-					'size': len(doc[b'file'][3]),
-					'lastModified': int(doc[b'lastModified'][3].decode('utf-8')),
-					'content': doc[b'file'][3],
+					'name': doc['name'].decode('utf-8'),
+					'type': doc['type'].decode('utf-8'),
+					'size': len(doc['file']),
+					'lastModified': int(doc['lastModified'].decode('utf-8')),
+					'content': doc['file'],
 				},
 			}
 			try:
@@ -85,4 +85,6 @@ class File(BaseModule):
 				msg=f'Invalid attr \'{attr}\' of module \'{module}\'',
 				args={'code': 'INVALID_ATTR'},
 			)
+
 		return (skip_events, env, query, doc, payload)
+

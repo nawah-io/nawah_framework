@@ -321,33 +321,34 @@ class Config:
 				)
 			)
 
-		# [DOC] Check for env data variables
-		data_attrs = {
-			'server': 'mongodb://localhost',
-			'name': 'nawah_data',
-			'ssl': False,
-			'ca_name': False,
-			'ca': False,
+		# [DOC] Check for Env Vars
+		attrs_defaults = {
+			'data_server': 'mongodb://localhost',
+			'data_name': 'nawah_data',
+			'data_ssl': False,
+			'data_ca_name': False,
+			'data_ca': False,
+			'emulate_test': False,
 		}
-		for data_attr_name in data_attrs.keys():
-			data_attr = getattr(cls, f'data_{data_attr_name}')
-			if type(data_attr) == str and data_attr.startswith('$__env.'):
-				logger.debug(f'Detected Env Variable for config attr \'data_{data_attr_name}\'')
-				if not os.getenv(data_attr[7:]):
+		for attr_name in attrs_defaults.keys():
+			attr_val = getattr(cls, attr_name)
+			if type(attr_val) == str and attr_val.startswith('$__env.'):
+				logger.debug(f'Detected Env Variable for config attr \'{attr_name}\'')
+				if not os.getenv(attr_val[7:]):
 					logger.warning(
-						f'Couldn\'t read Env Variable for config attr \'data_{data_attr_name}\'. Defaulting to \'{data_attrs[data_attr_name]}\''
+						f'Couldn\'t read Env Variable for config attr \'{attr_name}\'. Defaulting to \'{attrs_defaults[attr_name]}\''
 					)
-					setattr(cls, f'data_{data_attr_name}', data_attrs[data_attr_name])
+					setattr(cls, attr_name, attrs_defaults[attr_name])
 				else:
 					# [DOC] Set data_ssl to True rather than string Env Variable value
-					if data_attr_name == 'ssl':
-						data_attr = True
+					if attr_name == 'ssl':
+						attr_val = True
 					else:
-						data_attr = os.getenv(data_attr[7:])
+						attr_val = os.getenv(attr_val[7:])
 					logger.warning(
-						f'Setting Env Variable for config attr \'data_{data_attr_name}\' to \'{data_attr}\''
+						f'Setting Env Variable for config attr \'{attr_name}\' to \'{attr_val}\''
 					)
-					setattr(cls, f'data_{data_attr_name}', data_attr)
+					setattr(cls, attr_name, attr_val)
 
 		# [DOC] Check SSL settings
 		if cls.data_ca:
@@ -771,7 +772,12 @@ class Config:
 		logger.debug('Testing data indexes')
 		for index in cls.data_indexes:
 			logger.debug(f'Attempting to create data index: {index}')
-			cls._sys_conn[cls.data_name][index['collection']].create_index(index['index'])
+			try:
+				cls._sys_conn[cls.data_name][index['collection']].create_index(index['index'])
+			except Exception as e:
+				logger.error(f'Failed to create data index: {index}, with error: {e}')
+				logger.error('Evaluate error and take action manually.')
+
 		logger.debug(
 			'Creating \'var\', \'type\', \'user\' data indexes for settings collections.'
 		)
