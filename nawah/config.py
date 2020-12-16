@@ -771,7 +771,12 @@ class Config:
 		logger.debug('Testing data indexes')
 		for index in cls.data_indexes:
 			logger.debug(f'Attempting to create data index: {index}')
+			try:
 			cls._sys_conn[cls.data_name][index['collection']].create_index(index['index'])
+			except Exception as e:
+				logger.error(f'Failed to create data index: {index}, with error: {e}')
+				logger.error('Evaluate error and take action manually.')
+
 		logger.debug(
 			'Creating \'var\', \'type\', \'user\' data indexes for settings collections.'
 		)
