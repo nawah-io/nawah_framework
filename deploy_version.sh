@@ -12,7 +12,7 @@ export NAWAH_API_LEVEL=$($PYTHON setup.py api_level | tail -n 1)
 export NAWAH_VERSION=$($PYTHON setup.py version | tail -n 1)
 
 rm -rf nawah_framework_wheels
-git clone https://github.com/nawah-io/nawah_framework_wheels
+git clone git@github.com:nawah-io/nawah_framework_wheels.git
 
 rm -rf nawah_framework_wheels/$NAWAH_API_LEVEL
 mkdir nawah_framework_wheels/$NAWAH_API_LEVEL
