@@ -3,6 +3,7 @@ from nawah.classes import (
 	ATTR,
 	ATTR_MOD,
 	EXTN,
+	PERM,
 	DictObj,
 	BaseModel,
 	Query,
@@ -12,15 +13,82 @@ from nawah.classes import (
 	NAWAH_ENV,
 	ATTRS_TYPES,
 	InvalidAttrTypeException,
+	CACHE,
+	ANALYTIC
 )
 from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
 
-from typing import Dict, Union, Literal, List, Tuple, Any
+from typing import Dict, Union, Literal, List, Tuple, Callable, TypedDict, Any
 from bson import ObjectId, binary
 
 import logging, pkgutil, inspect, re, datetime, time, math, random, copy, os, sys, asyncio
 
 logger = logging.getLogger('nawah')
+
+
+def nawah_module(
+	*,
+	collection: Union[str, bool] = None,
+	proxy: str = None,
+	attrs: Dict[str, ATTR] = None,
+	diff: Union[bool, ATTR_MOD] = None,
+	defaults: Dict[str, Any] = None,
+	unique_attrs: List[str] = None,
+	extns: Dict[str, EXTN] = None,
+	privileges: List[str] = None,
+	methods: TypedDict(
+		'METHODS',
+		permissions=List[PERM],
+		query_args=Dict[str, Union[ATTR, ATTR_MOD]],
+		doc_args=Dict[str, Union[ATTR, ATTR_MOD]],
+		get_method=bool,
+		post_method=bool,
+		watch_method=bool,
+	) = None,
+	cache: List[CACHE] = None,
+	analytics: List[ANALYTIC] = None,
+) -> Callable[[Any], NAWAH_MODULE]:
+	def nawah_module_decorator(cls):
+		from nawah.config import Config
+
+		cls.collection = collection
+		cls.proxy = proxy
+		cls.attrs = attrs
+		cls.diff = diff
+		cls.defaults = defaults
+		cls.unique_attrs = unique_attrs
+		cls.extns = extns
+		cls.privileges = privileges
+		cls.methods = methods
+		cls.cache = cache
+		cls.analytics = analytics
+		
+		cls._instance = cls()
+
+		pkgname = str(cls).split('.')[0].split('\'')[-1]
+		clsname = str(cls).split('.')[-1].split('\'')[0]
+		# [DOC] Deny loading Nawah-reserved named Nawah modules
+		if clsname.lower() in ['conn', 'heart', 'watch']:
+			logger.error(
+				f'Module with Nawah-reserved name \'{clsname.lower()}\' was found. Exiting.'
+			)
+			exit(1)
+		# [DOC] Load Nawah module and assign module_name attr
+		module_name = re.sub(r'([A-Z])', r'_\1', clsname[0].lower() + clsname[1:]).lower()
+		# [DOC] Deny duplicate Nawah modules names
+		if module_name in Config.modules.keys():
+			logger.error(f'Duplicate module name \'{module_name}\'. Exiting.')
+			exit(1)
+		# [DOC] Add module to loaded modules dict
+		Config.modules[module_name] = cls._instance
+		Config.modules_packages[pkgname].append(module_name)
+		breakpoint()
+		def wrapper():
+			return cls._instance
+
+		return wrapper
+	return nawah_module_decorator
+
 
 
 async def import_modules():
@@ -31,10 +99,6 @@ async def import_modules():
 
 	sys.path.append(os.path.join(nawah.__path__[0], 'packages'))
 	sys.path.append(os.path.join(Config._app_path, 'packages'))
-
-	# [DOC] Assign required variables
-	modules: Dict[str, BaseModule] = {}
-	modules_packages: Dict[str, List[str]] = {}
 
 	# [DOC] Iterate over packages in modules folder
 	for _, pkgname, ispkg in pkgutil.iter_modules(
@@ -53,7 +117,7 @@ async def import_modules():
 		process_config(config=package.config, pkgname=pkgname)
 
 		# [DOC] Add package to loaded packages dict
-		modules_packages[pkgname] = []
+		Config.modules_packages[pkgname] = []
 
 		# [DOC] Iterate over python modules in package
 		package_prefix = package.__name__ + '.'
@@ -90,15 +154,16 @@ async def import_modules():
 					cls = getattr(module, clsname)
 					module_name = re.sub(r'([A-Z])', r'_\1', clsname[0].lower() + clsname[1:]).lower()
 					# [DOC] Deny duplicate Nawah modules names
-					if module_name in modules.keys():
+					if module_name in Config.modules.keys():
 						logger.error(f'Duplicate module name \'{module_name}\'. Exiting.')
 						exit(1)
 					# [DOC] Add module to loaded modules dict
-					modules[module_name] = cls()
-					modules_packages[pkgname].append(module_name)
+					Config.modules[module_name] = cls()
+					Config.modules_packages[pkgname].append(module_name)
 
 	# [DOC] Update User, Session modules with populated attrs
-	modules['user'].attrs.update(Config.user_attrs)
+	breakpoint()
+	Config.modules['user'].attrs.update(Config.user_attrs)
 	if (
 		sum(1 for attr in Config.user_settings.keys() if attr in Config.user_attrs.keys())
 		!= 0
@@ -107,18 +172,18 @@ async def import_modules():
 			'At least on attr from \'user_settings\' is conflicting with an attr from \'user_attrs\'. Exiting.'
 		)
 		exit(1)
-	modules['user'].defaults['locale'] = Config.locale
+	Config.modules['user'].defaults['locale'] = Config.locale
 	for attr in Config.user_attrs.keys():
-		modules['user'].unique_attrs.append(attr)
-		modules['user'].attrs[f'{attr}_hash'] = ATTR.STR()
-		modules['session'].methods['auth']['doc_args'].append(
+		Config.modules['user'].unique_attrs.append(attr)
+		Config.modules['user'].attrs[f'{attr}_hash'] = ATTR.STR()
+		Config.modules['session'].methods['auth']['doc_args'].append(
 			{
 				'hash': ATTR.STR(),
 				attr: Config.user_attrs[attr],
 				'groups': ATTR.LIST(list=[ATTR.ID()]),
 			}
 		)
-		modules['session'].methods['auth']['doc_args'].append(
+		Config.modules['session'].methods['auth']['doc_args'].append(
 			{'hash': ATTR.STR(), attr: Config.user_attrs[attr]}
 		)
 
@@ -140,15 +205,14 @@ async def import_modules():
 			exit(1)
 
 	# [DOC] Call update_modules, effectively finalise initialising modules
-	Config.modules = modules
-	for module in modules.values():
+	for module in Config.modules.values():
 		module._initialise()
 	# [DOC] Write api_ref if generate_ref mode
 	if Config.generate_ref:
-		generate_ref(modules_packages=modules_packages, modules=modules)
+		generate_ref(modules_packages=Config.modules_packages, modules=Config.modules)
 	# [DOC] Write api_models if generate_models mode
 	if Config.generate_models:
-		generate_models(modules_packages=modules_packages, modules=modules)
+		generate_models(modules_packages=Config.modules_packages, modules=Config.modules)
 
 
 def extract_lambda_body(lambda_func):

@@ -201,6 +201,7 @@ class Config:
 	types: Dict[str, Callable] = {}
 
 	modules: Dict[str, NAWAH_MODULE] = {}
+	modules_packages: Dict[str, List[str]] = {}
 
 	@classmethod
 	async def config_data(cls) -> None:

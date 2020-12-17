@@ -88,8 +88,6 @@ class BaseModule:
 		if not getattr(self, 'analytics', None):
 			self.analytics = []
 
-		Config.modules = {}
-
 		# [DOC] Populate package and module names for in-context use.
 		self.package_name = self.__module__.replace('modules.', '').upper().split('.')[0]
 		self.module_name = re.sub(
