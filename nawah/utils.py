@@ -14,11 +14,12 @@ from nawah.classes import (
 	ATTRS_TYPES,
 	InvalidAttrTypeException,
 	CACHE,
-	ANALYTIC
+	ANALYTIC,
+	NAWAH_METHOD,
 )
 from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
 
-from typing import Dict, Union, Literal, List, Tuple, Callable, TypedDict, Any
+from typing import Dict, Union, Literal, List, Tuple, Callable, Optional, TypedDict, Any, cast
 from bson import ObjectId, binary
 
 import logging, pkgutil, inspect, re, datetime, time, math, random, copy, os, sys, asyncio
@@ -28,25 +29,17 @@ logger = logging.getLogger('nawah')
 
 def nawah_module(
 	*,
-	collection: Union[str, bool] = None,
-	proxy: str = None,
-	attrs: Dict[str, ATTR] = None,
-	diff: Union[bool, ATTR_MOD] = None,
-	defaults: Dict[str, Any] = None,
-	unique_attrs: List[str] = None,
-	extns: Dict[str, EXTN] = None,
-	privileges: List[str] = None,
-	methods: TypedDict(
-		'METHODS',
-		permissions=List[PERM],
-		query_args=Dict[str, Union[ATTR, ATTR_MOD]],
-		doc_args=Dict[str, Union[ATTR, ATTR_MOD]],
-		get_method=bool,
-		post_method=bool,
-		watch_method=bool,
-	) = None,
-	cache: List[CACHE] = None,
-	analytics: List[ANALYTIC] = None,
+	collection: Optional[Union[str, bool]] = None,
+	proxy: Optional[str] = None,
+	attrs: Optional[Dict[str, ATTR]] = None,
+	diff: Optional[Union[bool, ATTR_MOD]] = None,
+	defaults: Optional[Dict[str, Any]] = None,
+	unique_attrs: Optional[List[str]] = None,
+	extns: Optional[Dict[str, EXTN]] = None,
+	privileges: Optional[List[str]] = None,
+	methods: Optional[Dict[str, NAWAH_METHOD]] = None,
+	cache: Optional[List[CACHE]] = None,
+	analytics: Optional[List[ANALYTIC]] = None,
 ) -> Callable[[Any], NAWAH_MODULE]:
 	def nawah_module_decorator(cls):
 		from nawah.config import Config
@@ -82,7 +75,7 @@ def nawah_module(
 		# [DOC] Add module to loaded modules dict
 		Config.modules[module_name] = cls._instance
 		Config.modules_packages[pkgname].append(module_name)
-		breakpoint()
+
 		def wrapper():
 			return cls._instance
 
@@ -162,7 +155,6 @@ async def import_modules():
 					Config.modules_packages[pkgname].append(module_name)
 
 	# [DOC] Update User, Session modules with populated attrs
-	breakpoint()
 	Config.modules['user'].attrs.update(Config.user_attrs)
 	if (
 		sum(1 for attr in Config.user_settings.keys() if attr in Config.user_attrs.keys())
@@ -225,7 +217,7 @@ def extract_lambda_body(lambda_func):
 
 
 def generate_ref(
-	*, modules_packages: Dict[str, List[str]], modules: Dict[str, 'BaseModule']
+	*, modules_packages: Dict[str, List[str]], modules: Dict[str, 'BaseModule']  # type: ignore
 ):
 	from nawah.config import Config
 	from nawah.base_module import BaseModule
@@ -389,7 +381,7 @@ def generate_ref(
 
 
 def generate_models(
-	*, modules_packages: Dict[str, List[str]], modules: Dict[str, 'BaseModule']
+	*, modules_packages: Dict[str, List[str]], modules: Dict[str, 'BaseModule']  # type: ignore
 ):
 	from nawah.config import Config
 	from nawah.base_module import BaseModule
@@ -570,8 +562,9 @@ def _generate_model_typing(*, module: NAWAH_MODULE, attr_name: str, attr_type: A
 def update_attr_values(
 	*, attr: ATTR, value: Literal['default', 'extn'], value_path: str, value_val: Any
 ):
-	value_path = value_path.split('.')
-	for child_default_path in value_path:
+
+	value_path_part = value_path.split('.')
+	for child_default_path in value_path_part:
 		if ':' in child_default_path:
 			attr = attr._args['dict'][child_default_path.split(':')[0]]._args['list'][
 				int(child_default_path.split(':')[1])
@@ -585,16 +578,16 @@ def update_attr_values(
 
 
 async def process_file_obj(
-	*, doc: NAWAH_DOC, modules: Dict[str, NAWAH_MODULE], env: NAWAH_ENV
+	*, doc: Union[NAWAH_DOC, dict, list], modules: Dict[str, NAWAH_MODULE], env: NAWAH_ENV
 ):
 	if type(doc) == dict:
-		doc_iter = doc.keys()
+		doc_iter = doc.keys()  # type: ignore
 	elif type(doc) == list:
-		doc_iter = range(len(doc))
+		doc_iter = range(len(doc))  # type: ignore
 	for j in doc_iter:
-		if type(doc[j]) == dict:
-			if '__file' in doc[j].keys():
-				file_id = doc[j]['__file']
+		if type(doc[j]) == dict:  # type: ignore
+			if '__file' in doc[j].keys():  # type: ignore
+				file_id = doc[j]['__file']  # type: ignore
 				logger.debug(
 					f'Detected file in doc. Retrieving file from File module with _id: \'{file_id}\'.'
 				)
@@ -602,7 +595,7 @@ async def process_file_obj(
 					file_results = await modules['file'].read(
 						skip_events=[Event.PERM], env=env, query=[{'_id': file_id}]
 					)
-					doc[j] = file_results.args.docs[0].file
+					doc[j] = file_results.args.docs[0].file  # type: ignore
 					file_results = await modules['file'].delete(
 						skip_events=[Event.PERM, Event.SOFT],
 						env=env,
@@ -615,28 +608,28 @@ async def process_file_obj(
 				except Exception as e:
 					logger.error(f'Failed to retrieve doc _id \'{file_id}\', with error:')
 					logger.error(e)
-					doc[j] = None
+					doc[j] = None  # type: ignore
 			else:
-				await process_file_obj(doc=doc[j], modules=modules, env=env)
-		elif type(doc[j]) == list:
-			await process_file_obj(doc=doc[j], modules=modules, env=env)
+				await process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
+		elif type(doc[j]) == list:  # type: ignore
+			await process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
 
 
 def extract_attr(*, scope: Dict[str, Any], attr_path: str):
 	if attr_path.startswith('$__'):
-		attr_path = attr_path[3:].split('.')
+		attr_path_parts = attr_path[3:].split('.')
 	else:
-		attr_path = attr_path.split('.')
+		attr_path_parts = attr_path.split('.')
 	attr = scope
-	for i in range(len(attr_path)):
-		child_attr = attr_path[i]
+	for i in range(len(attr_path_parts)):
+		child_attr = attr_path_parts[i]
 		try:
 			logger.debug(f'Attempting to extract {child_attr} from {attr}.')
 			if ':' in child_attr:
-				child_attr = child_attr.split(':')
-				attr = attr[child_attr[0]]
-				for i in range(1, len(child_attr)):
-					attr = attr[int(child_attr[i])]
+				child_attr_parts = child_attr.split(':')
+				attr = attr[child_attr_parts[0]]
+				for i in range(1, len(child_attr_parts)):
+					attr = attr[int(child_attr_parts[i])]  # type: ignore
 			else:
 				attr = attr[child_attr]
 		except Exception as e:
@@ -647,31 +640,31 @@ def extract_attr(*, scope: Dict[str, Any], attr_path: str):
 
 def set_attr(*, scope: Dict[str, Any], attr_path: str, value: Any):
 	if attr_path.startswith('$__'):
-		attr_path = attr_path[3:].split('.')
+		attr_path_parts = attr_path[3:].split('.')
 	else:
-		attr_path = attr_path.split('.')
+		attr_path_parts = attr_path.split('.')
 	attr = scope
-	for i in range(len(attr_path) - 1):
-		child_attr = attr_path[i]
+	for i in range(len(attr_path_parts) - 1):
+		child_attr = attr_path_parts[i]
 		try:
 			if ':' in child_attr:
-				child_attr = child_attr.split(':')
-				attr = attr[child_attr[0]]
-				for i in range(1, len(child_attr)):
-					attr = attr[int(child_attr[i])]
+				child_attr_parts = child_attr.split(':')
+				attr = attr[child_attr_parts[0]]
+				for i in range(1, len(child_attr_parts)):
+					attr = attr[int(child_attr_parts[i])]  # type: ignore
 			else:
 				attr = attr[child_attr]
 		except Exception as e:
 			logger.error(f'Failed to extract {child_attr} from {attr}.')
 			raise e
-	if ':' in attr_path[-1]:
-		attr_path[-1] = attr_path[-1].split(':')
-		attr = attr[attr_path[-1][0]]
-		for i in range(1, len(attr_path[-1]) - 1):
-			attr = attr[int(attr_path[-1][i])]
-		attr[int(attr_path[-1][-1])] = value
+	if ':' in attr_path_parts[-1]:
+		attr_path_parts_last = attr_path_parts[-1].split(':')
+		attr = attr[attr_path_parts_last[0]]
+		for i in range(1, len(attr_path_parts_last) - 1):
+			attr = attr[int(attr_path_parts_last[i])]  # type: ignore
+		attr[int(attr_path_parts_last[-1])] = value  # type: ignore
 	else:
-		attr[attr_path[-1]] = value
+		attr[attr_path_parts[-1]] = value
 
 
 def expand_attr(*, doc: Dict[str, Any], expanded_doc: Dict[str, Any] = None):
@@ -703,13 +696,16 @@ def deep_update(*, target: Union[List, Dict], new_values: Union[List, Dict]):
 		)
 		exit(1)
 	if type(new_values) == dict:
+		new_values = cast(dict, new_values)
 		for k in new_values.keys():
+			target = cast(dict, target)
 			if k not in target.keys():
 				target[k] = new_values[k]
 			else:
 				deep_update(target=target[k], new_values=new_values[k])
 	elif type(new_values) == list:
 		for j in new_values:
+			target = cast(list, target)
 			if j not in target:
 				target.append(j)
 
@@ -751,7 +747,7 @@ async def validate_doc(
 	attrs: Dict[str, ATTR],
 	allow_update: bool = False,
 	skip_events: List[str] = None,
-	env: Dict[str, Any] = None,
+	env: NAWAH_ENV = None,
 	query: Union[NAWAH_QUERY, Query] = None,
 ):
 	from nawah.config import Config
@@ -770,6 +766,7 @@ async def validate_doc(
 			attr = attrs_map[attr]
 
 		try:
+			env = cast(NAWAH_ENV, env)
 			if allow_update and '.' in attr:
 				doc[attr] = await validate_dot_notated(
 					attr=attr,
@@ -804,9 +801,9 @@ async def validate_dot_notated(
 	attr: str,
 	doc: NAWAH_DOC,
 	attrs: Dict[str, ATTR],
-	skip_events: List[str],
-	env: Dict[str, Any],
-	query: Union[NAWAH_QUERY, Query],
+	skip_events: Optional[List[str]],
+	env: Optional[NAWAH_ENV],
+	query: Union[None, NAWAH_QUERY, Query],
 ):
 	from nawah.config import Config
 
@@ -818,39 +815,46 @@ async def validate_dot_notated(
 		for i in range(attr_path_len):
 			# [DOC] Iterate over attr_path to reach last valid Attr Type
 			if type(attr_type) == dict:
+				attr_type = cast(dict, attr_type)
 				attr_type = attr_type[attr_path[i]]
-			elif type(attr_type) == ATTR and attr_type._type == 'ANY':
-				return doc[attr]
-			elif type(attr_type) == ATTR and attr_type._type == 'LOCALE':
-				if attr_path[i] not in Config.locales:
+			elif type(attr_type) == ATTR:
+				attr_type = cast(ATTR, attr_type)
+				if attr_type._type == 'ANY':
+					return doc[attr]
+				elif attr_type._type == 'LOCALE':
+					if attr_path[i] not in Config.locales:
+						raise Exception()
+					attr_type = ATTR.STR()
+				elif attr_type._type == 'TYPED_DICT':
+					attr_type = attr_type._args['dict'][attr_path[i]]
+				elif attr_type._type == 'KV_DICT':
+					attr_type = attr_type._args['val']
+				# [DOC] However, if list or union, start a new validate_dot_notated call as it is required to check all the provided types
+				elif attr_type._type in ['LIST', 'UNION']:
+					if attr_type._type == 'LIST':
+						attr_type_iter = attr_type._args['list']
+					else:
+						attr_type_iter = attr_type._args['union']
+					for child_attr_type in attr_type_iter:
+						attr_val = await validate_dot_notated(
+							attr='.'.join(attr_path[i:]),
+							doc={'.'.join(attr_path[i:]): doc[attr]},
+							attrs={attr_path[i]: child_attr_type},
+							skip_events=skip_events,
+							env=env,
+							query=query,
+						)
+						if attr_val != None:
+							return attr_val
 					raise Exception()
-				attr_type = ATTR.STR()
-			elif type(attr_type) == ATTR and attr_type._type == 'TYPED_DICT':
-				attr_type = attr_type._args['dict'][attr_path[i]]
-			elif type(attr_type) == ATTR and attr_type._type == 'KV_DICT':
-				attr_type = attr_type._args['val']
-			# [DOC] However, if list or union, start a new validate_dot_notated call as it is required to check all the provided types
-			elif type(attr_type) == ATTR and attr_type._type in ['LIST', 'UNION']:
-				if attr_type._type == 'LIST':
-					attr_type_iter = attr_type._args['list']
 				else:
-					attr_type_iter = attr_type._args['union']
-				for child_attr_type in attr_type_iter:
-					attr_val = await validate_dot_notated(
-						attr='.'.join(attr_path[i:]),
-						doc={'.'.join(attr_path[i:]): doc[attr]},
-						attrs={attr_path[i]: child_attr_type},
-						skip_events=skip_events,
-						env=env,
-						query=query,
-					)
-					if attr_val != None:
-						return attr_val
-				raise Exception()
+					raise Exception()	
 			else:
 				raise Exception()
 
+		attr_type = cast(ATTR, attr_type)
 		# [DOC] Validate val against final Attr Type
+		env = cast(NAWAH_ENV, env)
 		attr_val = await validate_attr(
 			attr_name=attr,
 			attr_type=attr_type,
@@ -872,11 +876,11 @@ async def validate_default(
 	*,
 	attr_type: ATTR,
 	attr_val: Any,
-	skip_events: List[str],
-	env: Dict[str, Any],
-	query: Union[NAWAH_QUERY, Query],
-	doc: NAWAH_DOC,
-	scope: NAWAH_DOC,
+	skip_events: Optional[List[str]],
+	env: Optional[NAWAH_ENV],
+	query: Union[None, NAWAH_QUERY, Query],
+	doc: Optional[NAWAH_DOC],
+	scope: Optional[NAWAH_DOC],
 	allow_none: bool,
 ):
 	if not allow_none and type(attr_type._default) == ATTR_MOD:
@@ -906,8 +910,9 @@ async def validate_default(
 						group, str(value_callable(skip_events=skip_events, env=env, query=query, doc=doc))
 					)
 				elif group.startswith('$__counters.'):
+					env = cast(NAWAH_ENV, env)
 					counter_name = group.replace('$__counters.', '')
-					setting_results = await Config.modules['setting'].read(
+					setting_read_results = await Config.modules['setting'].read(
 						skip_events=[Event.PERM],
 						env=env,
 						query=[
@@ -917,8 +922,8 @@ async def validate_default(
 							}
 						],
 					)
-					setting = setting_results.args.docs[0]
-					setting_results = asyncio.create_task(
+					setting = setting_read_results.args.docs[0]
+					setting_update_results = asyncio.create_task(
 						Config.modules['setting'].update(
 							skip_events=[Event.PERM],
 							env=env,
@@ -927,14 +932,7 @@ async def validate_default(
 						)
 					)
 					# [DOC] Condition "not task.cancelled()" is added to avoid exceptions with the task getting cancelled during its run as such it might be running in test mode, or at time of shutting down Nawah
-					setting_update_callback = (
-						lambda task: logger.error(
-							f'Failed to update Setting doc for counter \'{counter_name}\''
-						)
-						if not task.cancelled() and task.result().status != 200
-						else None
-					)
-					setting_results.add_done_callback(setting_update_callback)
+					setting_update_results.add_done_callback(setting_update_callback_wrapper(counter_name))
 					counter_val = counter_val.replace(group, str(setting.val + 1))
 		return counter_val
 
@@ -947,6 +945,14 @@ async def validate_default(
 	raise Exception('No default set to validate.')
 
 
+def setting_update_callback_wrapper(counter_name):
+	def setting_update_callback(task):
+		if not task.cancelled() and task.result().status != 200:
+			logger.error(
+				f'Failed to update Setting doc for counter \'{counter_name}\''
+			)
+	return setting_update_callback
+
 async def validate_attr(
 	*,
 	attr_name: str,
@@ -954,7 +960,7 @@ async def validate_attr(
 	attr_val: Any,
 	allow_update: bool = False,
 	skip_events: List[str] = None,
-	env: Dict[str, Any] = None,
+	env: NAWAH_ENV = None,
 	query: Union[NAWAH_QUERY, Query] = None,
 	doc: NAWAH_DOC = None,
 	scope: NAWAH_DOC = None,
@@ -962,6 +968,7 @@ async def validate_attr(
 	from nawah.config import Config
 
 	try:
+		env = cast(NAWAH_ENV, env)
 		return await validate_default(
 			attr_type=attr_type,
 			attr_val=attr_val,
@@ -975,7 +982,9 @@ async def validate_attr(
 	except:
 		pass
 
-	attr_oper = None
+	attr_oper: Literal[
+		None, '$add', '$multiply', '$append', '$set_index', '$del_val', '$del_index'
+	] = None
 	attr_oper_args = {}
 	if allow_update and type(attr_val) == dict:
 		if '$add' in attr_val.keys():
@@ -1135,10 +1144,12 @@ async def validate_attr(
 			for setting_query_var in re.findall(
 				r'(\$__doc\.([a-zA-Z0-9_]+))', setting_query['var']
 			):
+				doc = cast(Dict[str, Any], doc)
 				setting_query['var'] = setting_query['var'].replace(
 					setting_query_var[0], str(extract_attr(scope=doc, attr_path=setting_query_var[1]))
 				)
 			# [DOC] Read setting val
+			env = cast(NAWAH_ENV, env)
 			setting_results = await Config.modules['setting'].read(
 				skip_events=[Event.PERM], env=env, query=[setting_query]
 			)
@@ -1275,7 +1286,7 @@ async def validate_attr(
 						attr_type=attr_type,
 						val_type=type(attr_val),
 					)
-			file_type = (
+			file_type_check = (
 				type(attr_val) == dict
 				and set(attr_val.keys()) == {'name', 'lastModified', 'type', 'size', 'content'}
 				and type(attr_val['name']) == str
@@ -1284,7 +1295,7 @@ async def validate_attr(
 				and type(attr_val['size']) == int
 				and type(attr_val['content']) in [binary.Binary, bytes]
 			)
-			if not file_type:
+			if not file_type_check:
 				raise InvalidAttrException(
 					attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val)
 				)
@@ -1589,20 +1600,23 @@ async def validate_attr(
 			)
 
 	except Exception as e:
-		pass
+		excpetion = e
+
 	try:
-		e
+		excpetion
 	except:
-		e = InvalidAttrException(
+		excpetion = InvalidAttrException(
 			attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val)
 		)
-	if type(e) in [InvalidAttrException, ConvertAttrException]:
+	
+	if type(excpetion) in [InvalidAttrException, ConvertAttrException]:
 		if allow_update:
 			return None
 		elif attr_type._default != NAWAH_VALUES.NONE_VALUE:
 			return attr_type._default
 		else:
-			raise e
+			raise excpetion
+	
 
 
 def return_valid_attr(
@@ -1636,7 +1650,7 @@ def generate_dynamic_attr(
 
 	# [DOC] Process args of type ATTR
 	if dynamic_attr['type'] == 'LIST':
-		shadow_arg_list = []
+		shadow_arg_list: List[Optional[Dict[str, Any]]] = []
 		for i in range(len(dynamic_attr['args']['list'])):
 			shadow_arg_list.append(None)
 			dynamic_attr['args']['list'][i], shadow_arg_list[i] = generate_dynamic_attr(
@@ -1659,7 +1673,7 @@ def generate_dynamic_attr(
 			dynamic_attr=dynamic_attr['args']['val']
 		)
 	if dynamic_attr['type'] == 'UNION':
-		shadow_arg_union = []
+		shadow_arg_union: List[Optional[Dict[str, Any]]] = []
 		for i in range(len(dynamic_attr['args']['union'])):
 			shadow_arg_list.append(None)
 			dynamic_attr['args']['union'][i], shadow_arg_union[i] = generate_dynamic_attr(
@@ -1684,7 +1698,7 @@ def generate_dynamic_attr(
 
 
 def encode_attr_type(*, attr_type: ATTR) -> Dict[str, Any]:
-	encoded_attr_type = {
+	encoded_attr_type: Dict[str, Any] = {
 		'type': attr_type._type,
 		'args': copy.deepcopy(attr_type._args),
 		'allow_none': attr_type._default != NAWAH_VALUES.NONE_VALUE,
@@ -1717,6 +1731,8 @@ def encode_attr_type(*, attr_type: ATTR) -> Dict[str, Any]:
 
 def generate_attr(*, attr_type: ATTR) -> Any:
 	from nawah.config import Config
+
+	attr_val: Any
 
 	if attr_type._type == 'ANY':
 		return '__any'
