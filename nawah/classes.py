@@ -1,18 +1,6 @@
 from nawah.enums import Event, NAWAH_VALUES
 
-from typing import (
-	Union,
-	List,
-	Tuple,
-	Set,
-	Dict,
-	Literal,
-	TypedDict,
-	Any,
-	Callable,
-	Type,
-	ForwardRef,
-)
+from typing import Union, List, Tuple, Set, Dict, Literal, TypedDict, Any, Optional, Callable, Type, cast, ForwardRef  # type: ignore
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId, binary
 from aiohttp.web import WebSocketResponse
@@ -25,26 +13,41 @@ logger = logging.getLogger('nawah')
 NAWAH_EVENTS = List[Event]
 NAWAH_ENV = TypedDict(
 	'NAWAH_ENV',
-	conn=AsyncIOMotorClient,
-	REMOTE_ADDR=str,
-	HTTP_USER_AGENT=str,
-	client_app=str,
-	session='BaseModel',
-	ws=WebSocketResponse,
-	watch_tasks=Dict[str, Dict[Literal['watch', 'task'], Callable]],
+	{
+		'conn': AsyncIOMotorClient,
+		'REMOTE_ADDR': str,
+		'HTTP_USER_AGENT': str,
+		'client_app': str,
+		'session': 'BaseModel',
+		'ws': WebSocketResponse,
+		'watch_tasks': Dict[str, Dict[Literal['watch', 'task'], Callable]],
+	}
 )
-NAWAH_QUERY = List[
+
+NAWAH_QUERY_SPECIAL_GROUP = TypedDict('NAWAH_QUERY_SPECIAL_GROUP', {'by': str, 'count': int})
+
+NAWAH_QUERY_SPECIAL = TypedDict('NAWAH_QUERY_SPECIAL', {
+	'$search': Optional[str],
+	'$sort': Optional[Dict[str, Literal[1, -1]]],
+	'$skip': Optional[int],
+	'$limit': Optional[int],
+	'$extn': Optional[Union[Literal[False], List[str]]],
+	'$attrs': Optional[List[str]],
+	'$group': Optional[List[NAWAH_QUERY_SPECIAL_GROUP]],
+}, total=False)
+
+NAWAH_QUERY = List[  # type: ignore
 	Union[
-		'NAWAH_QUERY',
+		'NAWAH_QUERY',  # type: ignore
 		Union[
 			Dict[
 				str,
 				Union[
-					'NAWAH_QUERY',
+					'NAWAH_QUERY',  # type: ignore
 					Any,
 					Union[
-						Dict[Literal['$ne'], Any],
 						Dict[Literal['$eq'], Any],
+						Dict[Literal['$ne'], Any],
 						Dict[Literal['$gt'], Union[int, str]],
 						Dict[Literal['$gte'], Union[int, str]],
 						Dict[Literal['$lt'], Union[int, str]],
@@ -52,20 +55,12 @@ NAWAH_QUERY = List[
 						Dict[Literal['$bet'], Union[List[int], List[str]]],
 						Dict[Literal['$all'], List[Any]],
 						Dict[Literal['$in'], List[Any]],
+						Dict[Literal['$nin'], List[Any]],
 						Dict[Literal['$regex'], str],
 					],
 				],
 			],
-			Dict[Literal['$search'], str],
-			Dict[Literal['$sort'], Dict[str, Literal[1, -1]]],
-			Dict[Literal['$skip'], int],
-			Dict[Literal['$limit'], int],
-			Dict[Literal['$extn'], Union[Literal[False], List[str]]],
-			Dict[Literal['$attrs'], List[str]],
-			Dict[
-				Literal['$group'],
-				List[TypedDict('NAWAH_QUERY_GROUP', by=str, count=int)],
-			],
+			NAWAH_QUERY_SPECIAL,
 		],
 	]
 ]
@@ -85,7 +80,7 @@ NAWAH_DOC = Dict[
 ]
 
 
-ATTRS_TYPES: Dict[str, Dict[str, Type]] = {
+ATTRS_TYPES: Dict[str, Dict[str, Union[Type, str]]] = {
 	'ANY': {},
 	'ACCESS': {},
 	'COUNTER': {'pattern': str},
@@ -124,8 +119,8 @@ ATTRS_TYPES: Dict[str, Dict[str, Type]] = {
 	'GEO': {},
 	'LIST': {'list': List['ATTR'], 'min': int, 'max': int},
 	'KV_DICT': {
-		'key': ForwardRef('ATTR'),
-		'val': ForwardRef('ATTR'),
+		'key': 'ATTR',
+		'val': 'ATTR',
 		'min': int,
 		'max': int,
 		'req': List[str],
@@ -136,9 +131,24 @@ ATTRS_TYPES: Dict[str, Dict[str, Type]] = {
 	'TYPE': {'type': str},
 }
 
+SPECIAL_ATTRS = ['$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group']
+SPECIAL_ATTRS_TYPE = Literal['$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group']
 
 class L10N(dict):
 	pass
+
+
+NAWAH_METHOD = TypedDict(
+	'NAWAH_METHOD',
+	{
+		'permissions': List['PERM'],
+		'query_args': Dict[str, Union['ATTR', 'ATTR_MOD']],
+		'doc_args': Dict[str, Union['ATTR', 'ATTR_MOD']],
+		'get_method': bool,
+		'post_method': bool,
+		'watch_method': bool,
+	}
+)
 
 
 class NAWAH_MODULE:
@@ -150,15 +160,7 @@ class NAWAH_MODULE:
 	unique_attrs: List[str]
 	extns: Dict[str, 'EXTN']
 	privileges: List[str]
-	methods: TypedDict(
-		'METHODS',
-		permissions=List['PERM'],
-		query_args=Dict[str, Union['ATTR', 'ATTR_MOD']],
-		doc_args=Dict[str, Union['ATTR', 'ATTR_MOD']],
-		get_method=bool,
-		post_method=bool,
-		watch_method=bool,
-	)
+	methods: Dict[str, NAWAH_METHOD]
 	cache: List['CACHE']
 	analytics: List['ANALYTIC']
 	package_name: str
@@ -197,7 +199,7 @@ class NAWAH_MODULE:
 	async def read(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
+		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 	) -> 'DictObj':
@@ -236,7 +238,7 @@ class NAWAH_MODULE:
 	async def create(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
+		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 	) -> 'DictObj':
@@ -275,7 +277,7 @@ class NAWAH_MODULE:
 	async def update(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
+		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 	) -> 'DictObj':
@@ -314,7 +316,7 @@ class NAWAH_MODULE:
 	async def delete(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
+		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 	) -> 'DictObj':
@@ -353,7 +355,7 @@ class NAWAH_MODULE:
 	async def create_file(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
+		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 	) -> 'DictObj':
@@ -392,7 +394,7 @@ class NAWAH_MODULE:
 	async def delete_file(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
+		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 	) -> 'DictObj':
@@ -400,7 +402,7 @@ class NAWAH_MODULE:
 
 
 class InvalidAttrTypeException(Exception):
-	def __init__(self, *, attr_type: str):
+	def __init__(self, *, attr_type: Any):
 		self.attr_type = attr_type
 
 	def __str__(self):
@@ -425,41 +427,44 @@ class InvalidAttrTypeArgsException(Exception):
 		return self.msg
 
 
+ATTR_TYPE_LITERAL = Literal[
+	'ANY',
+	'ACCESS',
+	'COUNTER',
+	'ID',
+	'STR',
+	'INT',
+	'FLOAT',
+	'BOOL',
+	'LOCALE',
+	'LOCALES',
+	'EMAIL',
+	'PHONE',
+	'IP',
+	'URI_WEB',
+	'DATETIME',
+	'DATE',
+	'DYNAMIC_ATTR',
+	'DYNAMIC_VAL',
+	'TIME',
+	'FILE',
+	'GEO',
+	'LIST',
+	'KV_DICT',
+	'TYPED_DICT',
+	'LITERAL',
+	'UNION',
+	'TYPE',
+]
+
+
 class ATTR:
 	_nawah_attr: bool = True
-	_type: Literal[
-		'ANY',
-		'ACCESS',
-		'COUNTER',
-		'ID',
-		'STR',
-		'INT',
-		'FLOAT',
-		'BOOL',
-		'LOCALE',
-		'LOCALES',
-		'EMAIL',
-		'PHONE',
-		'IP',
-		'URI_WEB',
-		'DATETIME',
-		'DATE',
-		'DYNAMIC_ATTR',
-		'DYNAMIC_VAL',
-		'TIME',
-		'FILE',
-		'GEO',
-		'LIST',
-		'KV_DICT',
-		'TYPED_DICT',
-		'LITERAL',
-		'UNION',
-		'TYPE',
-	]
-	_desc: str
+	_type: ATTR_TYPE_LITERAL
+	_desc: Optional[str]
 	_args: Dict[str, Any]
 	_valid: bool = False
-	_extn: Union['EXTN', 'ATTR_MOD'] = None
+	_extn: Union[None, 'EXTN', 'ATTR_MOD'] = None
 
 	__default = NAWAH_VALUES.NONE_VALUE
 
@@ -481,7 +486,7 @@ class ATTR:
 	def __repr__(self):
 		return f'<ATTR:{self._type},{self._args}>'
 
-	def __init__(self, *, attr_type: str, desc: str = None, **kwargs: Dict[str, Any]):
+	def __init__(self, *, attr_type: ATTR_TYPE_LITERAL, desc: str = None, **kwargs: Any):
 		self._type = attr_type
 		self._desc = desc
 		self._args = kwargs
@@ -755,7 +760,7 @@ class ATTR:
 					arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
 				)
 			return
-		elif type(arg_type) == ForwardRef:
+		elif type(arg_type) == ForwardRef or (type(arg_type) == str and arg_type == 'ATTR'):
 			if type(arg_val) != ATTR:
 				raise InvalidAttrTypeArgException(
 					arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
@@ -853,7 +858,7 @@ class ATTR_MOD:
 		condition: Callable[[List[str], Dict[str, Any], 'Query', NAWAH_DOC], bool],
 		default: Union[Callable[[List[str], Dict[str, Any], 'Query', NAWAH_DOC], Any], Any],
 	):
-		self.condition = condition
+		setattr(self, 'condition', condition)
 		self.default = default
 
 
@@ -883,8 +888,8 @@ class PERM:
 
 class EXTN:
 	module: str
-	skip_events: List[Event]
-	query: NAWAH_QUERY
+	skip_events: Optional[List[Event]]
+	query: Optional[NAWAH_QUERY]
 	attrs: List[str]
 	force: bool = False
 
@@ -907,7 +912,7 @@ class EXTN:
 
 class CACHE:
 	condition: Callable[[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY]], bool]
-	period: int
+	period: Optional[int]
 	queries: Dict[str, 'CACHED_QUERY']
 
 	def __repr__(self):
@@ -919,7 +924,7 @@ class CACHE:
 		condition: Callable[[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY]], bool],
 		period: int = None,
 	):
-		self.condition = condition
+		setattr(self, 'condition', condition)
 		self.period = period
 		self.queries = {}
 
@@ -956,84 +961,88 @@ class ANALYTIC:
 			[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY], NAWAH_DOC], NAWAH_DOC
 		],
 	):
-		self.condition = condition
-		self.doc = doc
+		setattr(self, 'condition', condition)
+		setattr(self, 'doc', doc)
 
+CLIENT_APP = TypedDict(
+	'CLIENT_APP',
+	{
+		'name': str,
+		'type': Literal['web', 'ios', 'android'],
+		'origin': List[str],
+		'hash': str,
+	}
+)
+
+ANALYTICS_EVENTS = TypedDict(
+		'ANALYTICS_EVENTS',
+		{
+			'app_conn_verified': bool,
+			'session_conn_auth': bool,
+			'session_user_auth': bool,
+			'session_conn_reauth': bool,
+			'session_user_reauth': bool,
+			'session_conn_deauth': bool,
+			'session_user_deauth': bool,
+		}
+	)
 
 @dataclass
 class PACKAGE_CONFIG:
-	api_level: str = None
-	version: str = None
-	emulate_test: bool = None
-	debug: bool = None
-	port: int = None
-	env: str = None
-	force_admin_check: bool = None
-	vars_types: Dict[str, ATTR] = None
-	vars: Dict[str, Any] = None
-	client_apps: Dict[
-		str,
-		TypedDict(
-			'CLIENT_APP',
-			name=str,
-			type=Literal['web', 'ios', 'android'],
-			origin=List[str],
-			hash=str,
-		),
-	] = None
-	analytics_events: TypedDict(
-		'ANALYTICS_EVENTS',
-		app_conn_verified=bool,
-		session_conn_auth=bool,
-		session_user_auth=bool,
-		session_conn_reauth=bool,
-		session_user_reauth=bool,
-		session_conn_deauth=bool,
-		session_user_deauth=bool,
-	) = None
-	conn_timeout: int = None
-	quota_anon_min: int = None
-	quota_auth_min: int = None
-	quota_ip_min: int = None
-	data_server: str = None
-	data_name: str = None
-	data_ssl: bool = None
-	data_ca_name: str = None
-	data_ca: str = None
-	data_disk_use: bool = None
-	data_azure_mongo: bool = None
-	email_auth: Dict[str, str] = None
-	locales: List[str] = None
-	locale: str = None
-	admin_doc: NAWAH_DOC = None
-	admin_password: str = None
-	anon_token: str = None
-	anon_privileges: Dict[str, List[str]] = None
-	user_attrs: Dict[str, 'ATTRS_TYPES'] = None
-	user_settings: Dict[
+	api_level: Optional[str] = None
+	version: Optional[str] = None
+	emulate_test: Optional[bool] = None
+	debug: Optional[bool] = None
+	port: Optional[int] = None
+	env: Optional[str] = None
+	force_admin_check: Optional[bool] = None
+	vars_types: Optional[Dict[str, ATTR]] = None
+	vars: Optional[Dict[str, Any]] = None
+	client_apps: Optional[Dict[str, CLIENT_APP]] = None
+	analytics_events: Optional[ANALYTICS_EVENTS] = None
+	conn_timeout: Optional[int] = None
+	quota_anon_min: Optional[int] = None
+	quota_auth_min: Optional[int] = None
+	quota_ip_min: Optional[int] = None
+	data_server: Optional[str] = None
+	data_name: Optional[str] = None
+	data_ssl: Optional[bool] = None
+	data_ca_name: Optional[str] = None
+	data_ca: Optional[str] = None
+	data_disk_use: Optional[bool] = None
+	data_azure_mongo: Optional[bool] = None
+	email_auth: Optional[Dict[str, str]] = None
+	locales: Optional[List[str]] = None
+	locale: Optional[str] = None
+	admin_doc: Optional[NAWAH_DOC] = None
+	admin_password: Optional[str] = None
+	anon_token: Optional[str] = None
+	anon_privileges: Optional[Dict[str, List[str]]] = None
+	user_attrs: Optional[Dict[str, ATTR]] = None
+	user_settings: Optional[Dict[
 		str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]
-	] = None
-	user_doc_settings: List[str] = None
-	groups: List[Dict[str, Any]] = None
-	default_privileges: Dict[str, List[str]] = None
-	data_indexes: List[Dict[str, Any]] = None
-	docs: List[Dict[str, Any]] = None
-	jobs: List[Dict[str, Any]] = None
-	gateways: Dict[str, Callable] = None
-	types: Dict[str, Callable] = None
+	]] = None
+	user_doc_settings: Optional[List[str]] = None
+	groups: Optional[List[Dict[str, Any]]] = None
+	default_privileges: Optional[Dict[str, List[str]]] = None
+	data_indexes: Optional[List[Dict[str, Any]]] = None
+	docs: Optional[List[Dict[str, Any]]] = None
+	jobs: Optional[List[Dict[str, Any]]] = None
+	gateways: Optional[Dict[str, Callable]] = None
+	types: Optional[Dict[str, Callable]] = None
 
 
 @dataclass
 class APP_CONFIG(PACKAGE_CONFIG):
-	name: str = None
-	version: str = None
-	default_package: str = None
-	debug: bool = False
-	port: int = None
-	env: str = None
-	envs: Dict[str, PACKAGE_CONFIG] = None
-	realm: bool = None
-	force_admin_check: bool = None
+	name: Optional[str] = None
+	version: Optional[str] = None
+	default_package: Optional[str] = None
+	debug: Optional[bool] = False
+	port: Optional[int] = None
+	env: Optional[str] = None
+	envs: Optional[Dict[str, PACKAGE_CONFIG]] = None
+	realm: Optional[bool] = None
+	force_admin_check: Optional[bool] = None
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -1053,7 +1062,7 @@ class JSONEncoder(json.JSONEncoder):
 
 
 class DictObj:
-	__attrs = {}
+	__attrs: Dict[str, Any] = {}
 
 	def __repr__(self):
 		return f'<DictObj:{self.__attrs}>'
@@ -1169,13 +1178,25 @@ class UnknownQueryArgException(Exception):
 		)
 
 
+QUERY_INDEX_RECORD = TypedDict('QUERY_INDEX_RECORD', {
+	'oper': str,
+	'path': str,
+	'val': Any
+})
+
 class Query(list):
+	_query: NAWAH_QUERY
+	_special: NAWAH_QUERY_SPECIAL
+	_index: Dict[str, List[QUERY_INDEX_RECORD]]
+
+
 	def __init__(self, query: Union[NAWAH_QUERY, 'Query']):
 		self._query = query
 		if type(self._query) == Query:
+			query = cast(Query, query)
 			self._query = query._query + [query._special]
 		self._special = {}
-		self._index = {}
+		self._index: Dict[str, List[QUERY_INDEX_RECORD]] = {}
 		self._create_index(self._query)
 		super().__init__(self._query)
 
@@ -1184,61 +1205,62 @@ class Query(list):
 
 	def _create_index(self, query: NAWAH_QUERY, path=[]):
 		if not path:
-			self._index = {}
+			self._index: Dict[str, List[QUERY_INDEX_RECORD]] = {}
 		for i in range(len(query)):
 			if type(query[i]) == dict:
 				del_attrs = []
 				for attr in query[i].keys():
-					if attr[0] == '$':
-						self._special[attr] = query[i][attr]
+					if attr in SPECIAL_ATTRS:
+						self._special[attr] = query[i][attr]  # type: ignore
 						del_attrs.append(attr)
 					elif attr.startswith('__or'):
-						self._create_index(query[i][attr], path=path + [i, attr])
+						self._create_index(query[i][attr], path=path + [i, attr])  # type: ignore
 					else:
 						if (
-							type(query[i][attr]) == dict
-							and len(query[i][attr].keys()) == 1
-							and list(query[i][attr].keys())[0][0] == '$'
+							type(query[i][attr]) == dict  # type: ignore
+							and len(query[i][attr].keys()) == 1  # type: ignore
+							and list(query[i][attr].keys())[0][0] == '$'  # type: ignore
 						):
-							attr_oper = list(query[i][attr].keys())[0]
+							attr_oper = list(query[i][attr].keys())[0]  # type: ignore
 						else:
 							attr_oper = '$eq'
 						if attr not in self._index.keys():
 							self._index[attr] = []
-						if isinstance(query[i][attr], DictObj):
-							query[i][attr] = query[i][attr]._id
-						Query.validate_arg(arg_name=attr, arg_oper=attr_oper, arg_val=query[i][attr])
+						if isinstance(query[i][attr], DictObj):  # type: ignore
+							query[i][attr] = query[i][attr]._id  # type: ignore
+						Query.validate_arg(arg_name=attr, arg_oper=attr_oper, arg_val=query[i][attr])  # type: ignore
 						self._index[attr].append(
 							{
 								'oper': attr_oper,
 								'path': path + [i],
-								'val': query[i][attr],
+								'val': query[i][attr],  # type: ignore
 							}
 						)
 				for attr in del_attrs:
-					del query[i][attr]
+					del query[i][attr]  # type: ignore
 			elif type(query[i]) == list:
-				self._create_index(query[i], path=path + [i])
+				self._create_index(query[i], path=path + [i])  # type: ignore
 		if not path:
 			self._query = self._sanitise_query()
 
 	def _sanitise_query(self, query: NAWAH_QUERY = None):
 		if query == None:
 			query = self._query
+		query = cast(NAWAH_QUERY, query)
 		query_shadow = []
 		for step in query:
 			if type(step) == dict:
 				for attr in step.keys():
 					if attr.startswith('__or'):
-						step[attr] = self._sanitise_query(step[attr])
-						if len(step[attr]):
+						step[attr] = self._sanitise_query(step[attr])  # type: ignore
+						if len(step[attr]):  # type: ignore
 							query_shadow.append(step)
 							break
 					elif attr[0] != '$':
 						query_shadow.append(step)
 						break
 			elif type(step) == list:
-				step = self._sanitise_query(step)
+				step = self._sanitise_query(step)  # type: ignore
 				if len(step):
 					query_shadow.append(step)
 		return query_shadow
@@ -1251,8 +1273,8 @@ class Query(list):
 		self._create_index(self._query)
 		super().__init__(self._query)
 
-	def __contains__(self, attr: str):
-		if attr[0] == '$':
+	def __contains__(self, attr: str):  # type: ignore
+		if attr in SPECIAL_ATTRS:
 			return attr in self._special.keys()
 		else:
 			if ':' in attr:
@@ -1268,16 +1290,17 @@ class Query(list):
 						return True
 			return False
 
-	def __getitem__(self, attr: str):
-		if attr[0] == '$':
+	def __getitem__(self, attr: Union[SPECIAL_ATTRS_TYPE, str]):  # type: ignore
+		if attr in SPECIAL_ATTRS:
+			attr = cast(SPECIAL_ATTRS_TYPE, attr)
 			return self._special[attr]
 		else:
 			attrs = []
 			vals = []
-			paths = []
+			paths: List[List[int]] = []
 			indexes = []
-			attr_filter = False
-			oper_filter = False
+			attr_filter: Optional[str] = None
+			oper_filter: Optional[str] = None
 
 			if attr.split(':')[0] != '*':
 				attr_filter = attr.split(':')[0]
@@ -1303,7 +1326,7 @@ class Query(list):
 					if not oper_filter or (oper_filter and val['oper'] == oper_filter)
 				]
 				paths += [
-					val['path']
+					val['path']  # type: ignore
 					for val in self._index[index_attr]
 					if not oper_filter or (oper_filter and val['oper'] == oper_filter)
 				]
@@ -1315,14 +1338,16 @@ class Query(list):
 				]
 			return QueryAttrList(self, attrs, paths, indexes, vals)
 
-	def __setitem__(self, attr: str, val: Any):
+	def __setitem__(self, attr: str, val: Any):  # type: ignore
 		if attr[0] != '$':
 			raise Exception('Non-special attrs can only be updated by attr index.')
+		attr = cast(SPECIAL_ATTRS_TYPE, attr)
 		self._special[attr] = val
 
-	def __delitem__(self, attr: str):
+	def __delitem__(self, attr: str):  # type: ignore
 		if attr[0] != '$':
 			raise Exception('Non-special attrs can only be deleted by attr index.')
+		attr = cast(SPECIAL_ATTRS_TYPE, attr)
 		del self._special[attr]
 
 	@classmethod
@@ -1386,26 +1411,26 @@ class QueryAttrList(list):
 		self._vals = vals
 		super().__init__(vals)
 
-	def __setitem__(self, item: Union[Literal['*'], int], val: Any):
+	def __setitem__(self, item: Union[Literal['*'], int], val: Any):  # type: ignore
 		if item == '*':
 			for i in range(len(self._vals)):
 				self.__setitem__(i, val)
 		else:
 			instance_attr = self._query._query
 			for path_part in self._paths[item]:
-				instance_attr = instance_attr[path_part]
-			instance_attr[self._attrs[item].split(':')[0]] = val
+				instance_attr = instance_attr[path_part]  # type: ignore
+			instance_attr[self._attrs[item].split(':')[0]] = val  # type: ignore
 			self._query._create_index(self._query._query)
 
-	def __delitem__(self, item: Union[Literal['*'], int]):
+	def __delitem__(self, item: Union[Literal['*'], int]):  # type: ignore
 		if item == '*':
 			for i in range(len(self._vals)):
 				self.__delitem__(i)
 		else:
 			instance_attr = self._query._query
 			for path_part in self._paths[item]:
-				instance_attr = instance_attr[path_part]
-			del instance_attr[self._attrs[item].split(':')[0]]
+				instance_attr = instance_attr[path_part]  # type: ignore
+			del instance_attr[self._attrs[item].split(':')[0]]  # type: ignore
 			self._query._create_index(self._query._query)
 
 	def replace_attr(self, item: Union[Literal['*'], int], new_attr: str):
@@ -1415,10 +1440,10 @@ class QueryAttrList(list):
 		else:
 			instance_attr = self._query._query
 			for path_part in self._paths[item]:
-				instance_attr = instance_attr[path_part]
+				instance_attr = instance_attr[path_part]  # type: ignore
 			# [DOC] Set new attr
-			instance_attr[new_attr] = instance_attr[self._attrs[item].split(':')[0]]
+			instance_attr[new_attr] = instance_attr[self._attrs[item].split(':')[0]]  # type: ignore
 			# [DOC] Delete old attr
-			del instance_attr[self._attrs[item].split(':')[0]]
+			del instance_attr[self._attrs[item].split(':')[0]]  # type: ignore
 			# [DOC] Update index
 			self._query._create_index(self._query._query)
