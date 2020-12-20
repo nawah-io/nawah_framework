@@ -1,6 +1,6 @@
 from nawah.enums import Event, NAWAH_VALUES
 
-from typing import Union, List, Tuple, Set, Dict, Literal, TypedDict, Any, Optional, Callable, Type, cast, ForwardRef  # type: ignore
+from typing import Union, List, Tuple, Set, Dict, Literal, TypedDict, Any, Optional, Callable, Type, cast, ForwardRef, Protocol, AsyncGenerator  # type: ignore
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId, binary
 from aiohttp.web import WebSocketResponse
@@ -21,20 +21,27 @@ NAWAH_ENV = TypedDict(
 		'session': 'BaseModel',
 		'ws': WebSocketResponse,
 		'watch_tasks': Dict[str, Dict[Literal['watch', 'task'], Callable]],
-	}
+		'realm': Optional[str],
+	},
 )
 
-NAWAH_QUERY_SPECIAL_GROUP = TypedDict('NAWAH_QUERY_SPECIAL_GROUP', {'by': str, 'count': int})
+NAWAH_QUERY_SPECIAL_GROUP = TypedDict(
+	'NAWAH_QUERY_SPECIAL_GROUP', {'by': str, 'count': int}
+)
 
-NAWAH_QUERY_SPECIAL = TypedDict('NAWAH_QUERY_SPECIAL', {
-	'$search': Optional[str],
-	'$sort': Optional[Dict[str, Literal[1, -1]]],
-	'$skip': Optional[int],
-	'$limit': Optional[int],
-	'$extn': Optional[Union[Literal[False], List[str]]],
-	'$attrs': Optional[List[str]],
-	'$group': Optional[List[NAWAH_QUERY_SPECIAL_GROUP]],
-}, total=False)
+NAWAH_QUERY_SPECIAL = TypedDict(
+	'NAWAH_QUERY_SPECIAL',
+	{
+		'$search': Optional[str],
+		'$sort': Optional[Dict[str, Literal[1, -1]]],
+		'$skip': Optional[int],
+		'$limit': Optional[int],
+		'$extn': Optional[Union[Literal[False], List[str]]],
+		'$attrs': Optional[List[str]],
+		'$group': Optional[List[NAWAH_QUERY_SPECIAL_GROUP]],
+	},
+	total=False,
+)
 
 NAWAH_QUERY = List[  # type: ignore
 	Union[
@@ -132,7 +139,10 @@ ATTRS_TYPES: Dict[str, Dict[str, Union[Type, str]]] = {
 }
 
 SPECIAL_ATTRS = ['$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group']
-SPECIAL_ATTRS_TYPE = Literal['$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group']
+SPECIAL_ATTRS_TYPE = Literal[
+	'$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group'
+]
+
 
 class L10N(dict):
 	pass
@@ -142,17 +152,31 @@ NAWAH_METHOD = TypedDict(
 	'NAWAH_METHOD',
 	{
 		'permissions': List['PERM'],
-		'query_args': Dict[str, Union['ATTR', 'ATTR_MOD']],
-		'doc_args': Dict[str, Union['ATTR', 'ATTR_MOD']],
+		'query_args': Union[
+			None,
+			List[Dict[str, 'ATTR']],
+			Dict[str, 'ATTR'],
+		],
+		'doc_args': Union[
+			None,
+			List[Dict[str, 'ATTR']],
+			Dict[str, 'ATTR'],
+		],
 		'get_method': bool,
 		'post_method': bool,
 		'watch_method': bool,
-	}
+	},
+	total=False,
 )
+
+NAWAH_PRE_TUPLE = Tuple[NAWAH_EVENTS, NAWAH_ENV, 'Query', NAWAH_DOC, Dict[str, Any]]
+NAWAH_ON_TUPLE = Tuple[
+	Dict[str, Any], NAWAH_EVENTS, NAWAH_ENV, 'Query', NAWAH_DOC, Dict[str, Any]
+]
 
 
 class NAWAH_MODULE:
-	collection: Union[str, bool]
+	collection: Optional[str]
 	proxy: str
 	attrs: Dict[str, 'ATTR']
 	diff: Union[bool, 'ATTR_MOD']
@@ -173,9 +197,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		NAWAH_EVENTS, NAWAH_ENV, Union[NAWAH_QUERY, 'Query'], NAWAH_DOC, Dict[str, Any]
-	]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def on_read(
@@ -186,14 +208,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		Dict[str, Any],
-		NAWAH_EVENTS,
-		NAWAH_ENV,
-		Union[NAWAH_QUERY, 'Query'],
-		NAWAH_DOC,
-		Dict[str, Any],
-	]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def read(
@@ -205,6 +220,39 @@ class NAWAH_MODULE:
 	) -> 'DictObj':
 		pass
 
+	async def pre_watch(
+		self,
+		skip_events: NAWAH_EVENTS,
+		env: NAWAH_ENV,
+		query: Union[NAWAH_QUERY, 'Query'],
+		doc: NAWAH_DOC,
+		payload: Dict[str, Any],
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+		pass
+
+	async def on_watch(
+		self,
+		results: Dict[str, Any],
+		skip_events: NAWAH_EVENTS,
+		env: NAWAH_ENV,
+		query: Union[NAWAH_QUERY, 'Query'],
+		doc: NAWAH_DOC,
+		payload: Dict[str, Any],
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+		pass
+
+	async def watch(
+		self,
+		skip_events: NAWAH_EVENTS = [],
+		env: NAWAH_ENV = {},  # type: ignore
+		query: Union[NAWAH_QUERY, 'Query'] = [],
+		doc: NAWAH_DOC = {},
+		payload: Optional[Dict[str, Any]] = None,
+	) -> AsyncGenerator[
+		Union['DictObj', Dict[str, Any]], Union['DictObj', Dict[str, Any]]
+	]:
+		pass
+
 	async def pre_create(
 		self,
 		skip_events: NAWAH_EVENTS,
@@ -212,9 +260,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		NAWAH_EVENTS, NAWAH_ENV, Union[NAWAH_QUERY, 'Query'], NAWAH_DOC, Dict[str, Any]
-	]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def on_create(
@@ -225,14 +271,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		Dict[str, Any],
-		NAWAH_EVENTS,
-		NAWAH_ENV,
-		Union[NAWAH_QUERY, 'Query'],
-		NAWAH_DOC,
-		Dict[str, Any],
-	]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def create(
@@ -251,9 +290,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		NAWAH_EVENTS, NAWAH_ENV, Union[NAWAH_QUERY, 'Query'], NAWAH_DOC, Dict[str, Any]
-	]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def on_update(
@@ -264,14 +301,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		Dict[str, Any],
-		NAWAH_EVENTS,
-		NAWAH_ENV,
-		Union[NAWAH_QUERY, 'Query'],
-		NAWAH_DOC,
-		Dict[str, Any],
-	]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def update(
@@ -290,9 +320,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		NAWAH_EVENTS, NAWAH_ENV, Union[NAWAH_QUERY, 'Query'], NAWAH_DOC, Dict[str, Any]
-	]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def on_delete(
@@ -303,14 +331,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		Dict[str, Any],
-		NAWAH_EVENTS,
-		NAWAH_ENV,
-		Union[NAWAH_QUERY, 'Query'],
-		NAWAH_DOC,
-		Dict[str, Any],
-	]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def delete(
@@ -329,9 +350,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		NAWAH_EVENTS, NAWAH_ENV, Union[NAWAH_QUERY, 'Query'], NAWAH_DOC, Dict[str, Any]
-	]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def on_create_file(
@@ -342,14 +361,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		Dict[str, Any],
-		NAWAH_EVENTS,
-		NAWAH_ENV,
-		Union[NAWAH_QUERY, 'Query'],
-		NAWAH_DOC,
-		Dict[str, Any],
-	]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def create_file(
@@ -368,9 +380,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		NAWAH_EVENTS, NAWAH_ENV, Union[NAWAH_QUERY, 'Query'], NAWAH_DOC, Dict[str, Any]
-	]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def on_delete_file(
@@ -381,14 +391,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Tuple[
-		Dict[str, Any],
-		NAWAH_EVENTS,
-		NAWAH_ENV,
-		Union[NAWAH_QUERY, 'Query'],
-		NAWAH_DOC,
-		Dict[str, Any],
-	]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
 		pass
 
 	async def delete_file(
@@ -864,8 +867,8 @@ class ATTR_MOD:
 
 class PERM:
 	privilege: str
-	query_mod: Union[NAWAH_DOC, List[NAWAH_DOC]]
-	doc_mod: Union[NAWAH_DOC, List[NAWAH_DOC]]
+	query_mod: Dict[str, Union[None, ATTR, ATTR_MOD]]
+	doc_mod: Dict[str, Union[None, ATTR, ATTR_MOD]]
 
 	def __repr__(self):
 		return f'<PERM:{self.privilege},{self.query_mod},{self.doc_mod}>'
@@ -874,8 +877,8 @@ class PERM:
 		self,
 		*,
 		privilege: str,
-		query_mod: Union[NAWAH_DOC, List[NAWAH_DOC]] = None,
-		doc_mod: Union[NAWAH_DOC, List[NAWAH_DOC]] = None,
+		query_mod: Optional[Dict[str, Union[None, ATTR, ATTR_MOD]]] = None,
+		doc_mod: Optional[Dict[str, Union[None, ATTR, ATTR_MOD]]] = None,
 	):
 		if not query_mod:
 			query_mod = {}
@@ -897,7 +900,13 @@ class EXTN:
 		return f'<EXTN:{self.module},{self.attrs},{self.force}>'
 
 	def __init__(
-		self, *, module: str, skip_events: List[Event] = None, query: NAWAH_QUERY = None, attrs: List[str], force: bool = False
+		self,
+		*,
+		module: str,
+		skip_events: List[Event] = None,
+		query: NAWAH_QUERY = None,
+		attrs: List[str],
+		force: bool = False,
 	):
 		self.module = module
 		self.skip_events = skip_events
@@ -910,8 +919,15 @@ class EXTN:
 			self.query = [self.query]
 
 
+class CACHE_CONDITION(Protocol):
+	def __call__(
+		self, skip_events: NAWAH_EVENTS, env: NAWAH_ENV, query: Union['Query', NAWAH_QUERY]
+	) -> bool:
+		...
+
+
 class CACHE:
-	condition: Callable[[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY]], bool]
+	condition: CACHE_CONDITION
 	period: Optional[int]
 	queries: Dict[str, 'CACHED_QUERY']
 
@@ -921,22 +937,22 @@ class CACHE:
 	def __init__(
 		self,
 		*,
-		condition: Callable[[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY]], bool],
+		condition: CACHE_CONDITION,
 		period: int = None,
 	):
 		setattr(self, 'condition', condition)
 		self.period = period
 		self.queries = {}
 
-	def cache_query(self, *, query_key: str, results: 'DictObj'):
+	def cache_query(self, *, query_key: str, results: Dict[str, Any]):
 		self.queries[query_key] = CACHED_QUERY(results=results)
 
 
 class CACHED_QUERY:
-	results: 'DictObj'
+	results: Dict[str, Any]
 	query_time: datetime.datetime
 
-	def __init__(self, *, results: 'DictObj', query_time: datetime.datetime = None):
+	def __init__(self, *, results: Dict[str, Any], query_time: datetime.datetime = None):
 		self.results = results
 		if not query_time:
 			query_time = datetime.datetime.utcnow()
@@ -945,24 +961,25 @@ class CACHED_QUERY:
 
 class ANALYTIC:
 	condition: Callable[
-		[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY], NAWAH_DOC], bool
+		[NAWAH_EVENTS, NAWAH_ENV, Union['Query', NAWAH_QUERY], NAWAH_DOC], bool
 	]
 	doc: Callable[
-		[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY], NAWAH_DOC], NAWAH_DOC
+		[NAWAH_EVENTS, NAWAH_ENV, Union['Query', NAWAH_QUERY], NAWAH_DOC], NAWAH_DOC
 	]
 
 	def __init__(
 		self,
 		*,
 		condition: Callable[
-			[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY], NAWAH_DOC], bool
+			[NAWAH_EVENTS, NAWAH_ENV, Union['Query', NAWAH_QUERY], NAWAH_DOC], bool
 		],
 		doc: Callable[
-			[List[str], Dict[str, Any], Union['Query', NAWAH_QUERY], NAWAH_DOC], NAWAH_DOC
+			[NAWAH_EVENTS, NAWAH_ENV, Union['Query', NAWAH_QUERY], NAWAH_DOC], NAWAH_DOC
 		],
 	):
 		setattr(self, 'condition', condition)
 		setattr(self, 'doc', doc)
+
 
 CLIENT_APP = TypedDict(
 	'CLIENT_APP',
@@ -971,21 +988,22 @@ CLIENT_APP = TypedDict(
 		'type': Literal['web', 'ios', 'android'],
 		'origin': List[str],
 		'hash': str,
-	}
+	},
 )
 
 ANALYTICS_EVENTS = TypedDict(
-		'ANALYTICS_EVENTS',
-		{
-			'app_conn_verified': bool,
-			'session_conn_auth': bool,
-			'session_user_auth': bool,
-			'session_conn_reauth': bool,
-			'session_user_reauth': bool,
-			'session_conn_deauth': bool,
-			'session_user_deauth': bool,
-		}
-	)
+	'ANALYTICS_EVENTS',
+	{
+		'app_conn_verified': bool,
+		'session_conn_auth': bool,
+		'session_user_auth': bool,
+		'session_conn_reauth': bool,
+		'session_user_reauth': bool,
+		'session_conn_deauth': bool,
+		'session_user_deauth': bool,
+	},
+)
+
 
 @dataclass
 class PACKAGE_CONFIG:
@@ -1019,9 +1037,9 @@ class PACKAGE_CONFIG:
 	anon_token: Optional[str] = None
 	anon_privileges: Optional[Dict[str, List[str]]] = None
 	user_attrs: Optional[Dict[str, ATTR]] = None
-	user_settings: Optional[Dict[
-		str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]
-	]] = None
+	user_settings: Optional[
+		Dict[str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]]
+	] = None
 	user_doc_settings: Optional[List[str]] = None
 	groups: Optional[List[Dict[str, Any]]] = None
 	default_privileges: Optional[Dict[str, List[str]]] = None
@@ -1178,17 +1196,15 @@ class UnknownQueryArgException(Exception):
 		)
 
 
-QUERY_INDEX_RECORD = TypedDict('QUERY_INDEX_RECORD', {
-	'oper': str,
-	'path': str,
-	'val': Any
-})
+QUERY_INDEX_RECORD = TypedDict(
+	'QUERY_INDEX_RECORD', {'oper': str, 'path': str, 'val': Any}
+)
+
 
 class Query(list):
 	_query: NAWAH_QUERY
 	_special: NAWAH_QUERY_SPECIAL
 	_index: Dict[str, List[QUERY_INDEX_RECORD]]
-
 
 	def __init__(self, query: Union[NAWAH_QUERY, 'Query']):
 		self._query = query
