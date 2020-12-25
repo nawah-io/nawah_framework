@@ -12,8 +12,9 @@ from nawah.classes import (
 	NAWAH_DOC,
 	NAWAH_QUERY,
 	ANALYTIC,
+	DictObj,
 )
-from nawah.utils import DictObj, extract_attr
+from nawah.utils import extract_attr
 
 from typing import List, Dict, Any, Union
 from bson import ObjectId

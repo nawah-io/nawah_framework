@@ -12,7 +12,6 @@ nawah/enums.py
 nawah/gateway.py
 nawah/registry.py
 nawah/test.py
-nawah/utils.py
 nawah.egg-info/PKG-INFO
 nawah.egg-info/SOURCES.txt
 nawah.egg-info/dependency_links.txt

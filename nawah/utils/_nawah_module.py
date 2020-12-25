@@ -3,9 +3,9 @@ from nawah.classes import (
 	ATTR,
 	ATTR_MOD,
 	EXTN,
-	NAWAH_METHOD,
 	CACHE,
 	ANALYTIC,
+	METHOD,
 	NAWAH_MODULE,
 )
 
@@ -27,7 +27,7 @@ class nawah_module:
 		unique_attrs: Optional[List[str]] = None,
 		extns: Optional[Dict[str, EXTN]] = None,
 		privileges: Optional[List[str]] = None,
-		methods: Optional[Dict[str, NAWAH_METHOD]] = None,
+		methods: Optional[Dict[str, METHOD]] = None,
 		cache: Optional[List[CACHE]] = None,
 		analytics: Optional[List[ANALYTIC]] = None,
 	) -> None:
@@ -61,7 +61,7 @@ class nawah_module:
 # 	unique_attrs: Optional[List[str]] = None,
 # 	extns: Optional[Dict[str, EXTN]] = None,
 # 	privileges: Optional[List[str]] = None,
-# 	methods: Optional[Dict[str, NAWAH_METHOD]] = None,
+# 	methods: Optional[Dict[str, METHOD]] = None,
 # 	cache: Optional[List[CACHE]] = None,
 # 	analytics: Optional[List[ANALYTIC]] = None,
 # ) -> Callable[[Any], NAWAH_MODULE]:

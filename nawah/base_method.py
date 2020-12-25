@@ -4,10 +4,12 @@ from nawah.classes import (
 	BaseModel,
 	Query,
 	JSONEncoder,
+	ATTR,
 	ATTR_MOD,
 	NAWAH_DOC,
 	NAWAH_QUERY,
 	PERM,
+	TYPE_CHECKING,
 )
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
@@ -18,6 +20,9 @@ from typing import List, Dict, Union, Any, Tuple, Set, AsyncGenerator
 
 import logging, copy, traceback, sys, asyncio
 
+if TYPE_CHECKING:
+	from nawah.base_module import BaseModule
+
 logger = logging.getLogger('nawah')
 
 
@@ -27,8 +32,8 @@ class BaseMethod:
 		module: 'BaseModule',
 		method: str,
 		permissions: List[PERM],
-		query_args: List[Dict[str, Union[str, Tuple[Any], Set[str]]]],
-		doc_args: List[Dict[str, Union[str, Tuple[Any], Set[str]]]],
+		query_args: List[Dict[str, ATTR]],
+		doc_args: List[Dict[str, ATTR]],
 		watch_method: bool,
 		get_method: bool,
 		post_method: bool,

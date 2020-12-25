@@ -99,12 +99,18 @@ def generate_attr(*, attr_type: ATTR) -> Any:
 		return attr_val
 
 	elif attr_type._type == 'KV_DICT':
-		attr_val = {
-			generate_attr(attr_type=attr_type._args['key']): generate_attr(
+		attr_val = {}
+		if attr_type._args['req']:
+			attr_val = {
+				generate_attr(attr_type=ATTR.LITERAL(literal=[req])): generate_attr(
+					attr_type=attr_type._args['val']
+				)
+				for req in attr_type._args['req']
+			}
+		for _ in range(attr_type._args['min'] or 0):
+			attr_val[generate_attr(attr_type=attr_type._args['key'])] = generate_attr(
 				attr_type=attr_type._args['val']
 			)
-			for _ in range(attr_type._args['min'] or 0)
-		}
 		if len(attr_val.keys()) < (attr_type._args['min'] or 0):
 			attr_val = generate_attr(attr_type=attr_type)
 		return attr_val

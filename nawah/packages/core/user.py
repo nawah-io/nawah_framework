@@ -9,8 +9,11 @@ from bson import ObjectId
 
 import copy
 
-@nawah_module(
-	collection = 'users',
+
+class User(BaseModule):
+	'''`User` module provides data type and controller for users in Nawah eco-system. This module is supposed to be used for internal calls only, however it has wide-access permissions in order to allow admins, proxy modules to easily expose the methods.'''
+
+	collection = 'users'
 	attrs = {
 		'name': ATTR.LOCALE(desc='Name of the user as `LOCALE`.'),
 		'locale': ATTR.LOCALES(desc='Default locale of the user.'),
@@ -31,9 +34,9 @@ import copy
 			desc='Status of the user to determine whether user has access to the app or not.',
 			literal=['active', 'banned', 'deleted', 'disabled_password'],
 		),
-	},
-	defaults = {'login_time': None, 'status': 'active', 'groups': [], 'privileges': {}},
-	unique_attrs = [],
+	}
+	defaults = {'login_time': None, 'status': 'active', 'groups': [], 'privileges': {}}
+	unique_attrs = []
 	methods = {
 		'read': {
 			'permissions': [
@@ -79,10 +82,7 @@ import copy
 		'retrieve_file': {'permissions': [PERM(privilege='__sys')], 'get_method': True},
 		'create_file': {'permissions': [PERM(privilege='__sys')]},
 		'delete_file': {'permissions': [PERM(privilege='__sys')]},
-	},
-)
-class User(BaseModule):
-	'''`User` module provides data type and controller for users in Nawah eco-system. This module is supposed to be used for internal calls only, however it has wide-access permissions in order to allow admins, proxy modules to easily expose the methods.'''
+	}
 
 	async def on_read(self, results, skip_events, env, query, doc, payload):
 		for i in range(len(results['docs'])):

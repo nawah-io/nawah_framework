@@ -1,13 +1,22 @@
 from nawah.config import Config
 from nawah.enums import Event, DELETE_STRATEGY, LOCALE_STRATEGY
-from nawah.classes import DictObj, BaseModel, Query, EXTN, ATTR, ATTR_MOD, NAWAH_DOC
+from nawah.classes import (
+	DictObj,
+	BaseModel,
+	Query,
+	EXTN,
+	ATTR,
+	ATTR_MOD,
+	NAWAH_DOC,
+	NAWAH_ENV,
+)
 from nawah.utils import extract_attr, set_attr
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 
 from types import GeneratorType
-from typing import Dict, Union, List, Tuple, Any
+from typing import Dict, Union, List, Tuple, Any, AsyncGenerator
 
 import os, logging, re, datetime, copy
 
@@ -27,18 +36,14 @@ class Data:
 	def create_conn(cls) -> AsyncIOMotorClient:
 		connection_config = {'ssl': Config.data_ssl}
 		if Config.data_ca:
-			__location__ = os.path.realpath(
-				os.path.join(os.getcwd(), os.path.dirname(__file__))
-			)
+			__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 			connection_config['ssl_ca_certs'] = os.path.join(
 				__location__, '..', 'certs', Config.data_ca_name
 			)
 		# [DOC] Check for multiple servers
 		if type(Config.data_server) == list:
 			for data_server in Config.data_server:
-				conn = AsyncIOMotorClient(
-					data_server, **connection_config, connect=True
-				)
+				conn = AsyncIOMotorClient(data_server, **connection_config, connect=True)
 				try:
 					logger.debug(f'Check if data_server: {data_server} isMaster.')
 					results = conn.admin.command('ismaster')
@@ -50,9 +55,7 @@ class Data:
 					pass
 		elif type(Config.data_server) == str:
 			# [DOC] If it's single server just connect directly
-			conn = AsyncIOMotorClient(
-				Config.data_server, **connection_config, connect=True
-			)
+			conn = AsyncIOMotorClient(Config.data_server, **connection_config, connect=True)
 		return conn
 
 	@classmethod
@@ -60,11 +63,7 @@ class Data:
 		cls, *, collection: str, attrs: Dict[str, ATTR], query: Query, watch_mode: bool
 	) -> Tuple[int, int, Dict[str, int], List[Dict[str, Union[str, int]]], List[Any]]:
 		aggregate_prefix = [
-			{
-				'$match': {
-					'$or': [{'__deleted': {'$exists': False}}, {'__deleted': False}]
-				}
-			}
+			{'$match': {'$or': [{'__deleted': {'$exists': False}}, {'__deleted': False}]}}
 		]
 		aggregate_suffix = []
 		aggregate_query = [{'$match': {'$and': []}}]
@@ -92,9 +91,7 @@ class Data:
 			group = query['$group']
 			del query['$group']
 		if '$search' in query:
-			aggregate_prefix.insert(
-				0, {'$match': {'$text': {'$search': query['$search']}}}
-			)
+			aggregate_prefix.insert(0, {'$match': {'$text': {'$search': query['$search']}}})
 			project_query = {attr: '$' + attr for attr in attrs.keys()}
 			project_query['_id'] = '$_id'
 			project_query['__score'] = {'$meta': 'textScore'}
@@ -135,9 +132,7 @@ class Data:
 					'$group': {
 						'_id': '$_id',
 						**{
-							attr: {'$first': f'${attr}'}
-							for attr in query['$attrs']
-							if attr in attrs.keys()
+							attr: {'$first': f'${attr}'} for attr in query['$attrs'] if attr in attrs.keys()
 						},
 					}
 				}
@@ -190,13 +185,9 @@ class Data:
 						watch_mode=watch_mode,
 					)
 					if len(child_child_aggregate_query['$or']) == 1:
-						child_aggregate_query['$and'].append(
-							child_child_aggregate_query['$or'][0]
-						)
+						child_aggregate_query['$and'].append(child_child_aggregate_query['$or'][0])
 					elif len(child_child_aggregate_query['$or']) > 1:
-						child_aggregate_query['$and'].append(
-							child_child_aggregate_query['$or']
-						)
+						child_aggregate_query['$and'].append(child_child_aggregate_query['$or'])
 				else:
 					# [DOC] Add extn query when required
 					if (
@@ -212,10 +203,7 @@ class Data:
 						# [DOC] Don't attempt to extn attr that is already extended
 						lookup_query = False
 						for stage in aggregate_prefix:
-							if (
-								'$lookup' in stage.keys()
-								and stage['$lookup']['as'] == attr.split('.')[0]
-							):
+							if '$lookup' in stage.keys() and stage['$lookup']['as'] == attr.split('.')[0]:
 								lookup_query = True
 								break
 						if not lookup_query:
@@ -232,15 +220,9 @@ class Data:
 									}
 								}
 							)
-							aggregate_prefix.append(
-								{'$unwind': f'${attr.split(".")[0]}'}
-							)
-							group_query = {
-								attr: {'$first': f'${attr}'} for attr in attrs.keys()
-							}
-							group_query[attr.split('.')[0]] = {
-								'$first': f'${attr.split(".")[0]}._id'
-							}
+							aggregate_prefix.append({'$unwind': f'${attr.split(".")[0]}'})
+							group_query = {attr: {'$first': f'${attr}'} for attr in attrs.keys()}
+							group_query[attr.split('.')[0]] = {'$first': f'${attr.split(".")[0]}._id'}
 							group_query['_id'] = '$_id'
 							aggregate_suffix.append({'$group': group_query})
 					else:
@@ -248,24 +230,14 @@ class Data:
 						step_attrs = attrs
 
 					# [DOC] Convert strings and lists of strings to ObjectId when required
-					if (
-						step_attr in step_attrs.keys()
-						and step_attrs[step_attr]._type == 'ID'
-					):
+					if step_attr in step_attrs.keys() and step_attrs[step_attr]._type == 'ID':
 						try:
 							if type(step[attr]) == dict and '$in' in step[attr].keys():
-								step[attr] = {
-									'$in': [
-										ObjectId(child_attr)
-										for child_attr in step[attr]['$in']
-									]
-								}
+								step[attr] = {'$in': [ObjectId(child_attr) for child_attr in step[attr]['$in']]}
 							elif type(step[attr]) == str:
 								step[attr] = ObjectId(step[attr])
 						except:
-							logger.warning(
-								f'Failed to convert attr to id type: {step[attr]}'
-							)
+							logger.warning(f'Failed to convert attr to id type: {step[attr]}')
 					elif (
 						step_attr in step_attrs.keys()
 						and step_attrs[step_attr]._type == 'list'
@@ -273,50 +245,25 @@ class Data:
 					):
 						try:
 							if type(step[attr]) == list:
-								step[attr] = [
-									ObjectId(child_attr) for child_attr in step[attr]
-								]
-							elif (
-								type(step[attr]) == dict and '$in' in step[attr].keys()
-							):
-								step[attr] = {
-									'$in': [
-										ObjectId(child_attr)
-										for child_attr in step[attr]['$in']
-									]
-								}
+								step[attr] = [ObjectId(child_attr) for child_attr in step[attr]]
+							elif type(step[attr]) == dict and '$in' in step[attr].keys():
+								step[attr] = {'$in': [ObjectId(child_attr) for child_attr in step[attr]['$in']]}
 							elif type(step[attr]) == str:
 								step[attr] = ObjectId(step[attr])
 						except:
-							logger.warning(
-								f'Failed to convert attr to id type: {step[attr]}'
-							)
+							logger.warning(f'Failed to convert attr to id type: {step[attr]}')
 					elif step_attr == '_id':
 						try:
 							if type(step[attr]) == str:
 								step[attr] = ObjectId(step[attr])
 							elif type(step[attr]) == list:
-								step[attr] = [
-									ObjectId(child_attr) for child_attr in step[attr]
-								]
-							elif (
-								type(step[attr]) == dict and '$in' in step[attr].keys()
-							):
-								step[attr] = {
-									'$in': [
-										ObjectId(child_attr)
-										for child_attr in step[attr]['$in']
-									]
-								}
+								step[attr] = [ObjectId(child_attr) for child_attr in step[attr]]
+							elif type(step[attr]) == dict and '$in' in step[attr].keys():
+								step[attr] = {'$in': [ObjectId(child_attr) for child_attr in step[attr]['$in']]}
 						except:
-							logger.warning(
-								f'Failed to convert attr to id type: {step[attr]}'
-							)
+							logger.warning(f'Failed to convert attr to id type: {step[attr]}')
 					# [DOC] Check for access special attrs
-					elif (
-						step_attr in step_attrs.keys()
-						and step_attrs[step_attr]._type == 'ACCESS'
-					):
+					elif step_attr in step_attrs.keys() and step_attrs[step_attr]._type == 'ACCESS':
 						access_query = [
 							{
 								'$project': {
@@ -330,8 +277,7 @@ class Data:
 									},
 									'__access.groups': {
 										'$or': [
-											{'$in': [group, f'${attr}.groups']}
-											for group in step[attr]['$__groups']
+											{'$in': [group, f'${attr}.groups']} for group in step[attr]['$__groups']
 										]
 									},
 								}
@@ -347,9 +293,7 @@ class Data:
 								}
 							},
 						]
-						access_query[0]['$project'].update(
-							{attr: '$' + attr for attr in attrs.keys()}
-						)
+						access_query[0]['$project'].update({attr: '$' + attr for attr in attrs.keys()})
 
 						aggregate_prefix.append(access_query[0])
 						step[attr] = access_query[1]
@@ -364,18 +308,14 @@ class Data:
 						# [DOC] Check for $regex query oper
 						elif '$regex' in step[attr].keys():
 							step[attr] = {
-								'$regex': re.compile(
-									step[attr]['$regex'], re.RegexFlag.IGNORECASE
-								)
+								'$regex': re.compile(step[attr]['$regex'], re.RegexFlag.IGNORECASE)
 							}
 
 					if type(step[attr]) == dict and '$match' in step[attr].keys():
 						child_aggregate_query['$and'].append(step[attr]['$match'])
 					else:
 						if watch_mode:
-							child_aggregate_query['$and'].append(
-								{f'fullDocument.{attr}': step[attr]}
-							)
+							child_aggregate_query['$and'].append({f'fullDocument.{attr}': step[attr]})
 						else:
 							child_aggregate_query['$and'].append({attr: step[attr]})
 			if len(child_aggregate_query['$and']) == 1:
@@ -403,7 +343,7 @@ class Data:
 	async def _process_results_doc(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		collection: str,
 		attrs: Dict[str, ATTR],
 		doc: NAWAH_DOC,
@@ -420,9 +360,7 @@ class Data:
 				):
 					if Config.locale_strategy == LOCALE_STRATEGY.NONE_VALUE:
 						doc[attr] = {
-							locale: doc[attr][locale]
-							if locale in doc[attr].keys()
-							else None
+							locale: doc[attr][locale] if locale in doc[attr].keys() else None
 							for locale in Config.locales
 						}
 					elif callable(Config.locale_strategy):
@@ -454,7 +392,7 @@ class Data:
 		scope: Dict[str, Any],
 		attr_name: str,
 		attr_type: ATTR,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		extn_models: Dict[str, BaseModel] = None,
 	):
 		if not extn_models:
@@ -509,16 +447,12 @@ class Data:
 					elif child_attr._type == 'TYPED_DICT':
 						for child_scope in scope[attr_name]:
 							if type(child_scope) == dict:
-								for child_child_attr in child_attr._args[
-									'dict'
-								].keys():
+								for child_child_attr in child_attr._args['dict'].keys():
 									await cls._extend_attr(
 										doc=doc,
 										scope=child_scope,
 										attr_name=child_child_attr,
-										attr_type=child_attr._args['dict'][
-											child_child_attr
-										],
+										attr_type=child_attr._args['dict'][child_child_attr],
 										env=env,
 										extn_models=extn_models,
 									)
@@ -592,7 +526,7 @@ class Data:
 	async def _extend_doc(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		doc: NAWAH_DOC,
 		attr: Union[None, NAWAH_DOC],
 		extn_id: ObjectId,
@@ -608,17 +542,11 @@ class Data:
 			extn_module = Config.modules[extn.module]
 		# [DOC] Check if extn attr set to fetch all or specific attrs
 		if type(extn.attrs) == str and extn.attrs.startswith('$__'):
-			extn_attrs = extract_attr(
-				scope={'doc': doc, 'attr': attr}, attr_path=extn.attrs
-			)
+			extn_attrs = extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.attrs)
 			if extn_attrs[0] == '*':
-				extn_attrs = {
-					attr: extn_module.attrs[attr] for attr in extn_module.attrs.keys()
-				}
+				extn_attrs = {attr: extn_module.attrs[attr] for attr in extn_module.attrs.keys()}
 		elif extn.attrs[0] == '*':
-			extn_attrs = {
-				attr: extn_module.attrs[attr] for attr in extn_module.attrs.keys()
-			}
+			extn_attrs = {attr: extn_module.attrs[attr] for attr in extn_module.attrs.keys()}
 		else:
 			extn_attrs = {attr: extn_module.attrs[attr] for attr in extn.attrs}
 		# [DOC] Implicitly add _id key to extn attrs so that we don't delete it in process
@@ -634,7 +562,9 @@ class Data:
 		# [DOC] Read doc if not in extn_models
 		if str(extn_id) not in extn_models.keys():
 			extn_results = await extn_module.methods['read'](
-				skip_events=skip_events + (extn.skip_events or []), env=env, query=[{'_id': extn_id}] + (extn.query or [])
+				skip_events=skip_events + (extn.skip_events or []),
+				env=env,
+				query=[{'_id': extn_id}] + (extn.query or []),
 			)
 			if extn_results['args']['count']:
 				extn_models[str(extn_id)] = extn_results['args']['docs'][0]
@@ -653,7 +583,7 @@ class Data:
 	async def read(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		collection: str,
 		attrs: Dict[str, ATTR],
 		query: Query,
@@ -694,16 +624,13 @@ class Data:
 				for i in range(len(group_query)):
 					if (
 						list(group_query[i].keys())[0] == '$match'
-						and list(group_query[i]['$match'].keys())[0]
-						== group_condition['by']
+						and list(group_query[i]['$match'].keys())[0] == group_condition['by']
 					):
 						check_group = True
 						break
 				if check_group:
 					del group_query[i]
-				group_query = collection.aggregate(
-					group_query, allowDiskUse=Config.data_disk_use
-				)
+				group_query = collection.aggregate(group_query, allowDiskUse=Config.data_disk_use)
 				groups[group_condition['by']] = [
 					{
 						'min': group['_id']['min'],
@@ -763,12 +690,12 @@ class Data:
 	async def watch(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		collection: str,
 		attrs: Dict[str, ATTR],
 		query: Query,
 		skip_extn: bool = False,
-	) -> Dict[str, Any]:
+	) -> AsyncGenerator[Dict[str, Any], Dict[str, Any]]:
 		aggregate_query = cls._compile_query(
 			collection=collection, attrs=attrs, query=query, watch_mode=True
 		)[4]
@@ -808,7 +735,7 @@ class Data:
 	async def create(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		collection: str,
 		attrs: Dict[str, ATTR],
 		doc: NAWAH_DOC,
@@ -822,7 +749,7 @@ class Data:
 	async def update(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		collection: str,
 		attrs: Dict[str, ATTR],
 		docs: List[str],
@@ -922,7 +849,7 @@ class Data:
 	async def delete(
 		cls,
 		*,
-		env: Dict[str, Any],
+		env: NAWAH_ENV,
 		collection: str,
 		attrs: Dict[str, ATTR],
 		docs: List[str],
@@ -932,9 +859,7 @@ class Data:
 		if strategy in [DELETE_STRATEGY.SOFT_SKIP_SYS, DELETE_STRATEGY.SOFT_SYS]:
 			if strategy == DELETE_STRATEGY.SOFT_SKIP_SYS:
 				del_docs = [
-					ObjectId(doc)
-					for doc in docs
-					if ObjectId(doc) not in Config._sys_docs.keys()
+					ObjectId(doc) for doc in docs if ObjectId(doc) not in Config._sys_docs.keys()
 				]
 				if len(del_docs) != len(docs):
 					logger.warning(
@@ -953,26 +878,20 @@ class Data:
 					results = await collection.update_one({'_id': _id}, update_doc)
 					update_count += results.modified_count
 			else:
-				results = await collection.update_many(
-					{'_id': {'$in': docs}}, update_doc
-				)
+				results = await collection.update_many({'_id': {'$in': docs}}, update_doc)
 				update_count = results.modified_count
 			return {'count': update_count, 'docs': [{'_id': doc} for doc in docs]}
 		elif strategy in [DELETE_STRATEGY.FORCE_SKIP_SYS, DELETE_STRATEGY.FORCE_SYS]:
 			if strategy == DELETE_STRATEGY.FORCE_SKIP_SYS:
 				del_docs = [
-					ObjectId(doc)
-					for doc in docs
-					if ObjectId(doc) not in Config._sys_docs.keys()
+					ObjectId(doc) for doc in docs if ObjectId(doc) not in Config._sys_docs.keys()
 				]
 				if len(del_docs) != len(docs):
 					logger.warning(
 						'Skipped soft delete for system docs due to \'DELETE_FORCE_SKIP_SYS\' strategy.'
 					)
 			else:
-				logger.warning(
-					'Detected \'DELETE_FORCE_SYS\' strategy for delete call.'
-				)
+				logger.warning('Detected \'DELETE_FORCE_SYS\' strategy for delete call.')
 				del_docs = [ObjectId(doc) for doc in docs]
 			# [DOC] Perform delete query on matching docs
 			collection = env['conn'][Config.data_name][collection]
@@ -986,12 +905,10 @@ class Data:
 				delete_count = results.deleted_count
 			return {'count': delete_count, 'docs': [{'_id': doc} for doc in docs]}
 		else:
-			raise UnknownDeleteStrategyException(
-				f'DELETE_STRATEGY \'{strategy}\' is unknown.'
-			)
+			raise UnknownDeleteStrategyException(f'DELETE_STRATEGY \'{strategy}\' is unknown.')
 
 	@classmethod
-	async def drop(cls, env: Dict[str, Any], collection: str) -> True:
+	async def drop(cls, env: NAWAH_ENV, collection: str) -> True:
 		collection = env['conn'][Config.data_name][collection]
 		await collection.drop()
 		return True

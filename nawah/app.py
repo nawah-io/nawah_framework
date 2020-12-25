@@ -399,7 +399,11 @@ async def run_app():
 			try:
 				multipart_content_type = request.headers['Content-Type']
 				doc = {
-					part.headers[b'Content-Disposition'].decode('utf-8').replace('form-data; name=', '').replace('"', '').split(';')[0]: part.content
+					part.headers[b'Content-Disposition']
+					.decode('utf-8')
+					.replace('form-data; name=', '')
+					.replace('"', '')
+					.split(';')[0]: part.content
 					for part in decoder.MultipartDecoder(doc, multipart_content_type).parts
 				}
 			except Exception as e:
