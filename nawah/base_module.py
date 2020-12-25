@@ -23,11 +23,11 @@ from nawah.classes import (
 	ATTR,
 	PERM,
 	EXTN,
+	METHOD,
 	ATTR_MOD,
 	CACHE,
 	CACHED_QUERY,
 	ANALYTIC,
-	NAWAH_METHOD,
 	NAWAH_PRE_TUPLE,
 	NAWAH_ON_TUPLE,
 )
@@ -65,7 +65,7 @@ class BaseModule:
 	unique_attrs: List[str]
 	extns: Dict[str, EXTN]
 	privileges: List[str]
-	methods: Dict[str, Union[NAWAH_METHOD, BaseMethod]]
+	methods: Dict[str, METHOD]
 	cache: List[CACHE]
 	analytics: List[ANALYTIC]
 
@@ -166,12 +166,12 @@ class BaseModule:
 				logger.error(
 					f'Invalid Attr Type for \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
 				)
-				exit()
+				exit(1)
 			except InvalidAttrTypeArgException as e:
 				logger.error(
 					f'Invalid Attr Type Arg for \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
 				)
-				exit()
+				exit(1)
 			# [DOC] Update default value
 			for default in self.defaults.keys():
 				if (
@@ -199,19 +199,41 @@ class BaseModule:
 		# [DOC] Abstract methods as BaseMethod objects
 		for method_name in self.methods.keys():
 			method = self.methods[method_name]
-			method = cast(NAWAH_METHOD, method)
+			# [DOC] Check value type
+			if type(method) != METHOD:
+				if type(method) == dict:
+					logger.warning(
+						f'Method \'{method}\' of module \'{self.module_name}\' is using deprecated dict, Update it.'
+					)
+					method = self.methods[method_name] = METHOD(
+						permissions=method['permissions'],
+						query_args=None if 'query_args' not in method.keys() else method['query_args'],
+						doc_args=None if 'doc_args' not in method.keys() else method['doc_args'],
+						get_method=False if 'get_method' not in method.keys() else method['get_method'],
+						post_method=False
+						if 'post_method' not in method.keys()
+						else method['post_method'],
+						watch_method=False
+						if 'watch_method' not in method.keys()
+						else method['watch_method'],
+					)
+				else:
+					logger.error(
+						f'Invalid method \'{method}\' of module \'{self.module_name}\'. Exiting.'
+					)
+					exit(1)
 			# [DOC] Check for existence of at least single permissions set per method
-			if not len(method['permissions']):
+			if not len(method.permissions):
 				logger.error(
 					f'No permissions sets for method \'{method}\' of module \'{self.module_name}\'. Exiting.'
 				)
-				exit()
+				exit(1)
 			# [DOC] Check method query_args attr, set it or update it if required.
-			if 'query_args' not in method.keys():
+			if not method.query_args:
 				if method == 'create_file':
-					method['query_args'] = [{'_id': ATTR.ID(), 'attr': ATTR.STR()}]
+					method.query_args = [{'_id': ATTR.ID(), 'attr': ATTR.STR()}]
 				elif method == 'delete_file':
-					method['query_args'] = [
+					method.query_args = [
 						{
 							'_id': ATTR.ID(),
 							'attr': ATTR.STR(),
@@ -219,32 +241,23 @@ class BaseModule:
 							'name': ATTR.STR(),
 						}
 					]
-				else:
-					method['query_args'] = None
-			elif type(method['query_args']) == dict:
-				method_query_args = method['query_args']
+			elif type(method.query_args) == dict:
+				method_query_args = method.query_args
 				method_query_args = cast(Dict[str, ATTR], method_query_args)
-				method['query_args'] = [method_query_args]
+				method.query_args = [method_query_args]
 			# [DOC] Check method doc_args attr, set it or update it if required.
-			if 'doc_args' not in method.keys():
+			if not method.doc_args:
 				if method == 'create_file':
-					method['doc_args'] = [{'file': ATTR.FILE()}]
-				else:
-					method['doc_args'] = None
-			elif type(method['doc_args']) == dict:
-				method_doc_args = method['doc_args']
+					method.doc_args = [{'file': ATTR.FILE()}]
+			elif type(method.doc_args) == dict:
+				method_doc_args = method.doc_args
 				method_doc_args = cast(Dict[str, ATTR], method_doc_args)
-				method['doc_args'] = [method_doc_args]
-			# [DOC] Check method watch_method attr, set it or update it if required.
-			if 'watch_method' not in method.keys() or method['watch_method'] == False:
-				method['watch_method'] = False
-			# [DOC] Check method get_method attr, set it or update it if required.
-			if 'get_method' not in method.keys():
-				method['get_method'] = False
-			elif method['get_method'] == True:
-				if not method['query_args']:
+				method.doc_args = [method_doc_args]
+			# [DOC] Check method get_method attr, update it if required.
+			if method.get_method == True:
+				if not method.query_args:
 					if method == 'retrieve_file':
-						method['query_args'] = [
+						method.query_args = [
 							{
 								'_id': ATTR.ID(),
 								'attr': ATTR.STR(),
@@ -258,20 +271,18 @@ class BaseModule:
 							},
 						]
 					else:
-						method['query_args'] = [{}]
-			# [DOC] Check method post_method attr, set it or update it if required.
-			if 'post_method' not in method.keys():
-				method['post_method'] = False
-			elif method['post_method'] == True:
-				if not method['query_args']:
-					method['query_args'] = [{}]
+						method.query_args = [{}]
+			# [DOC] Check method post_method attr, update it if required.
+			if method.post_method == True:
+				if not method.query_args:
+					method.query_args = [{}]
 			# [DOC] Check permissions sets for any invalid set
-			for permissions_set in method['permissions']:
+			for permissions_set in method.permissions:
 				if type(permissions_set) != PERM:
 					logger.error(
 						f'Invalid permissions set \'{permissions_set}\' of method \'{method}\' of module \'{self.module_name}\'. Exiting.'
 					)
-					exit()
+					exit(1)
 				# [DOC] Add default Doc Modifiers to prevent sys attrs from being modified
 				if method_name == 'update':
 					for attr in ['user', 'create_time']:
@@ -282,8 +293,8 @@ class BaseModule:
 			# [DOC] Check invalid query_args, doc_args types
 			for arg_set in ['query_args', 'doc_args']:
 				arg_set = cast(Literal['query_args', 'doc_args'], arg_set)
-				if method[arg_set]:
-					method_arg_set = method[arg_set]
+				if getattr(method, arg_set):
+					method_arg_set = getattr(method, arg_set)
 					method_arg_set = cast(List[Dict[str, ATTR]], method_arg_set)
 					for args_set in method_arg_set:
 						for attr in args_set.keys():
@@ -293,21 +304,21 @@ class BaseModule:
 								logger.error(
 									f'Invalid \'{arg_set}\' attr type for \'{attr}\' of set \'{args_set}\' of method \'{method}\' of module \'{self.module_name}\'. Exiting.'
 								)
-								exit()
+								exit(1)
 			# [DOC] Initialise method as BaseMethod
-			method_query_args = method['query_args']
+			method_query_args = method.query_args  # type: ignore
 			method_query_args = cast(List[Dict[str, ATTR]], method_query_args)
-			method_doc_args = method['doc_args']
+			method_doc_args = method.doc_args  # type: ignore
 			method_doc_args = cast(List[Dict[str, ATTR]], method_doc_args)
-			self.methods[method_name] = BaseMethod(
+			self.methods[method_name]._callable = BaseMethod(
 				module=self,
 				method=method_name,
-				permissions=method['permissions'],
+				permissions=method.permissions,
 				query_args=method_query_args,
 				doc_args=method_doc_args,
-				watch_method=method['watch_method'],
-				get_method=method['get_method'],
-				post_method=method['post_method'],
+				watch_method=method.watch_method,
+				get_method=method.get_method,
+				post_method=method.post_method,
 			)
 		# [DOC] Check extns for invalid extended attrs
 		for attr in self.extns.keys():
@@ -315,26 +326,26 @@ class BaseModule:
 				logger.error(
 					f'Invalid extns attr \'{attr}\' of module \'{self.module_name}\'. Exiting.'
 				)
-				exit()
+				exit(1)
 		logger.debug(f'Initialised module {self.module_name}')
 
 	def status(
 		self, *, status: int, msg: str, args: Union[None, Dict[str, Any], DictObj] = None
-	) -> Dict[str, Any]:
+	) -> DictObj:
 		status_dict = {'status': status, 'msg': msg, 'args': {}}
-		if args and type(args) == dict:
-			if 'code' in args.keys():
-				args[
-					'code'
-				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
-			status_dict['args'] = args
-		elif args and type(args) == DictObj:
+		if args and type(args) == DictObj:
 			if 'code' in args:
 				args[
 					'code'
 				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
 			status_dict['args'] = args
-		return status_dict
+		elif args and type(args) == dict:
+			if 'code' in args.keys():
+				args[
+					'code'
+				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
+			status_dict['args'] = args
+		return DictObj(status_dict)
 
 	def __getattribute__(self, attr):
 		# [DOC] Module is not yet initialised, skip to return exact attr
@@ -357,7 +368,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_read(
@@ -368,7 +379,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def read(
@@ -377,7 +388,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -395,7 +406,7 @@ class BaseModule:
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
 				if type(proxy_pre_read) in [DictObj, dict]:
-					proxy_pre_read = cast(Union[DictObj, Dict[str, Any]], proxy_pre_read)
+					proxy_pre_read = cast(DictObj, proxy_pre_read)
 					return proxy_pre_read
 				proxy_pre_read = cast(NAWAH_PRE_TUPLE, proxy_pre_read)
 				skip_events, env, query, doc, payload = proxy_pre_read
@@ -403,7 +414,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_read) in [DictObj, dict]:
-				pre_read = cast(Union[DictObj, Dict[str, Any]], pre_read)
+				pre_read = cast(DictObj, pre_read)
 				return pre_read
 			pre_read = cast(NAWAH_PRE_TUPLE, pre_read)
 			skip_events, env, query, doc, payload = pre_read
@@ -473,7 +484,7 @@ class BaseModule:
 					payload=payload,
 				)
 				if type(proxy_on_read) in [DictObj, dict]:
-					proxy_on_read = cast(Union[DictObj, Dict[str, Any]], proxy_on_read)
+					proxy_on_read = cast(DictObj, proxy_on_read)
 					return proxy_on_read
 				proxy_on_read = cast(NAWAH_ON_TUPLE, proxy_on_read)
 				results, skip_events, env, query, doc, payload = proxy_on_read
@@ -486,7 +497,7 @@ class BaseModule:
 				payload=payload,
 			)
 			if type(on_read) in [DictObj, dict]:
-				on_read = cast(Union[DictObj, Dict[str, Any]], on_read)
+				on_read = cast(DictObj, on_read)
 				return on_read
 			on_read = cast(NAWAH_ON_TUPLE, on_read)
 			results, skip_events, env, query, doc, payload = on_read
@@ -511,7 +522,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_watch(
@@ -522,7 +533,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def watch(
@@ -532,7 +543,7 @@ class BaseModule:
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 		payload: Optional[Dict[str, Any]] = None,
-	) -> AsyncGenerator[Union[DictObj, Dict[str, Any]], Union[DictObj, Dict[str, Any]]]:
+	) -> AsyncGenerator[DictObj, DictObj]:
 		if not self.collection:
 			yield self.status(
 				status=400,
@@ -550,7 +561,7 @@ class BaseModule:
 					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload or {}
 				)
 				if type(proxy_pre_watch) in [DictObj, dict]:
-					proxy_pre_watch = cast(Union[DictObj, Dict[str, Any]], proxy_pre_watch)
+					proxy_pre_watch = cast(DictObj, proxy_pre_watch)
 					yield proxy_pre_watch
 				proxy_pre_watch = cast(NAWAH_PRE_TUPLE, proxy_pre_watch)
 				skip_events, env, query, doc, payload = proxy_pre_watch
@@ -558,7 +569,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload or {}
 			)
 			if type(pre_watch) in [DictObj, dict]:
-				pre_watch = cast(Union[DictObj, Dict[str, Any]], pre_watch)
+				pre_watch = cast(DictObj, pre_watch)
 				yield pre_watch
 			pre_watch = cast(NAWAH_PRE_TUPLE, pre_watch)
 			skip_events, env, query, doc, payload = pre_watch
@@ -577,7 +588,9 @@ class BaseModule:
 			logger.debug(f'Received watch results at BaseModule: {results}')
 
 			if 'stream' in results.keys():
-				yield results
+				yield self.status(
+					status=200, msg=f'Detected {results["count"]} docs.', args=results
+				)
 				continue
 
 			if Event.ON not in skip_events:
@@ -593,7 +606,7 @@ class BaseModule:
 						payload=payload,
 					)
 					if type(proxy_on_watch) in [DictObj, dict]:
-						proxy_on_watch = cast(Union[DictObj, Dict[str, Any]], proxy_on_watch)
+						proxy_on_watch = cast(DictObj, proxy_on_watch)
 						yield proxy_on_watch
 					proxy_on_watch = cast(NAWAH_ON_TUPLE, proxy_on_watch)
 					results, skip_events, env, query, doc, payload = proxy_on_watch
@@ -606,7 +619,7 @@ class BaseModule:
 					payload=payload,
 				)
 				if type(on_watch) in [DictObj, dict]:
-					on_watch = cast(Union[DictObj, Dict[str, Any]], on_watch)
+					on_watch = cast(DictObj, on_watch)
 					yield on_watch
 				on_watch = cast(NAWAH_ON_TUPLE, on_watch)
 				results, skip_events, env, query, doc, payload = on_watch
@@ -632,7 +645,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_create(
@@ -643,7 +656,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def create(
@@ -652,7 +665,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -670,7 +683,7 @@ class BaseModule:
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
 				if type(proxy_pre_create) in [DictObj, dict]:
-					proxy_pre_create = cast(Union[DictObj, Dict[str, Any]], proxy_pre_create)
+					proxy_pre_create = cast(DictObj, proxy_pre_create)
 					return proxy_pre_create
 				proxy_pre_create = cast(NAWAH_PRE_TUPLE, proxy_pre_create)
 				skip_events, env, query, doc, payload = proxy_pre_create
@@ -678,7 +691,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_create) in [DictObj, dict]:
-				pre_create = cast(Union[DictObj, Dict[str, Any]], pre_create)
+				pre_create = cast(DictObj, pre_create)
 				return pre_create
 			pre_create = cast(NAWAH_PRE_TUPLE, pre_create)
 			skip_events, env, query, doc, payload = pre_create
@@ -748,7 +761,6 @@ class BaseModule:
 				unique_results = await self.read(
 					skip_events=[Event.PERM], env=env, query=unique_attrs_query
 				)
-				unique_results = cast(DictObj, unique_results)
 				if unique_results.args.count:
 					unique_attrs_str = ', '.join(
 						map(
@@ -778,7 +790,7 @@ class BaseModule:
 					payload=payload,
 				)
 				if type(proxy_on_create) in [DictObj, dict]:
-					proxy_on_create = cast(Union[DictObj, Dict[str, Any]], proxy_on_create)
+					proxy_on_create = cast(DictObj, proxy_on_create)
 					return proxy_on_create
 				proxy_on_create = cast(NAWAH_ON_TUPLE, proxy_on_create)
 				results, skip_events, env, query, doc, payload = proxy_on_create
@@ -791,7 +803,7 @@ class BaseModule:
 				payload=payload,
 			)
 			if type(on_create) in [DictObj, dict]:
-				on_create = cast(Union[DictObj, Dict[str, Any]], on_create)
+				on_create = cast(DictObj, on_create)
 				return on_create
 			on_create = cast(NAWAH_ON_TUPLE, on_create)
 			results, skip_events, env, query, doc, payload = on_create
@@ -800,7 +812,6 @@ class BaseModule:
 			read_results = await self.read(
 				skip_events=[Event.PERM], env=env, query=[[{'_id': results['docs'][0]}]]
 			)
-			read_results = cast(DictObj, read_results)
 			results = read_results.args
 
 		# [DOC] Module collection is updated, update_cache
@@ -815,7 +826,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_update(
@@ -826,7 +837,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def update(
@@ -835,7 +846,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -853,7 +864,7 @@ class BaseModule:
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
 				if type(proxy_pre_update) in [DictObj, dict]:
-					proxy_pre_update = cast(Union[DictObj, Dict[str, Any]], proxy_pre_update)
+					proxy_pre_update = cast(DictObj, proxy_pre_update)
 					return proxy_pre_update
 				proxy_pre_update = cast(NAWAH_PRE_TUPLE, proxy_pre_update)
 				skip_events, env, query, doc, payload = proxy_pre_update
@@ -861,7 +872,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_update) in [DictObj, dict]:
-				pre_update = cast(Union[DictObj, Dict[str, Any]], pre_update)
+				pre_update = cast(DictObj, pre_update)
 				return pre_update
 			pre_update = cast(NAWAH_PRE_TUPLE, pre_update)
 			skip_events, env, query, doc, payload = pre_update
@@ -970,7 +981,6 @@ class BaseModule:
 				unique_results = await self.read(
 					skip_events=[Event.PERM], env=env, query=unique_attrs_query
 				)
-				unique_results = cast(DictObj, unique_results)
 				if unique_results.args.count:
 					unique_attrs_str = ', '.join(
 						map(
@@ -1003,7 +1013,7 @@ class BaseModule:
 					payload=payload,
 				)
 				if type(proxy_on_update) in [DictObj, dict]:
-					proxy_on_update = cast(Union[DictObj, Dict[str, Any]], proxy_on_update)
+					proxy_on_update = cast(DictObj, proxy_on_update)
 					return proxy_on_update
 				proxy_on_update = cast(NAWAH_ON_TUPLE, proxy_on_update)
 				results, skip_events, env, query, doc, payload = proxy_on_update
@@ -1016,7 +1026,7 @@ class BaseModule:
 				payload=payload,
 			)
 			if type(on_update) in [DictObj, dict]:
-				on_update = cast(Union[DictObj, Dict[str, Any]], on_update)
+				on_update = cast(DictObj, on_update)
 				return on_update
 			on_update = cast(NAWAH_ON_TUPLE, on_update)
 			results, skip_events, env, query, doc, payload = on_update
@@ -1068,7 +1078,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_delete(
@@ -1079,7 +1089,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def delete(
@@ -1088,7 +1098,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -1106,7 +1116,7 @@ class BaseModule:
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
 				if type(proxy_pre_delete) in [DictObj, dict]:
-					proxy_pre_delete = cast(Union[DictObj, Dict[str, Any]], proxy_pre_delete)
+					proxy_pre_delete = cast(DictObj, proxy_pre_delete)
 					return proxy_pre_delete
 				proxy_pre_delete = cast(NAWAH_PRE_TUPLE, proxy_pre_delete)
 				skip_events, env, query, doc, payload = proxy_pre_delete
@@ -1114,7 +1124,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_delete) in [DictObj, dict]:
-				pre_delete = cast(Union[DictObj, Dict[str, Any]], pre_delete)
+				pre_delete = cast(DictObj, pre_delete)
 				return pre_delete
 			pre_delete = cast(NAWAH_PRE_TUPLE, pre_delete)
 			skip_events, env, query, doc, payload = pre_delete
@@ -1157,7 +1167,7 @@ class BaseModule:
 					payload=payload,
 				)
 				if type(proxy_on_delete) in [DictObj, dict]:
-					proxy_on_delete = cast(Union[DictObj, Dict[str, Any]], proxy_on_delete)
+					proxy_on_delete = cast(DictObj, proxy_on_delete)
 					return proxy_on_delete
 				proxy_on_delete = cast(NAWAH_ON_TUPLE, proxy_on_delete)
 				results, skip_events, env, query, doc, payload = proxy_on_delete
@@ -1170,7 +1180,7 @@ class BaseModule:
 				payload=payload,
 			)
 			if type(on_delete) in [DictObj, dict]:
-				on_delete = cast(Union[DictObj, Dict[str, Any]], on_delete)
+				on_delete = cast(DictObj, on_delete)
 				return on_delete
 			on_delete = cast(NAWAH_ON_TUPLE, on_delete)
 			results, skip_events, env, query, doc, payload = on_delete
@@ -1187,7 +1197,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_create_file(
@@ -1198,7 +1208,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def create_file(
@@ -1207,7 +1217,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -1222,7 +1232,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_create_file) in [DictObj, dict]:
-				pre_create_file = cast(Union[DictObj, Dict[str, Any]], pre_create_file)
+				pre_create_file = cast(DictObj, pre_create_file)
 				return pre_create_file
 			pre_create_file = cast(NAWAH_PRE_TUPLE, pre_create_file)
 			skip_events, env, query, doc, payload = pre_create_file
@@ -1255,7 +1265,7 @@ class BaseModule:
 				payload=payload,
 			)
 			if type(on_create_file) in [DictObj, dict]:
-				on_create_file = cast(Union[DictObj, Dict[str, Any]], on_create_file)
+				on_create_file = cast(DictObj, on_create_file)
 				return on_create_file
 			on_create_file = cast(NAWAH_ON_TUPLE, on_create_file)
 			results, skip_events, env, query, doc, payload = on_create_file
@@ -1269,7 +1279,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_delete_file(
@@ -1280,7 +1290,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def delete_file(
@@ -1289,7 +1299,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -1304,7 +1314,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_delete_file) in [DictObj, dict]:
-				pre_delete_file = cast(Union[DictObj, Dict[str, Any]], pre_delete_file)
+				pre_delete_file = cast(DictObj, pre_delete_file)
 				return pre_delete_file
 			pre_delete_file = cast(NAWAH_PRE_TUPLE, pre_delete_file)
 			skip_events, env, query, doc, payload = pre_delete_file
@@ -1322,7 +1332,6 @@ class BaseModule:
 		read_results = await self.read(
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
-		read_results = cast(DictObj, read_results)
 		if not read_results.args.count:
 			return self.status(status=400, msg='Doc is invalid.', args={'code': 'INVALID_DOC'})
 		doc = read_results.args.docs[0]
@@ -1374,7 +1383,7 @@ class BaseModule:
 				payload=payload,
 			)
 			if type(on_delete_file) in [DictObj, dict]:
-				on_delete_file = cast(Union[DictObj, Dict[str, Any]], on_delete_file)
+				on_delete_file = cast(DictObj, on_delete_file)
 				return on_delete_file
 			on_delete_file = cast(NAWAH_ON_TUPLE, on_delete_file)
 			results, skip_events, env, query, doc, payload = on_delete_file
@@ -1388,7 +1397,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_retrieve_file(
@@ -1399,7 +1408,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj, Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def retrieve_file(
@@ -1408,7 +1417,7 @@ class BaseModule:
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if not self.collection:
 			return self.status(
 				status=400,
@@ -1423,7 +1432,7 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 			)
 			if type(pre_retrieve_file) in [DictObj, dict]:
-				pre_retrieve_file = cast(Union[DictObj, Dict[str, Any]], pre_retrieve_file)
+				pre_retrieve_file = cast(DictObj, pre_retrieve_file)
 				return pre_retrieve_file
 			pre_retrieve_file = cast(NAWAH_PRE_TUPLE, pre_retrieve_file)
 			skip_events, env, query, doc, payload = pre_retrieve_file
@@ -1437,20 +1446,19 @@ class BaseModule:
 		else:
 			thumb_dims = None
 
-		results = await self.read(
+		read_results = await self.read(
 			skip_events=[Event.PERM] + skip_events,
 			env=env,
 			query=[{'_id': query['_id'][0]}],
 		)
-		results = cast(DictObj, results)
-		if not results.args.count:
+		if not read_results.args.count:
 			return self.status(
 				status=400,
 				msg='File not found.',
 				args={'code': 'NOT_FOUND', 'return': 'json'},
 			)
 		attr: Union[List[Dict[str, Any]], Dict[str, Any]]
-		doc = results.args.docs[0]
+		doc = read_results.args.docs[0]
 		try:
 			attr_path = attr_name.split('.')
 			attr = doc
@@ -1476,57 +1484,7 @@ class BaseModule:
 			if attr['name'] == filename:
 				retrieved_file = attr
 
-		if retrieved_file:
-			results = {
-				'docs': [
-					DictObj(
-						{
-							'_id': query['_id'][0],
-							'name': retrieved_file['name'],
-							'type': retrieved_file['type'],
-							'lastModified': retrieved_file['lastModified'],
-							'size': retrieved_file['size'],
-							'content': retrieved_file['content'],
-						}
-					)
-				]
-			}
-
-			if thumb_dims:
-				if retrieved_file['type'].split('/')[0] != 'image':
-					return self.status(
-						status=400,
-						msg='File is not of type image to create thumbnail for.',
-						args={'code': 'NOT_IMAGE', 'return': 'json'},
-					)
-				try:
-					image = Image.open(io.BytesIO(retrieved_file['content']))
-					image.thumbnail(thumb_dims)
-					stream = io.BytesIO()
-					image.save(stream, format=image.format)
-					stream.seek(0)
-					results['docs'][0]['content'] = stream.read()
-				except:
-					pass
-
-			if Event.ON not in skip_events:
-				on_retrieve_file = await self.on_retrieve_file(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				if type(on_retrieve_file) in [DictObj, dict]:
-					on_retrieve_file = cast(Union[DictObj, Dict[str, Any]], on_retrieve_file)
-					return on_retrieve_file
-				on_retrieve_file = cast(NAWAH_ON_TUPLE, on_retrieve_file)
-				results, skip_events, env, query, doc, payload = on_retrieve_file
-
-			results['return'] = 'file'
-			return self.status(status=200, msg='File attached to response.', args=results)
-		else:
+		if not retrieved_file:
 			# [DOC] No filename match
 			return self.status(
 				status=404,
@@ -1534,13 +1492,65 @@ class BaseModule:
 				args={'code': 'NOT_FOUND', 'return': 'json'},
 			)
 
+		# [DOC] filematch!
+		results: Dict[str, Any]
+		results = {
+			'docs': [
+				DictObj(
+					{
+						'_id': query['_id'][0],
+						'name': retrieved_file['name'],
+						'type': retrieved_file['type'],
+						'lastModified': retrieved_file['lastModified'],
+						'size': retrieved_file['size'],
+						'content': retrieved_file['content'],
+					}
+				)
+			]
+		}
+
+		if thumb_dims:
+			if retrieved_file['type'].split('/')[0] != 'image':
+				return self.status(
+					status=400,
+					msg='File is not of type image to create thumbnail for.',
+					args={'code': 'NOT_IMAGE', 'return': 'json'},
+				)
+			try:
+				image = Image.open(io.BytesIO(retrieved_file['content']))
+				image.thumbnail(thumb_dims)
+				stream = io.BytesIO()
+				image.save(stream, format=image.format)
+				stream.seek(0)
+				results['docs'][0]['content'] = stream.read()
+			except:
+				pass
+
+		if Event.ON not in skip_events:
+			on_retrieve_file = await self.on_retrieve_file(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			if type(on_retrieve_file) in [DictObj, dict]:
+				on_retrieve_file = cast(DictObj, on_retrieve_file)
+				return on_retrieve_file
+			on_retrieve_file = cast(NAWAH_ON_TUPLE, on_retrieve_file)
+			results, skip_events, env, query, doc, payload = on_retrieve_file
+
+		results['return'] = 'file'
+		return self.status(status=200, msg='File attached to response.', args=results)
+
 	async def update_cache(
 		self,
 		skip_events: NAWAH_EVENTS = [],
 		env: NAWAH_ENV = {},  # type: ignore
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-	) -> Union[DictObj, Dict[str, Any]]:
+	) -> DictObj:
 		if self.cache:
 			for cache_set in self.cache:
 				for cache_key in cache_set.queries.keys():
