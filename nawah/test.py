@@ -1,9 +1,18 @@
+from nawah.config import Config
 from nawah.enums import Event
-from nawah.classes import ATTR, JSONEncoder, Query, NAWAH_QUERY, NAWAH_DOC
-from nawah.utils import extract_attr, validate_attr
+from nawah.classes import (
+	ATTR,
+	JSONEncoder,
+	Query,
+	NAWAH_QUERY,
+	NAWAH_DOC,
+	NAWAH_ENV,
+	DictObj,
+)
+from nawah.utils import extract_attr, validate_attr, generate_attr
 
 from bson import ObjectId
-from typing import List, Dict, Union, Tuple, Literal, Any
+from typing import List, Dict, Union, Tuple, Literal, Any, TypedDict, cast, Iterable
 
 import logging, traceback, datetime, os, json, copy
 
@@ -14,6 +23,21 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 logger.setLevel(logging.DEBUG)
+
+
+RESULTS_STATS = TypedDict(
+	'RESULTS_STATS', {'passed': int, 'failed': int, 'skipped': int, 'total': int}
+)
+RESULTS = TypedDict(
+	'RESULTS',
+	{
+		'test': List['STEP'],
+		'status': Literal['PASSED', 'PARTIAL', 'FAILED', True, False],
+		'success_rate': int,
+		'stats': RESULTS_STATS,
+		'steps': List[Dict[str, Any]],
+	},
+)
 
 
 class InvalidTestStepException(Exception):
@@ -29,10 +53,15 @@ class TEST(list):
 
 
 class STEP:
-	_step: Literal['AUTH', 'SIGNOUT', 'CALL', 'TEST']
+	_step: Literal['AUTH', 'SIGNOUT', 'CALL', 'TEST', 'ASSIGN_VAR', 'SET_REALM']
 	_args: Dict[str, Any]
 
-	def __init__(self, *, step: str, **kwargs: Dict[str, Any]):
+	def __init__(
+		self,
+		*,
+		step: Literal['AUTH', 'SIGNOUT', 'CALL', 'TEST', 'ASSIGN_VAR', 'SET_REALM'],
+		**kwargs: Any,
+	):
 		self._step = step
 		self._args = kwargs
 
@@ -76,13 +105,15 @@ class STEP:
 		return STEP(step='TEST', test=test, steps=steps)
 
 	@classmethod
+	def ASSIGN_VAR(cls, *, vars: dict):
+		return STEP(step='ASSIGN_VAR', vars=vars)
+
+	@classmethod
 	def SET_REALM(cls, *, realm: str):
 		return STEP(step='SET_REALM')
 
 	@classmethod
 	async def validate_step(cls, *, step: 'STEP'):
-		from .config import Config
-
 		logger.debug(f'Attempting to validate test step: {step}')
 		if step._step == 'AUTH':
 			logger.debug(f'Validating test step \'AUTH\' with args: {step._args}')
@@ -130,6 +161,8 @@ class STEP:
 				raise InvalidTestStepException(
 					msg='Test step arg \'steps\' is invalid. Either value is not of type \'list\', nor \'range\' or at least on item in the list is not of type \'int\'.'
 				)
+		elif step._step == 'ASSIGN_VAR':
+			logger.debug('Skipping validating test step \'ASSIGN_VAR\'.')
 		else:
 			raise InvalidTestStepException(
 				msg=f'Unknown test step \'{step._step}\' with args: {step._args}.'
@@ -170,7 +203,7 @@ class CALC:
 
 
 class CAST:
-	_type: Literal['int', 'str']
+	_type: Literal['int', 'float', 'str']
 	_attr: Any
 
 	def __init__(self, *, type: Literal['int', 'float', 'str'], attr: Any):
@@ -212,22 +245,18 @@ class JOIN:
 
 
 class Test:
-	session: 'BaseModule'
-	env: Dict[str, Any]
+	session: DictObj
+	env: NAWAH_ENV
+	vars: Dict[str, Any] = {}
 
 	@classmethod
-	async def run_test(
-		cls, test_name: str, steps: List[STEP] = None
-	) -> Union[None, Dict[str, Any]]:
-		from .config import Config
-		from .utils import DictObj
-
+	async def run_test(cls, test_name: str, steps: List[STEP] = None) -> RESULTS:
 		if test_name not in Config.tests.keys():
 			logger.error('Specified test is not defined in loaded config.')
 			logger.debug(f'Loaded tests: {list(Config.tests.keys())}')
 			exit(1)
 		test: List[STEP] = Config.tests[test_name]
-		results = {
+		results: RESULTS = {
 			'test': Config.tests[test_name],
 			'status': 'PASSED',
 			'success_rate': 100,
@@ -295,12 +324,19 @@ class Test:
 					test_results['status'] = True
 				else:
 					test_results['status'] = False
-				results['steps'].append(test_results)
+				results['steps'].append(test_results)  # type: ignore
+
+			elif step._step == 'ASSIGN_VAR':
+				vars = {}
+				for var in step._args['vars'].keys():
+					vars[var] = extract_attr(scope=results, attr_path=step._args['vars'][var])  # type: ignore
+					cls.vars[var] = vars[var]
+				results['steps'].append({'step': 'assign_var', 'vars': vars, 'status': True})
 
 			elif step._step == 'SET_REALM':
 				try:
 					if step._args['realm'].startswith('$__'):
-						step._args['realm'] = extract_attr(scope=results, attr_path=step._args['realm'])
+						step._args['realm'] = extract_attr(scope=results, attr_path=step._args['realm'])  # type: ignore
 					logger.debug(f'Updating realm to \'{step._args["realm"]}\'.')
 					cls.env['realm'] = step._args['realm']
 					results['steps'].append(
@@ -377,7 +413,7 @@ class Test:
 	@classmethod
 	async def run_call(
 		cls,
-		results: Dict[str, Any],
+		results: RESULTS,
 		module: str,
 		method: str,
 		skip_events: List[Event],
@@ -385,15 +421,13 @@ class Test:
 		doc: NAWAH_DOC,
 		acceptance: Dict[str, Any],
 	):
-		from .config import Config
-
 		# [DOC] If query, doc of call are callable call them
 		if callable(query):
 			query = query(results=results)
 		if callable(doc):
 			doc = doc(results=results)
 
-		call_results = {
+		call_results: Dict[str, Any] = {
 			'step': 'call',
 			'module': module,
 			'method': method,
@@ -401,10 +435,10 @@ class Test:
 			'doc': doc,
 			'status': True,
 		}
-		query = Query(cls.process_obj(results=results, obj=query))
-		doc = cls.process_obj(results=results, obj=doc)
+		query = Query(cls.process_obj(results=results, obj=query))  # type: ignore
+		doc = cls.process_obj(results=results, obj=doc)  # type: ignore
 		try:
-			call_results['results'] = await Config.modules[module].methods[method](
+			call_results['results'] = await Config.modules[module].methods[method](  # type: ignore
 				skip_events=skip_events,
 				env={**cls.env, 'session': cls.session},
 				query=query,
@@ -420,7 +454,7 @@ class Test:
 				if measure.startswith('session.'):
 					results_measure = extract_attr(
 						scope=cls.session,
-						attr_path=f'$__{measure.replace("session.", "")}',
+						attr_path=f'$__{measure.replace("session.", "", 1)}',
 					)
 				else:
 					results_measure = extract_attr(
@@ -458,16 +492,17 @@ class Test:
 	@classmethod
 	def process_obj(
 		cls,
-		results: Dict[str, Any],
+		results: RESULTS,
 		obj: Union[Dict[str, Any], List[Any]],
-		call_results: 'DictObj' = None,
+		call_results: Union[Dict[str, Any], 'DictObj'] = None,
 	) -> Union[Dict[str, Any], List[Any]]:
 		logger.debug(f'Attempting to process object: {obj}')
-		from .utils import extract_attr, generate_attr
-
+		obj_iter: Iterable
 		if type(obj) == dict:
+			obj = cast(Dict[str, Any], obj)
 			obj_iter = obj.keys()
 		elif type(obj) == list:
+			obj = cast(List[Any], obj)
 			obj_iter = range(len(obj))
 		else:
 			logger.error(
@@ -477,6 +512,16 @@ class Test:
 
 		for j in obj_iter:
 			if type(obj[j]) == ATTR:
+				# [DOC] Check for impossible to generate KV_DICT Attr Type value where min+len(req) > max
+				if obj[j]._type == 'KV_DICT':
+					if obj[j]._args['max']:
+						if (obj[j]._args['min'] or 0) + len(obj[j]._args['req'] or []) > obj[j]._args[
+							'max'
+						]:
+							logger.error(
+								f'Attr Generator of type \'KV_DICT\' where Attr Arg \'min\' and length of Attr Arg \'req\' are greater than Attr Arg \'max\' can\'t be generated. Exiting.'
+							)
+							exit(1)
 				obj[j] = generate_attr(attr_type=obj[j])
 			elif type(obj[j]) in [CALC, CAST, JOIN]:
 				obj[j] = obj[j].execute(scope=results)
@@ -487,8 +532,7 @@ class Test:
 					if 'count' not in obj[j][0].keys():
 						obj[j][0]['count'] = 1
 					obj[j] = [
-						generate_attr(attr_type=obj[j][0]['__attr'], **obj[j][0])
-						for ii in range(obj[j][0]['count'])
+						generate_attr(attr_type=obj[j][0]['__attr']) for ii in range(obj[j][0]['count'])
 					]
 				else:
 					obj[j] = cls.process_obj(results=results, obj=obj[j], call_results=call_results)
@@ -496,9 +540,13 @@ class Test:
 				if obj[j] == '$__session':
 					obj[j] = cls.session
 				elif obj[j].startswith('$__session.'):
-					obj[j] = extract_attr(scope=cls.session, attr_path=obj[j].replace('session.', ''))
+					obj[j] = extract_attr(
+						scope=cls.session, attr_path=obj[j].replace('session.', '', 1)
+					)
+				elif obj[j].startswith('$__vars.'):
+					obj[j] = extract_attr(scope=cls.vars, attr_path=obj[j].replace('vars.', '', 1))
 				else:
-					obj[j] = extract_attr(scope=results, attr_path=obj[j])
+					obj[j] = extract_attr(scope=results, attr_path=obj[j])  # type: ignore
 			elif callable(obj[j]):
 				obj[j] = obj[j](results=results, call_results=call_results)
 
@@ -507,8 +555,6 @@ class Test:
 
 	@classmethod
 	def break_debugger(cls, scope: Dict[str, Any], call_results: Dict[str, Any]) -> None:
-		from .config import Config
-
 		if Config.test_breakpoint:
 			logger.debug(
 				'Creating a breakpoint to allow you to investigate step failure. Type \'c\' after finishing to continue.'
