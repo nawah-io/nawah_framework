@@ -1,16 +1,29 @@
 from nawah.enums import Event, LOCALE_STRATEGY
-from nawah.utils import generate_attr, deep_update
 from nawah.classes import (
 	NAWAH_MODULE,
 	DictObj,
 	BaseModel,
 	NAWAH_DOC,
+	NAWAH_ENV,
 	ATTR,
 	APP_CONFIG,
 	PACKAGE_CONFIG,
 )
 
-from typing import List, Dict, Callable, Any, Union, Set, Tuple, Literal, TypedDict
+from typing import (
+	List,
+	Dict,
+	Callable,
+	Any,
+	Union,
+	Set,
+	Tuple,
+	Literal,
+	TypedDict,
+	Optional,
+	cast,
+	TYPE_CHECKING,
+)
 
 from croniter import croniter
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -19,10 +32,41 @@ from passlib.hash import pbkdf2_sha512
 
 import os, logging, datetime, time, requests
 
+if TYPE_CHECKING:
+	from nawah.test import STEP
+	from nawah.base_module import BaseModule
+	from nawah.base_method import BaseMethod
+
 logger = logging.getLogger('nawah')
 
 
+CLIENT_APP = TypedDict(
+	'CLIENT_APP',
+	{
+		'name': str,
+		'type': Literal['web', 'ios', 'android'],
+		'origin': List[str],
+		'hash': str,
+	},
+)
+
+ANALYTICS_EVENTS = TypedDict(
+	'ANALYTICS_EVENTS',
+	{
+		'app_conn_verified': bool,
+		'session_conn_auth': bool,
+		'session_user_auth': bool,
+		'session_conn_reauth': bool,
+		'session_user_reauth': bool,
+		'session_conn_deauth': bool,
+		'session_user_deauth': bool,
+	},
+)
+
+
 def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = None):
+	from nawah.utils import deep_update
+
 	if type(config) not in [APP_CONFIG, PACKAGE_CONFIG]:
 		logger.error(f'Config object of type \'{type(config)}\' is invalid. Exiting.')
 		exit(1)
@@ -44,13 +88,13 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 				logger.error(
 					f'Package \'{pkgname}\' is missing \'{config_attr}\' Config Attr. Exiting.'
 				)
-				exit()
+				exit(1)
 			# [DOC] Check type of api_level, version Config Attrs
 			elif type(config_attr_val) != str:
 				logger.error(
 					f'Package \'{pkgname}\' is having invalid type of \'{config_attr}\'. Exiting.'
 				)
-				exit()
+				exit(1)
 			else:
 				# [DOC] Update corresponding Config
 				getattr(Config, f'packages_{config_attr}s')[pkgname] = config_attr_val
@@ -80,26 +124,26 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 
 class Config:
 	debug: bool = False
-	env: str = None
+	env: str
 	port: int = 8081
 
 	_sys_conn: AsyncIOMotorClient
-	_sys_env: Dict[str, Any]
+	_sys_env: NAWAH_ENV
 	_sys_docs: Dict[str, Dict[str, str]] = {}
 	_realms: Dict[str, BaseModel] = {}
-	_jobs_base: datetime
+	_jobs_base: datetime.datetime
 
-	_nawah_version: str = None
+	_nawah_version: str
 	packages_api_levels: Dict[str, str] = {}
 	packages_versions: Dict[str, str] = {}
 
-	_app_name: str = None
-	_app_version: str = None
-	_app_default_package: str = None
-	_app_path: str = None
-	_app_packages: Dict[str, str] = None
+	_app_name: str
+	_app_version: str
+	_app_default_package: str
+	_app_path: str
+	_app_packages: Dict[str, str]
 
-	test: str = None
+	test: str
 	test_skip_flush: bool = False
 	test_force: bool = False
 	test_env: bool = False
@@ -111,37 +155,19 @@ class Config:
 	force_admin_check: bool = False
 
 	generate_ref: bool = False
-	_api_ref: str = None
+	_api_ref: str
 
 	generate_models: bool = False
-	_api_models: str = None
+	_api_models: str
 
 	realm: bool = False
 
-	vars_types: Dict[str, ATTR] = {}
+	vars_types: Dict[str, Union[ATTR, Dict[str, Any]]] = {}
 	vars: Dict[str, Any] = {}
 
-	client_apps: Dict[
-		str,
-		TypedDict(
-			'CLIENT_APP',
-			name=str,
-			type=Literal['web', 'ios', 'android'],
-			origin=List[str],
-			hash=str,
-		),
-	] = {}
+	client_apps: Dict[str, CLIENT_APP] = {}
 
-	analytics_events: TypedDict(
-		'ANALYTICS_EVENTS',
-		app_conn_verified=bool,
-		session_conn_auth=bool,
-		session_user_auth=bool,
-		session_conn_reauth=bool,
-		session_user_reauth=bool,
-		session_conn_deauth=bool,
-		session_user_deauth=bool,
-	) = {
+	analytics_events: ANALYTICS_EVENTS = {
 		'app_conn_verified': True,
 		'session_conn_auth': True,
 		'session_user_auth': True,
@@ -161,8 +187,8 @@ class Config:
 	data_server: str = 'mongodb://localhost'
 	data_name: str = 'nawah_data'
 	data_ssl: bool = False
-	data_ca_name: str = None
-	data_ca: str = None
+	data_ca_name: Optional[str] = None
+	data_ca: Optional[str] = None
 	data_disk_use: bool = False
 
 	data_azure_mongo: bool = False
@@ -179,7 +205,7 @@ class Config:
 	anon_token: str = '__ANON_TOKEN_f00000000000000000000012'
 	anon_privileges: Dict[str, List[str]] = {}
 
-	user_attrs: Dict[str, 'ATTRS_TYPES'] = {}
+	user_attrs: Dict[str, ATTR] = {}
 	user_settings: Dict[
 		str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]
 	] = {}
@@ -200,11 +226,13 @@ class Config:
 
 	types: Dict[str, Callable] = {}
 
-	modules: Dict[str, NAWAH_MODULE] = {}
+	modules: Dict[str, 'BaseModule'] = {}
 	modules_packages: Dict[str, List[str]] = {}
 
 	@classmethod
 	async def config_data(cls) -> None:
+		from nawah.utils import generate_attr
+
 		# [TODO] Add validator for user_attrs, user_settings, user_doc_settings
 
 		# [DOC] Check app packages
@@ -263,7 +291,7 @@ class Config:
 					logger.error(
 						f'Nawah framework is on API-level \'{nawah_level}\', but the app package \'{package}\' requires API-level \'{api_level}\'. Exiting.'
 					)
-					exit()
+					exit(1)
 			try:
 				versions = (
 					(
@@ -298,7 +326,7 @@ class Config:
 			for job in cls.jobs:
 				if not croniter.is_valid(job['schedule']):
 					logger.error(f'Job with schedule \'{job["schedule"]}\' is invalid. Exiting.')
-					exit()
+					exit(1)
 				else:
 					job['schedule'] = croniter(job['schedule'], cls._jobs_base)
 					job['next_time'] = datetime.datetime.fromtimestamp(
@@ -308,7 +336,7 @@ class Config:
 		# [DOC] Check for presence of user_auth_attrs
 		if not cls.user_attrs.keys():
 			logger.error('No \'user_attrs\' are provided. Exiting.')
-			exit()
+			exit(1)
 
 		# [DOC] Check default values
 		security_warning = '[SECURITY WARNING] {config_attr} is not explicitly set. It has been defaulted to \'{val}\' but in production environment you should consider setting it to your own to protect your app from breaches.'
@@ -352,7 +380,7 @@ class Config:
 					setattr(cls, attr_name, attr_val)
 
 		# [DOC] Check SSL settings
-		if cls.data_ca:
+		if cls.data_ca and cls.data_ca_name:
 			__location__ = os.path.realpath(os.path.join('.'))
 			if not os.path.exists(os.path.join(__location__, 'certs')):
 				os.makedirs(os.path.join(__location__, 'certs'))
@@ -363,7 +391,8 @@ class Config:
 
 		# [DOC] Create default env dict
 		anon_user = cls.compile_anon_user()
-		anon_session = cls.compile_anon_session()
+		anon_session = DictObj(cls.compile_anon_session())
+		anon_session = cast(BaseModel, anon_session)
 		anon_session['user'] = DictObj(anon_user)
 		cls._sys_conn = Data.create_conn()
 		cls._sys_env = {
@@ -371,9 +400,10 @@ class Config:
 			'REMOTE_ADDR': '127.0.0.1',
 			'HTTP_USER_AGENT': 'Nawah',
 			'client_app': '__sys',
-			'session': DictObj(anon_session),
+			'session': anon_session,
 			'ws': None,
 			'watch_tasks': {},
+			'realm': None,
 		}
 
 		if cls.data_azure_mongo:
@@ -401,16 +431,17 @@ class Config:
 				os.makedirs(os.path.join(__location__, 'tests'))
 			if not cls.test_env:
 				for module in cls.modules.keys():
-					if cls.modules[module].collection:
+					module_collection = cls.modules[module].collection
+					if module_collection:
 						logger.debug(
-							f'Updating collection name \'{cls.modules[module].collection}\' of module {module}'
+							f'Updating collection name \'{module_collection}\' of module {module}'
 						)
-						cls.modules[module].collection = f'test_{cls.modules[module].collection}'
+						module_collection = f'test_{module_collection}'
 						if cls.test and not cls.test_skip_flush:
-							logger.debug(f'Flushing test collection \'{cls.modules[module].collection}\'')
+							logger.debug(f'Flushing test collection \'{module_collection}\'')
 							await Data.drop(
 								env=cls._sys_env,
-								collection=cls.modules[module].collection,
+								collection=module_collection,
 							)
 					else:
 						logger.debug(f'Skipping service module {module}')
@@ -430,24 +461,19 @@ class Config:
 					logger.debug(f'Updating module \'{module}\' for realm mode.')
 					cls.modules[module].attrs['realm'] = ATTR.STR()
 					for method in cls.modules[module].methods.keys():
+						module_method = cls.modules[module].methods[method]
 						# [DOC] Attempt required changes to query_args to add realm query_arg
-						if not cls.modules[module].methods[method].query_args:
-							cls.modules[module].methods[method].query_args = [{}]
-						elif type(cls.modules[module].methods[method].query_args) == dict:
-							cls.modules[module].methods[method].query_args = [
-								cls.modules[module].methods[method].query_args
-							]
-						for query_args_set in cls.modules[module].methods[method].query_args:
-							query_args_set['realm'] = ATTR.STR()
+						for query_args_set in cast(List[Dict[str, ATTR]], module_method.query_args):
+							query_args_set['realm'] = ATTR.STR()  # type: ignore
 						# [DOC] Attempt required changes to doc_args to add realm doc_arg
-						if not cls.modules[module].methods[method].doc_args:
-							cls.modules[module].methods[method].doc_args = [{}]
-						elif type(cls.modules[module].methods[method].doc_args) == dict:
-							cls.modules[module].methods[method].doc_args = [
-								cls.modules[module].methods[method].doc_args
-							]
-						for doc_args_set in cls.modules[module].methods[method].doc_args:
-							doc_args_set['realm'] = ATTR.STR()
+						for doc_args_set in cast(List[Dict[str, ATTR]], module_method.doc_args):
+							doc_args_set['realm'] = ATTR.STR()  # type: ignore
+						module_method._callable.query_args = cast(
+							List[Dict[str, ATTR]], module_method.query_args
+						)
+						module_method._callable.doc_args = cast(
+							List[Dict[str, ATTR]], module_method.doc_args
+						)
 			# [DOC] Query all realms to provide access to available realms and to add realm docs to _sys_docs
 			realm_results = await cls.modules['realm'].read(
 				skip_events=[Event.PERM, Event.ARGS], env=cls._sys_env
@@ -474,7 +500,7 @@ class Config:
 				logger.debug(f'GLOBAL realm creation results: {realm_results}')
 				if realm_results.status != 200:
 					logger.error('Config step failed. Exiting.')
-					exit()
+					exit(1)
 
 		# [DOC] Checking users collection
 		# [TODO] Updated sequence to handle users
@@ -515,7 +541,7 @@ class Config:
 			logger.debug(f'ADMIN user creation results: {admin_results}')
 			if admin_results.status != 200:
 				logger.error('Config step failed. Exiting.')
-				exit()
+				exit(1)
 		elif not cls.force_admin_check:
 			logger.warning(
 				'ADMIN user found, skipping check due to force_admin_check Config Attr.'
@@ -570,7 +596,7 @@ class Config:
 				logger.debug(f'ADMIN user update results: {admin_results}')
 				if admin_results.status != 200:
 					logger.error('Config step failed. Exiting.')
-					exit()
+					exit(1)
 			else:
 				logger.debug('ADMIN user is up-to-date.')
 
@@ -592,7 +618,7 @@ class Config:
 			logger.debug(f'ANON user creation results: {anon_results}')
 			if anon_results.status != 200:
 				logger.error('Config step failed. Exiting.')
-				exit()
+				exit(1)
 		else:
 			logger.debug('ANON user found, checking it.')
 			anon_doc = cls.compile_anon_user()
@@ -626,7 +652,7 @@ class Config:
 				logger.debug(f'ANON user update results: {anon_results}')
 				if anon_results.status != 200:
 					logger.error('Config step failed. Exiting.')
-					exit()
+					exit(1)
 			else:
 				logger.debug('ANON user is up-to-date.')
 
@@ -649,7 +675,7 @@ class Config:
 			logger.debug(f'ANON session creation results: {anon_results}')
 			if anon_results.status != 200:
 				logger.error('Config step failed. Exiting.')
-				exit()
+				exit(1)
 		cls._sys_docs[ObjectId('f00000000000000000000012')] = {'module': 'session'}
 
 		logger.debug('Testing groups collection.')
@@ -661,7 +687,7 @@ class Config:
 		)
 		if not group_results.args.count:
 			logger.debug('DEFAULT group not found, creating it.')
-			group_doc = {
+			group_create_doc = {
 				'_id': ObjectId('f00000000000000000000013'),
 				'user': ObjectId('f00000000000000000000010'),
 				'name': {locale: '__DEFAULT' for locale in cls.locales},
@@ -669,20 +695,20 @@ class Config:
 				'privileges': cls.default_privileges,
 			}
 			if cls.realm:
-				group_doc['realm'] = '__global'
+				group_create_doc['realm'] = '__global'
 			group_results = await cls.modules['group'].create(
 				skip_events=[Event.PERM, Event.PRE, Event.ON],
 				env=cls._sys_env,
-				doc=group_doc,
+				doc=group_create_doc,
 			)
 			logger.debug(f'DEFAULT group creation results: {group_results}')
 			if group_results.status != 200:
 				logger.error('Config step failed. Exiting.')
-				exit()
+				exit(1)
 		else:
 			logger.debug('DEFAULT group found, checking it.')
 			default_doc = group_results.args.docs[0]
-			default_doc_update = {}
+			default_doc_update: Dict[str, Any] = {}
 			for module in cls.default_privileges.keys():
 				if module not in default_doc.privileges.keys() or set(
 					default_doc.privileges[module]
@@ -702,7 +728,7 @@ class Config:
 				logger.debug(f'DEFAULT group update results: {default_results}')
 				if anon_results.status != 200:
 					logger.error('Config step failed. Exiting.')
-					exit()
+					exit(1)
 			else:
 				logger.debug('DEFAULT group is up-to-date.')
 
@@ -732,7 +758,7 @@ class Config:
 				)
 				if group_results.status != 200:
 					logger.error('Config step failed. Exiting.')
-					exit()
+					exit(1)
 			else:
 				logger.debug(
 					f'App-specific group with name \'{group["name"]}\' found, checking it.'
@@ -763,7 +789,7 @@ class Config:
 					)
 					if group_results.status != 200:
 						logger.error('Config step failed. Exiting.')
-						exit()
+						exit(1)
 				else:
 					logger.debug(f'Group with name \'{group["name"]}\' is up-to-date.')
 
@@ -819,7 +845,7 @@ class Config:
 			doc_results = await cls.modules[doc['module']].read(
 				skip_events=[Event.PERM, Event.PRE, Event.ON, Event.ARGS],
 				env=cls._sys_env,
-				query=[{doc['key']: doc['doc'][doc['key']]}],
+				query=[{doc['key']: doc['doc'][doc['key']]}],  # type: ignore
 			)
 			if not doc_results.args.count:
 				if cls.realm:
@@ -839,7 +865,7 @@ class Config:
 				)
 				if doc_results.status != 200:
 					logger.error('Config step failed. Exiting.')
-					exit()
+					exit(1)
 			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = {'module': doc['module']}
 
 		# [DOC] Check for test mode
@@ -852,14 +878,16 @@ class Config:
 			Test.session = DictObj(anon_session)
 			Test.env = cls._sys_env
 			await Test.run_test(test_name=cls.test)
-			exit()
+			exit(1)
 
 		# [DOC] Check for emulate_test mode
 		if cls.emulate_test:
-			cls.test = True
+			cls.test = '__EMULATE_TEST__'
 
 	@classmethod
 	def compile_anon_user(cls):
+		from nawah.utils import generate_attr
+
 		anon_doc = {
 			'_id': ObjectId('f00000000000000000000011'),
 			'name': {cls.locale: '__ANON'},
