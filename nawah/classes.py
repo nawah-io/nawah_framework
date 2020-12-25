@@ -1,6 +1,6 @@
 from nawah.enums import Event, NAWAH_VALUES
 
-from typing import Union, List, Tuple, Set, Dict, Literal, TypedDict, Any, Optional, Callable, Type, cast, ForwardRef, Protocol, AsyncGenerator  # type: ignore
+from typing import Union, List, Tuple, Set, Dict, Literal, TypedDict, Any, Optional, Callable, Type, cast, ForwardRef, Protocol, AsyncGenerator, TYPE_CHECKING  # type: ignore
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId, binary
 from aiohttp.web import WebSocketResponse
@@ -8,7 +8,11 @@ from aiohttp.web import WebSocketResponse
 import logging, re, datetime, time, json, copy
 from dataclasses import dataclass, field
 
+if TYPE_CHECKING:
+	from nawah.base_method import BaseMethod
+
 logger = logging.getLogger('nawah')
+
 
 NAWAH_EVENTS = List[Event]
 NAWAH_ENV = TypedDict(
@@ -19,7 +23,7 @@ NAWAH_ENV = TypedDict(
 		'HTTP_USER_AGENT': str,
 		'client_app': str,
 		'session': 'BaseModel',
-		'ws': WebSocketResponse,
+		'ws': Optional[WebSocketResponse],
 		'watch_tasks': Dict[str, Dict[Literal['watch', 'task'], Callable]],
 		'realm': Optional[str],
 	},
@@ -148,27 +152,6 @@ class L10N(dict):
 	pass
 
 
-NAWAH_METHOD = TypedDict(
-	'NAWAH_METHOD',
-	{
-		'permissions': List['PERM'],
-		'query_args': Union[
-			None,
-			List[Dict[str, 'ATTR']],
-			Dict[str, 'ATTR'],
-		],
-		'doc_args': Union[
-			None,
-			List[Dict[str, 'ATTR']],
-			Dict[str, 'ATTR'],
-		],
-		'get_method': bool,
-		'post_method': bool,
-		'watch_method': bool,
-	},
-	total=False,
-)
-
 NAWAH_PRE_TUPLE = Tuple[NAWAH_EVENTS, NAWAH_ENV, 'Query', NAWAH_DOC, Dict[str, Any]]
 NAWAH_ON_TUPLE = Tuple[
 	Dict[str, Any], NAWAH_EVENTS, NAWAH_ENV, 'Query', NAWAH_DOC, Dict[str, Any]
@@ -184,7 +167,7 @@ class NAWAH_MODULE:
 	unique_attrs: List[str]
 	extns: Dict[str, 'EXTN']
 	privileges: List[str]
-	methods: Dict[str, NAWAH_METHOD]
+	methods: Dict[str, 'METHOD']
 	cache: List['CACHE']
 	analytics: List['ANALYTIC']
 	package_name: str
@@ -197,7 +180,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_read(
@@ -208,7 +191,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def read(
@@ -227,7 +210,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_watch(
@@ -238,7 +221,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def watch(
@@ -248,9 +231,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'] = [],
 		doc: NAWAH_DOC = {},
 		payload: Optional[Dict[str, Any]] = None,
-	) -> AsyncGenerator[
-		Union['DictObj', Dict[str, Any]], Union['DictObj', Dict[str, Any]]
-	]:
+	) -> AsyncGenerator['DictObj', 'DictObj']:
 		pass
 
 	async def pre_create(
@@ -260,7 +241,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_create(
@@ -271,7 +252,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def create(
@@ -290,7 +271,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_update(
@@ -301,7 +282,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def update(
@@ -320,7 +301,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_delete(
@@ -331,7 +312,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def delete(
@@ -350,7 +331,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_create_file(
@@ -361,7 +342,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def create_file(
@@ -380,7 +361,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_PRE_TUPLE, 'DictObj']:
 		pass
 
 	async def on_delete_file(
@@ -391,7 +372,7 @@ class NAWAH_MODULE:
 		query: Union[NAWAH_QUERY, 'Query'],
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, 'DictObj', Dict[str, Any]]:
+	) -> Union[NAWAH_ON_TUPLE, 'DictObj']:
 		pass
 
 	async def delete_file(
@@ -867,8 +848,8 @@ class ATTR_MOD:
 
 class PERM:
 	privilege: str
-	query_mod: Dict[str, Union[None, ATTR, ATTR_MOD]]
-	doc_mod: Dict[str, Union[None, ATTR, ATTR_MOD]]
+	query_mod: Dict[str, Union[None, ATTR, ATTR_MOD, Literal['$__date', '$__user']]]
+	doc_mod: Dict[str, Union[None, ATTR, ATTR_MOD, Literal['$__date', '$__user']]]
 
 	def __repr__(self):
 		return f'<PERM:{self.privilege},{self.query_mod},{self.doc_mod}>'
@@ -877,8 +858,12 @@ class PERM:
 		self,
 		*,
 		privilege: str,
-		query_mod: Optional[Dict[str, Union[None, ATTR, ATTR_MOD]]] = None,
-		doc_mod: Optional[Dict[str, Union[None, ATTR, ATTR_MOD]]] = None,
+		query_mod: Optional[
+			Dict[str, Union[None, ATTR, ATTR_MOD, Literal['$__date', '$__user']]]
+		] = None,
+		doc_mod: Optional[
+			Dict[str, Union[None, ATTR, ATTR_MOD, Literal['$__date', '$__user']]]
+		] = None,
 	):
 		if not query_mod:
 			query_mod = {}
@@ -917,6 +902,52 @@ class EXTN:
 		# [DOC] Wrap query in list if it is a dict
 		if type(query) == dict:
 			self.query = [self.query]
+
+
+class METHOD:
+	permissions: List[PERM]
+	query_args: Union[
+		None,
+		List[Dict[str, 'ATTR']],
+		Dict[str, 'ATTR'],
+	]
+	doc_args: Union[
+		None,
+		List[Dict[str, 'ATTR']],
+		Dict[str, 'ATTR'],
+	] = None
+	get_method: bool
+	post_method: bool
+	watch_method: bool
+	_callable: 'BaseMethod'
+
+	def __init__(
+		self,
+		*,
+		permissions: List[PERM],
+		query_args: Union[
+			None,
+			List[Dict[str, 'ATTR']],
+			Dict[str, 'ATTR'],
+		] = None,
+		doc_args: Union[
+			None,
+			List[Dict[str, 'ATTR']],
+			Dict[str, 'ATTR'],
+		] = None,
+		get_method: bool = False,
+		post_method: bool = False,
+		watch_method: bool = False,
+	):
+		self.permissions = permissions
+		self.query_args = query_args
+		self.doc_args = doc_args
+		self.get_method = get_method
+		self.post_method = post_method
+		self.watch_method = watch_method
+
+	def __call__(self, **kwargs):
+		return self._callable(**kwargs)
 
 
 class CACHE_CONDITION(Protocol):
@@ -1079,7 +1110,7 @@ class JSONEncoder(json.JSONEncoder):
 			return str(o)
 
 
-class DictObj:
+class DictObj(dict):
 	__attrs: Dict[str, Any] = {}
 
 	def __repr__(self):
@@ -1092,6 +1123,7 @@ class DictObj:
 			raise TypeError(
 				f'DictObj can be initialised using DictObj or dict types only. Got \'{type(attrs)}\' instead.'
 			)
+		super().__init__(attrs)
 		self.__attrs = attrs
 
 	def __deepcopy__(self, memo):
