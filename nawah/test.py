@@ -438,7 +438,7 @@ class Test:
 		query = Query(cls.process_obj(results=results, obj=query))  # type: ignore
 		doc = cls.process_obj(results=results, obj=doc)  # type: ignore
 		try:
-			call_results['results'] = await Config.modules[module].methods[method](  # type: ignore
+			call_results['results'] = await Config.modules[module].methods[method](
 				skip_events=skip_events,
 				env={**cls.env, 'session': cls.session},
 				query=query,

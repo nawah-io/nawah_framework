@@ -401,9 +401,7 @@ class Config:
 			'HTTP_USER_AGENT': 'Nawah',
 			'client_app': '__sys',
 			'session': anon_session,
-			'ws': None,
 			'watch_tasks': {},
-			'realm': None,
 		}
 
 		if cls.data_azure_mongo:
@@ -436,7 +434,7 @@ class Config:
 						logger.debug(
 							f'Updating collection name \'{module_collection}\' of module {module}'
 						)
-						module_collection = f'test_{module_collection}'
+						module_collection = cls.modules[module].collection = f'test_{module_collection}'
 						if cls.test and not cls.test_skip_flush:
 							logger.debug(f'Flushing test collection \'{module_collection}\'')
 							await Data.drop(
@@ -464,10 +462,10 @@ class Config:
 						module_method = cls.modules[module].methods[method]
 						# [DOC] Attempt required changes to query_args to add realm query_arg
 						for query_args_set in cast(List[Dict[str, ATTR]], module_method.query_args):
-							query_args_set['realm'] = ATTR.STR()  # type: ignore
+							query_args_set['realm'] = ATTR.STR()
 						# [DOC] Attempt required changes to doc_args to add realm doc_arg
 						for doc_args_set in cast(List[Dict[str, ATTR]], module_method.doc_args):
-							doc_args_set['realm'] = ATTR.STR()  # type: ignore
+							doc_args_set['realm'] = ATTR.STR()
 						module_method._callable.query_args = cast(
 							List[Dict[str, ATTR]], module_method.query_args
 						)
