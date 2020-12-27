@@ -259,9 +259,33 @@ class NAWAH_MODULE:
 		pass
 
 
+class ATTR_MOD_CONDITION(Protocol):
+	def __call__(
+		self,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
+		doc: 'NAWAH_DOC',
+		scope: Optional['NAWAH_DOC'],
+	) -> bool:
+		...
+
+
+class ATTR_MOD_DEFAULT(Protocol):
+	def __call__(
+		self,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
+		doc: 'NAWAH_DOC',
+		scope: Optional['NAWAH_DOC'],
+	) -> Any:
+		...
+
+
 class ATTR_MOD:
-	condition: Callable
-	default: Union[Callable, Any]
+	condition: ATTR_MOD_CONDITION
+	default: Union[ATTR_MOD_DEFAULT, Any]
 
 	def __repr__(self):
 		return f'<ATTR_MOD:{self.condition},{self.default}>'
@@ -269,8 +293,8 @@ class ATTR_MOD:
 	def __init__(
 		self,
 		*,
-		condition: Callable[[List[str], Dict[str, Any], 'Query', 'NAWAH_DOC'], bool],
-		default: Union[Callable[[List[str], Dict[str, Any], 'Query', 'NAWAH_DOC'], Any], Any],
+		condition: ATTR_MOD_CONDITION,
+		default: Union[ATTR_MOD_DEFAULT, Any],
 	):
 		setattr(self, 'condition', condition)
 		self.default = default

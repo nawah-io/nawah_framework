@@ -31,6 +31,7 @@ WATCH_TASK = TypedDict(
 		'task': Task,
 		'stream': Any,
 	},
+	total=False,
 )
 
 NAWAH_ENV_QUOTA = TypedDict(
@@ -107,6 +108,7 @@ NAWAH_QUERY = List[  # type: ignore
 		],
 	]
 ]
+
 NAWAH_DOC = Dict[
 	str,
 	Union[
@@ -121,3 +123,11 @@ NAWAH_DOC = Dict[
 		Any,
 	],
 ]
+
+IP_QUOTA = TypedDict(
+	'IP_QUOTA',
+	{
+		'counter': int,
+		'last_check': datetime.datetime,
+	},
+)

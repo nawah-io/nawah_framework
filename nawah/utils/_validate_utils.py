@@ -10,27 +10,29 @@ from nawah.classes import (
 	DictObj,
 	ATTRS_TYPES_ARGS,
 	InvalidAttrTypeException,
-	NAWAH_MODULE,
 	NAWAH_EVENTS,
 )
 from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
 from nawah.utils import extract_attr
 
-from typing import Dict, Optional, List, Union, Any, cast, Literal, Tuple
+from typing import Dict, Optional, List, Union, Any, cast, Literal, Tuple, TYPE_CHECKING
 from bson import binary, ObjectId
 
 import logging, copy, re, asyncio, datetime
+
+if TYPE_CHECKING:
+	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 
 
 async def process_file_obj(
-	*, doc: Union[NAWAH_DOC, dict, list], modules: Dict[str, NAWAH_MODULE], env: NAWAH_ENV
+	*, doc: Union[NAWAH_DOC, dict, list], modules: Dict[str, 'BaseModule'], env: NAWAH_ENV
 ):
 	if type(doc) == dict:
 		doc_iter = doc.keys()  # type: ignore
 	elif type(doc) == list:
-		doc_iter = range(len(doc))  # type: ignore
+		doc_iter = range(len(doc))
 	for j in doc_iter:
 		if type(doc[j]) == dict:  # type: ignore
 			if '__file' in doc[j].keys():  # type: ignore
@@ -224,14 +226,15 @@ async def validate_default(
 	*,
 	attr_type: ATTR,
 	attr_val: Any,
-	skip_events: Optional[NAWAH_EVENTS],
-	env: Optional[NAWAH_ENV],
-	query: Optional[Union[NAWAH_QUERY, Query]],
-	doc: Optional[NAWAH_DOC],
-	scope: Optional[NAWAH_DOC],
+	skip_events: NAWAH_EVENTS,
+	env: NAWAH_ENV,
+	query: Union[NAWAH_QUERY, Query],
+	doc: NAWAH_DOC,
+	scope: NAWAH_DOC,
 	allow_none: bool,
 ):
 	if not allow_none and type(attr_type._default) == ATTR_MOD:
+		attr_type._default = cast(ATTR_MOD, attr_type._default)
 		if attr_type._default.condition(
 			skip_events=skip_events, env=env, query=query, doc=doc, scope=scope
 		):
@@ -314,7 +317,10 @@ async def validate_attr(
 	scope: NAWAH_DOC = None,
 ):
 	try:
+		skip_events = cast(NAWAH_EVENTS, skip_events)
 		env = cast(NAWAH_ENV, env)
+		query = cast(Union[NAWAH_QUERY, Query], query)
+		doc = cast(NAWAH_DOC, doc)
 		return await validate_default(
 			attr_type=attr_type,
 			attr_val=attr_val,
