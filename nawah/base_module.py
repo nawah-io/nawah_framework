@@ -28,8 +28,8 @@ from nawah.classes import (
 	CACHE,
 	CACHED_QUERY,
 	ANALYTIC,
-	NAWAH_PRE_TUPLE,
-	NAWAH_ON_TUPLE,
+	PRE_HANDLER_RETURN,
+	ON_HANDLER_RETURN,
 )
 from nawah.base_method import BaseMethod
 
@@ -135,10 +135,12 @@ class BaseModule:
 								Config.modules[self.proxy].methods[proxy_method_name].permissions  # type: ignore
 							),
 							'query_args': copy.deepcopy(
-								Config.modules[self.proxy].methods[proxy_method_name].query_args  # type: ignore
+								Config.modules[self.proxy].methods[proxy_method_name].query_args
 							),
-							'doc_args': copy.deepcopy(Config.modules[self.proxy].methods[proxy_method_name].doc_args),  # type: ignore
-							'get_method': Config.modules[self.proxy].methods[proxy_method_name].get_method,  # type: ignore
+							'doc_args': copy.deepcopy(
+								Config.modules[self.proxy].methods[proxy_method_name].doc_args
+							),
+							'get_method': Config.modules[self.proxy].methods[proxy_method_name].get_method,
 						}
 				# [DOC] Create methods functions in proxy module if not present
 				if not getattr(self, proxy_method_name, None):
@@ -330,7 +332,7 @@ class BaseModule:
 		logger.debug(f'Initialised module {self.module_name}')
 
 	def status(
-		self, *, status: int, msg: str, args: Union[None, Dict[str, Any], DictObj] = None
+		self, *, status: int, msg: str, args: Optional[Union[Dict[str, Any], DictObj]] = None
 	) -> DictObj:
 		status_dict = {'status': status, 'msg': msg, 'args': {}}
 		if args and type(args) == DictObj:
@@ -368,7 +370,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_read(
@@ -379,13 +381,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def read(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -408,7 +410,7 @@ class BaseModule:
 				if type(proxy_pre_read) in [DictObj, dict]:
 					proxy_pre_read = cast(DictObj, proxy_pre_read)
 					return proxy_pre_read
-				proxy_pre_read = cast(NAWAH_PRE_TUPLE, proxy_pre_read)
+				proxy_pre_read = cast(PRE_HANDLER_RETURN, proxy_pre_read)
 				skip_events, env, query, doc, payload = proxy_pre_read
 			pre_read = await self.pre_read(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
@@ -416,7 +418,7 @@ class BaseModule:
 			if type(pre_read) in [DictObj, dict]:
 				pre_read = cast(DictObj, pre_read)
 				return pre_read
-			pre_read = cast(NAWAH_PRE_TUPLE, pre_read)
+			pre_read = cast(PRE_HANDLER_RETURN, pre_read)
 			skip_events, env, query, doc, payload = pre_read
 		else:
 			payload = {}
@@ -486,7 +488,7 @@ class BaseModule:
 				if type(proxy_on_read) in [DictObj, dict]:
 					proxy_on_read = cast(DictObj, proxy_on_read)
 					return proxy_on_read
-				proxy_on_read = cast(NAWAH_ON_TUPLE, proxy_on_read)
+				proxy_on_read = cast(ON_HANDLER_RETURN, proxy_on_read)
 				results, skip_events, env, query, doc, payload = proxy_on_read
 			on_read = await self.on_read(
 				results=results,
@@ -499,7 +501,7 @@ class BaseModule:
 			if type(on_read) in [DictObj, dict]:
 				on_read = cast(DictObj, on_read)
 				return on_read
-			on_read = cast(NAWAH_ON_TUPLE, on_read)
+			on_read = cast(ON_HANDLER_RETURN, on_read)
 			results, skip_events, env, query, doc, payload = on_read
 			# [DOC] if $attrs query arg is present return only required keys.
 			if '$attrs' in query:
@@ -522,7 +524,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_watch(
@@ -533,13 +535,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def watch(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 		payload: Optional[Dict[str, Any]] = None,
@@ -563,7 +565,7 @@ class BaseModule:
 				if type(proxy_pre_watch) in [DictObj, dict]:
 					proxy_pre_watch = cast(DictObj, proxy_pre_watch)
 					yield proxy_pre_watch
-				proxy_pre_watch = cast(NAWAH_PRE_TUPLE, proxy_pre_watch)
+				proxy_pre_watch = cast(PRE_HANDLER_RETURN, proxy_pre_watch)
 				skip_events, env, query, doc, payload = proxy_pre_watch
 			pre_watch = await self.pre_watch(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload or {}
@@ -571,7 +573,7 @@ class BaseModule:
 			if type(pre_watch) in [DictObj, dict]:
 				pre_watch = cast(DictObj, pre_watch)
 				yield pre_watch
-			pre_watch = cast(NAWAH_PRE_TUPLE, pre_watch)
+			pre_watch = cast(PRE_HANDLER_RETURN, pre_watch)
 			skip_events, env, query, doc, payload = pre_watch
 		else:
 			payload = {}
@@ -608,7 +610,7 @@ class BaseModule:
 					if type(proxy_on_watch) in [DictObj, dict]:
 						proxy_on_watch = cast(DictObj, proxy_on_watch)
 						yield proxy_on_watch
-					proxy_on_watch = cast(NAWAH_ON_TUPLE, proxy_on_watch)
+					proxy_on_watch = cast(ON_HANDLER_RETURN, proxy_on_watch)
 					results, skip_events, env, query, doc, payload = proxy_on_watch
 				on_watch = await self.on_watch(
 					results=results,
@@ -621,7 +623,7 @@ class BaseModule:
 				if type(on_watch) in [DictObj, dict]:
 					on_watch = cast(DictObj, on_watch)
 					yield on_watch
-				on_watch = cast(NAWAH_ON_TUPLE, on_watch)
+				on_watch = cast(ON_HANDLER_RETURN, on_watch)
 				results, skip_events, env, query, doc, payload = on_watch
 				# [DOC] if $attrs query arg is present return only required keys.
 				if '$attrs' in query:
@@ -645,7 +647,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_create(
@@ -656,13 +658,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def create(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -685,7 +687,7 @@ class BaseModule:
 				if type(proxy_pre_create) in [DictObj, dict]:
 					proxy_pre_create = cast(DictObj, proxy_pre_create)
 					return proxy_pre_create
-				proxy_pre_create = cast(NAWAH_PRE_TUPLE, proxy_pre_create)
+				proxy_pre_create = cast(PRE_HANDLER_RETURN, proxy_pre_create)
 				skip_events, env, query, doc, payload = proxy_pre_create
 			pre_create = await self.pre_create(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
@@ -693,7 +695,7 @@ class BaseModule:
 			if type(pre_create) in [DictObj, dict]:
 				pre_create = cast(DictObj, pre_create)
 				return pre_create
-			pre_create = cast(NAWAH_PRE_TUPLE, pre_create)
+			pre_create = cast(PRE_HANDLER_RETURN, pre_create)
 			skip_events, env, query, doc, payload = pre_create
 		else:
 			payload = {}
@@ -792,7 +794,7 @@ class BaseModule:
 				if type(proxy_on_create) in [DictObj, dict]:
 					proxy_on_create = cast(DictObj, proxy_on_create)
 					return proxy_on_create
-				proxy_on_create = cast(NAWAH_ON_TUPLE, proxy_on_create)
+				proxy_on_create = cast(ON_HANDLER_RETURN, proxy_on_create)
 				results, skip_events, env, query, doc, payload = proxy_on_create
 			on_create = await self.on_create(
 				results=results,
@@ -805,7 +807,7 @@ class BaseModule:
 			if type(on_create) in [DictObj, dict]:
 				on_create = cast(DictObj, on_create)
 				return on_create
-			on_create = cast(NAWAH_ON_TUPLE, on_create)
+			on_create = cast(ON_HANDLER_RETURN, on_create)
 			results, skip_events, env, query, doc, payload = on_create
 		# [DOC] create soft action is to only return the new created doc _id.
 		if Event.SOFT in skip_events:
@@ -826,7 +828,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_update(
@@ -837,13 +839,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def update(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -866,7 +868,7 @@ class BaseModule:
 				if type(proxy_pre_update) in [DictObj, dict]:
 					proxy_pre_update = cast(DictObj, proxy_pre_update)
 					return proxy_pre_update
-				proxy_pre_update = cast(NAWAH_PRE_TUPLE, proxy_pre_update)
+				proxy_pre_update = cast(PRE_HANDLER_RETURN, proxy_pre_update)
 				skip_events, env, query, doc, payload = proxy_pre_update
 			pre_update = await self.pre_update(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
@@ -874,7 +876,7 @@ class BaseModule:
 			if type(pre_update) in [DictObj, dict]:
 				pre_update = cast(DictObj, pre_update)
 				return pre_update
-			pre_update = cast(NAWAH_PRE_TUPLE, pre_update)
+			pre_update = cast(PRE_HANDLER_RETURN, pre_update)
 			skip_events, env, query, doc, payload = pre_update
 		else:
 			payload = {}
@@ -1015,7 +1017,7 @@ class BaseModule:
 				if type(proxy_on_update) in [DictObj, dict]:
 					proxy_on_update = cast(DictObj, proxy_on_update)
 					return proxy_on_update
-				proxy_on_update = cast(NAWAH_ON_TUPLE, proxy_on_update)
+				proxy_on_update = cast(ON_HANDLER_RETURN, proxy_on_update)
 				results, skip_events, env, query, doc, payload = proxy_on_update
 			on_update = await self.on_update(
 				results=results,
@@ -1028,19 +1030,21 @@ class BaseModule:
 			if type(on_update) in [DictObj, dict]:
 				on_update = cast(DictObj, on_update)
 				return on_update
-			on_update = cast(NAWAH_ON_TUPLE, on_update)
+			on_update = cast(ON_HANDLER_RETURN, on_update)
 			results, skip_events, env, query, doc, payload = on_update
 		# [DOC] If at least one doc updated, and module has diff enabled, and __DIFF__ not skipped:
 		if results['count'] and self.diff and Event.DIFF not in skip_events:
 			# [DOC] If diff is a ATTR_MOD, Check condition for valid diff case
 			if type(self.diff) == ATTR_MOD:
 				self.diff = cast(ATTR_MOD, self.diff)
-				if self.diff.condition(skip_events=skip_events, env=env, query=query, doc=doc):
+				if self.diff.condition(
+					skip_events=skip_events, env=env, query=query, doc=doc, scope=None
+				):
 					# [DOC] if condition passed, create Diff doc with default callable
 					diff_vars = doc
 					if self.diff.default and callable(self.diff.default):
 						diff_vars = self.diff.default(
-							skip_events=skip_events, env=env, query=query, doc=doc
+							skip_events=skip_events, env=env, query=query, doc=doc, scope=None
 						)
 					diff_results = await Config.modules['diff'].create(
 						skip_events=[Event.PERM],
@@ -1078,7 +1082,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_delete(
@@ -1089,13 +1093,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def delete(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -1118,7 +1122,7 @@ class BaseModule:
 				if type(proxy_pre_delete) in [DictObj, dict]:
 					proxy_pre_delete = cast(DictObj, proxy_pre_delete)
 					return proxy_pre_delete
-				proxy_pre_delete = cast(NAWAH_PRE_TUPLE, proxy_pre_delete)
+				proxy_pre_delete = cast(PRE_HANDLER_RETURN, proxy_pre_delete)
 				skip_events, env, query, doc, payload = proxy_pre_delete
 			pre_delete = await self.pre_delete(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
@@ -1126,7 +1130,7 @@ class BaseModule:
 			if type(pre_delete) in [DictObj, dict]:
 				pre_delete = cast(DictObj, pre_delete)
 				return pre_delete
-			pre_delete = cast(NAWAH_PRE_TUPLE, pre_delete)
+			pre_delete = cast(PRE_HANDLER_RETURN, pre_delete)
 			skip_events, env, query, doc, payload = pre_delete
 		else:
 			payload = {}
@@ -1169,7 +1173,7 @@ class BaseModule:
 				if type(proxy_on_delete) in [DictObj, dict]:
 					proxy_on_delete = cast(DictObj, proxy_on_delete)
 					return proxy_on_delete
-				proxy_on_delete = cast(NAWAH_ON_TUPLE, proxy_on_delete)
+				proxy_on_delete = cast(ON_HANDLER_RETURN, proxy_on_delete)
 				results, skip_events, env, query, doc, payload = proxy_on_delete
 			on_delete = await self.on_delete(
 				results=results,
@@ -1182,7 +1186,7 @@ class BaseModule:
 			if type(on_delete) in [DictObj, dict]:
 				on_delete = cast(DictObj, on_delete)
 				return on_delete
-			on_delete = cast(NAWAH_ON_TUPLE, on_delete)
+			on_delete = cast(ON_HANDLER_RETURN, on_delete)
 			results, skip_events, env, query, doc, payload = on_delete
 
 		# [DOC] Module collection is updated, update_cache
@@ -1197,7 +1201,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_create_file(
@@ -1208,13 +1212,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def create_file(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -1234,7 +1238,7 @@ class BaseModule:
 			if type(pre_create_file) in [DictObj, dict]:
 				pre_create_file = cast(DictObj, pre_create_file)
 				return pre_create_file
-			pre_create_file = cast(NAWAH_PRE_TUPLE, pre_create_file)
+			pre_create_file = cast(PRE_HANDLER_RETURN, pre_create_file)
 			skip_events, env, query, doc, payload = pre_create_file
 		else:
 			payload = {}
@@ -1267,7 +1271,7 @@ class BaseModule:
 			if type(on_create_file) in [DictObj, dict]:
 				on_create_file = cast(DictObj, on_create_file)
 				return on_create_file
-			on_create_file = cast(NAWAH_ON_TUPLE, on_create_file)
+			on_create_file = cast(ON_HANDLER_RETURN, on_create_file)
 			results, skip_events, env, query, doc, payload = on_create_file
 
 		return self.status(status=200, msg=f'Updated {results["count"]} docs.', args=results)
@@ -1279,7 +1283,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_delete_file(
@@ -1290,13 +1294,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def delete_file(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -1316,7 +1320,7 @@ class BaseModule:
 			if type(pre_delete_file) in [DictObj, dict]:
 				pre_delete_file = cast(DictObj, pre_delete_file)
 				return pre_delete_file
-			pre_delete_file = cast(NAWAH_PRE_TUPLE, pre_delete_file)
+			pre_delete_file = cast(PRE_HANDLER_RETURN, pre_delete_file)
 			skip_events, env, query, doc, payload = pre_delete_file
 		else:
 			payload = {}
@@ -1385,7 +1389,7 @@ class BaseModule:
 			if type(on_delete_file) in [DictObj, dict]:
 				on_delete_file = cast(DictObj, on_delete_file)
 				return on_delete_file
-			on_delete_file = cast(NAWAH_ON_TUPLE, on_delete_file)
+			on_delete_file = cast(ON_HANDLER_RETURN, on_delete_file)
 			results, skip_events, env, query, doc, payload = on_delete_file
 
 		return results
@@ -1397,7 +1401,7 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_PRE_TUPLE, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, DictObj]:
 		return (skip_events, env, query, doc, payload)
 
 	async def on_retrieve_file(
@@ -1408,13 +1412,13 @@ class BaseModule:
 		query: Query,
 		doc: NAWAH_DOC,
 		payload: Dict[str, Any],
-	) -> Union[NAWAH_ON_TUPLE, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, DictObj]:
 		return (results, skip_events, env, query, doc, payload)
 
 	async def retrieve_file(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
@@ -1434,7 +1438,7 @@ class BaseModule:
 			if type(pre_retrieve_file) in [DictObj, dict]:
 				pre_retrieve_file = cast(DictObj, pre_retrieve_file)
 				return pre_retrieve_file
-			pre_retrieve_file = cast(NAWAH_PRE_TUPLE, pre_retrieve_file)
+			pre_retrieve_file = cast(PRE_HANDLER_RETURN, pre_retrieve_file)
 			skip_events, env, query, doc, payload = pre_retrieve_file
 		else:
 			payload = {}
@@ -1538,7 +1542,7 @@ class BaseModule:
 			if type(on_retrieve_file) in [DictObj, dict]:
 				on_retrieve_file = cast(DictObj, on_retrieve_file)
 				return on_retrieve_file
-			on_retrieve_file = cast(NAWAH_ON_TUPLE, on_retrieve_file)
+			on_retrieve_file = cast(ON_HANDLER_RETURN, on_retrieve_file)
 			results, skip_events, env, query, doc, payload = on_retrieve_file
 
 		results['return'] = 'file'
@@ -1547,7 +1551,7 @@ class BaseModule:
 	async def update_cache(
 		self,
 		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},  # type: ignore
+		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
