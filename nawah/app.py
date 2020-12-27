@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union, List, cast
 
 
 async def run_app():
@@ -9,7 +9,7 @@ async def run_app():
 		InvalidAttrException,
 		ConvertAttrException,
 	)
-	from nawah.classes import JSONEncoder, DictObj, NAWAH_ENV
+	from nawah.classes import JSONEncoder, DictObj, NAWAH_ENV, BaseModel, IP_QUOTA, ATTR
 	from nawah.base_module import BaseModule
 	from nawah.enums import Event
 	from nawah.config import Config
@@ -19,6 +19,7 @@ async def run_app():
 	from bson import ObjectId
 	from passlib.hash import pbkdf2_sha512
 	from requests_toolbelt.multipart import decoder
+	from multidict import MultiDict
 
 	import aiohttp.web, asyncio, nest_asyncio, traceback, jwt, argparse, json, re, urllib.parse, os, datetime, time, logging
 
@@ -75,18 +76,20 @@ async def run_app():
 	logger.debug(f'Generated get_routes: {get_routes}')
 	logger.debug(f'Generated post_routes: {post_routes}')
 
-	sessions: List[Dict[int, Any]] = []
-	ip_quota: Dict[str, Dict[str, Union[int, datetime.datetime]]] = {}
+	sessions: List[NAWAH_ENV] = []
+	ip_quota: Dict[str, IP_QUOTA] = {}
 
 	async def not_found_handler(request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', 'GET,POST'),
-			('Access-Control-Allow-Headers', 'Content-Type'),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', 'GET,POST'),
+				('Access-Control-Allow-Headers', 'Content-Type'),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 		return aiohttp.web.Response(
 			status=404,
 			headers=headers,
@@ -94,14 +97,16 @@ async def run_app():
 		)
 
 	async def not_allowed_handler(request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', '*'),
-			('Access-Control-Allow-Headers', 'Content-Type'),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', '*'),
+				('Access-Control-Allow-Headers', 'Content-Type'),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 		return aiohttp.web.Response(
 			status=405,
 			headers=headers,
@@ -109,14 +114,16 @@ async def run_app():
 		)
 
 	async def root_handler(request: aiohttp.web.Request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', 'GET'),
-			('Access-Control-Allow-Headers', 'Content-Type'),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', 'GET'),
+				('Access-Control-Allow-Headers', 'Content-Type'),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 		return aiohttp.web.Response(
 			status=200,
 			headers=headers,
@@ -130,17 +137,19 @@ async def run_app():
 		)
 
 	async def http_handler(request: aiohttp.web.Request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', 'GET,POST,OPTIONS'),
-			(
-				'Access-Control-Allow-Headers',
-				'Content-Type,X-Auth-Bearer,X-Auth-Token,X-Auth-App',
-			),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', 'GET,POST,OPTIONS'),
+				(
+					'Access-Control-Allow-Headers',
+					'Content-Type,X-Auth-Bearer,X-Auth-Token,X-Auth-App',
+				),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 
 		logger.debug(f'Received new {request.method} request: {request.match_info}')
 
@@ -173,7 +182,7 @@ async def run_app():
 					logger.warning(
 						f'Denying \'{request.method}\' request from \'{request.remote}\' for hitting IP quota.'
 					)
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=429,
 						headers=headers,
@@ -198,6 +207,7 @@ async def run_app():
 
 		# [DOC] Extract Args Sets based on request.method
 		args_sets = Config.modules[module].methods[method].query_args
+		args_sets = cast(List[Dict[str, ATTR]], args_sets)
 
 		# [DOC] Attempt to validate query as doc
 		for args_set in args_sets:
@@ -206,9 +216,11 @@ async def run_app():
 			) == len(args_set.keys()):
 				# [DOC] Check presence and validate all attrs in doc args
 				try:
+					exception: Exception
 					await validate_doc(doc=request_args, attrs=args_set)
 				except InvalidAttrException as e:
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					exception = e
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=400,
 						headers=headers,
@@ -225,7 +237,8 @@ async def run_app():
 						.encode('utf-8'),
 					)
 				except ConvertAttrException as e:
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					exception = e
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=400,
 						headers=headers,
@@ -244,10 +257,9 @@ async def run_app():
 				break
 
 		conn = Data.create_conn()
-		env = {
+		env: NAWAH_ENV = {
 			'conn': conn,
 			'REMOTE_ADDR': request.remote,
-			'ws': None,
 			'client_app': '__public',
 		}
 
@@ -256,6 +268,7 @@ async def run_app():
 			env['HTTP_ORIGIN'] = request.headers['origin']
 		except:
 			env['HTTP_USER_AGENT'] = ''
+			env['HTTP_ORIGIN'] = ''
 		if Config.realm:
 			env['realm'] = request.url.parts[1].lower()
 
@@ -267,7 +280,7 @@ async def run_app():
 				or 'X-Auth-App' not in request.headers
 			):
 				logger.debug('Denying request due to missing \'X-Auth\' header.')
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				return aiohttp.web.Response(
 					status=400,
 					headers=headers,
@@ -285,11 +298,11 @@ async def run_app():
 				or (
 					Config.client_apps[request.headers['X-Auth-App']]['type'] == 'web'
 					and env['HTTP_ORIGIN']
-					not in Config.client_apps[request.headers['X-Auth-App']]['hosts']
+					not in Config.client_apps[request.headers['X-Auth-App']]['origin']
 				)
 			):
 				logger.debug('Denying request due to unauthorised client_app.')
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				return aiohttp.web.Response(
 					status=403,
 					headers=headers,
@@ -314,7 +327,7 @@ async def run_app():
 					],
 				)
 			except:
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				if Config.debug:
 					return aiohttp.web.Response(
 						status=500,
@@ -323,8 +336,8 @@ async def run_app():
 						.encode(
 							{
 								'status': 500,
-								'msg': f'Unexpected error has occurred [{str(e)}].',
-								'args': {'code': 'CORE_SERVER_ERROR', 'err': str(e)},
+								'msg': f'Unexpected error has occurred [{str(exception)}].',
+								'args': {'code': 'CORE_SERVER_ERROR', 'err': str(exception)},
 							}
 						)
 						.encode('utf-8'),
@@ -348,7 +361,7 @@ async def run_app():
 				request.headers['X-Auth-Token'], session_results.args.docs[0].token_hash
 			):
 				logger.debug('Denying request due to missing failed Call Authorisation.')
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				return aiohttp.web.Response(
 					status=403,
 					headers=headers,
@@ -376,7 +389,7 @@ async def run_app():
 				)
 				logger.debug('Denying request due to fail to reauth.')
 				if session_results.status != 200:
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=403,
 						headers=headers,
@@ -419,7 +432,7 @@ async def run_app():
 		if 'return' not in results.args or results.args['return'] == 'json':
 			if 'return' in results.args:
 				del results.args['return']
-			headers.append(('Content-Type', 'application/json; charset=utf-8'))
+			headers['Content-Type'] = 'application/json; charset=utf-8'
 			if results.status == 404:
 				return aiohttp.web.Response(
 					status=results.status,
@@ -437,10 +450,10 @@ async def run_app():
 		elif results.args['return'] == 'file':
 			del results.args['return']
 			expiry_time = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-			headers.append(('lastModified', str(results.args.docs[0].lastModified)))
-			headers.append(('Content-Type', results.args.docs[0].type))
-			headers.append(('Cache-Control', 'public, max-age=31536000'))
-			headers.append(('Expires', expiry_time.strftime('%a, %d %b %Y %H:%M:%S GMT')))
+			headers['lastModified'] = str(results.args.docs[0].lastModified)
+			headers['Content-Type'] = results.args.docs[0].type
+			headers['Cache-Control'] = 'public, max-age=31536000'
+			headers['Expires'] = expiry_time.strftime('%a, %d %b %Y %H:%M:%S GMT')
 			return aiohttp.web.Response(
 				status=results.status,
 				headers=headers,
@@ -448,10 +461,10 @@ async def run_app():
 			)
 		elif results.args['return'] == 'msg':
 			del results.args['return']
-			headers.append(('Content-Type', 'application/json; charset=utf-8'))
+			headers['Content-Type'] = 'application/json; charset=utf-8'
 			return aiohttp.web.Response(status=results.status, headers=headers, body=results.msg)
 
-		headers.append(('Content-Type', 'application/json; charset=utf-8'))
+		headers['Content-Type'] = 'application/json; charset=utf-8'
 		return aiohttp.web.Response(
 			status=405,
 			headers=headers,
@@ -464,16 +477,14 @@ async def run_app():
 		ws = aiohttp.web.WebSocketResponse()
 		await ws.prepare(request)
 
-		env = {
+		env: NAWAH_ENV = {
 			'id': len(sessions),
 			'conn': conn,
 			'REMOTE_ADDR': request.remote,
 			'ws': ws,
-			'session': None,
 			'watch_tasks': {},
 			'init': False,
 			'last_call': datetime.datetime.utcnow(),
-			'files': {},
 			'quota': {
 				'counter': Config.quota_anon_min,
 				'last_check': datetime.datetime.utcnow(),
@@ -597,7 +608,7 @@ async def run_app():
 				anon_user = Config.compile_anon_user()
 				anon_session = Config.compile_anon_session()
 				anon_session['user'] = DictObj(anon_user)
-				env['session'] = DictObj(anon_session)
+				env['session'] = BaseModel(anon_session)
 			res = json.loads(msg.data)
 			try:
 				res = jwt.decode(res['token'], env['session'].token, algorithms=['HS256'])
@@ -690,7 +701,7 @@ async def run_app():
 						or res['doc']['app'] not in Config.client_apps.keys()
 						or (
 							Config.client_apps[res['doc']['app']]['type'] == 'web'
-							and env['HTTP_ORIGIN'] not in Config.client_apps[res['doc']['app']]['hosts']
+							and env['HTTP_ORIGIN'] not in Config.client_apps[res['doc']['app']]['origin']
 						)
 					):
 						await env['ws'].send_str(
