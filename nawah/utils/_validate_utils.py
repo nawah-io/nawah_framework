@@ -8,7 +8,7 @@ from nawah.classes import (
 	ATTR_MOD,
 	BaseModel,
 	DictObj,
-	ATTRS_TYPES,
+	ATTRS_TYPES_ARGS,
 	InvalidAttrTypeException,
 	NAWAH_MODULE,
 	NAWAH_EVENTS,
@@ -153,7 +153,7 @@ async def validate_dot_notated(
 	attrs: Dict[str, ATTR],
 	skip_events: Optional[NAWAH_EVENTS],
 	env: Optional[NAWAH_ENV],
-	query: Union[None, NAWAH_QUERY, Query],
+	query: Optional[Union[NAWAH_QUERY, Query]],
 ):
 	attr_path = attr.split('.')
 	attr_path_len = len(attr_path)
@@ -226,7 +226,7 @@ async def validate_default(
 	attr_val: Any,
 	skip_events: Optional[NAWAH_EVENTS],
 	env: Optional[NAWAH_ENV],
-	query: Union[None, NAWAH_QUERY, Query],
+	query: Optional[Union[NAWAH_QUERY, Query]],
 	doc: Optional[NAWAH_DOC],
 	scope: Optional[NAWAH_DOC],
 	allow_none: bool,
@@ -982,7 +982,7 @@ def generate_dynamic_attr(
 	*, dynamic_attr: Dict[str, Any]
 ) -> Tuple[ATTR, Dict[str, Any]]:
 	# [DOC] Fail-safe checks
-	if dynamic_attr['type'] not in ATTRS_TYPES.keys():
+	if dynamic_attr['type'] not in ATTRS_TYPES_ARGS.keys():
 		raise InvalidAttrTypeException(attr_type=dynamic_attr['type'])
 	if 'args' not in dynamic_attr.keys():
 		dynamic_attr['args'] = {}
