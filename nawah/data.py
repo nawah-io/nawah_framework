@@ -9,6 +9,7 @@ from nawah.classes import (
 	ATTR_MOD,
 	NAWAH_DOC,
 	NAWAH_ENV,
+	NAWAH_QUERY,
 )
 from nawah.utils import extract_attr, set_attr
 
@@ -16,7 +17,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 
 from types import GeneratorType
-from typing import Dict, Union, List, Tuple, Any, AsyncGenerator
+from typing import Dict, Union, List, Tuple, Any, AsyncGenerator, Optional, cast
 
 import os, logging, re, datetime, copy
 
@@ -34,8 +35,8 @@ class InvalidQueryException(Exception):
 class Data:
 	@classmethod
 	def create_conn(cls) -> AsyncIOMotorClient:
-		connection_config = {'ssl': Config.data_ssl}
-		if Config.data_ca:
+		connection_config: Dict[str, Any] = {'ssl': Config.data_ssl}
+		if Config.data_ca and Config.data_ca_name:
 			__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 			connection_config['ssl_ca_certs'] = os.path.join(
 				__location__, '..', 'certs', Config.data_ca_name
@@ -61,17 +62,23 @@ class Data:
 	@classmethod
 	def _compile_query(
 		cls, *, collection: str, attrs: Dict[str, ATTR], query: Query, watch_mode: bool
-	) -> Tuple[int, int, Dict[str, int], List[Dict[str, Union[str, int]]], List[Any]]:
-		aggregate_prefix = [
+	) -> Tuple[
+		Optional[int],
+		Optional[int],
+		Dict[str, int],
+		Optional[List[Dict[str, Union[str, int]]]],
+		List[Any],
+	]:
+		aggregate_prefix: List[Any] = [
 			{'$match': {'$or': [{'__deleted': {'$exists': False}}, {'__deleted': False}]}}
 		]
-		aggregate_suffix = []
-		aggregate_query = [{'$match': {'$and': []}}]
+		aggregate_suffix: List[Any] = []
+		aggregate_query: List[Any] = [{'$match': {'$and': []}}]
 		aggregate_match = aggregate_query[0]['$match']['$and']
-		skip: int = None
-		limit: int = None
+		skip: Optional[int] = None
+		limit: Optional[int] = None
 		sort: Dict[str, int] = {'_id': -1}
-		group: List[Dict[str, Union[str, int]]] = None
+		group: Optional[List[Dict[str, Union[str, int]]]] = None
 		logger.debug(f'attempting to process query: {query}')
 
 		if not isinstance(query, Query):
@@ -92,7 +99,7 @@ class Data:
 			del query['$group']
 		if '$search' in query:
 			aggregate_prefix.insert(0, {'$match': {'$text': {'$search': query['$search']}}})
-			project_query = {attr: '$' + attr for attr in attrs.keys()}
+			project_query: Dict[str, Any] = {attr: '$' + attr for attr in attrs.keys()}
 			project_query['_id'] = '$_id'
 			project_query['__score'] = {'$meta': 'textScore'}
 			aggregate_suffix.append({'$project': project_query})
@@ -167,14 +174,15 @@ class Data:
 		aggregate_match: List[Any],
 		collection: str,
 		attrs: Dict[str, ATTR],
-		step: Union[Dict, List],
+		step: Union[Dict[str, Any], List[Any]],
 		watch_mode: bool,
 	) -> None:
-		if type(step) == dict and len(step.keys()):
-			child_aggregate_query = {'$and': []}
+		if type(step) == dict and len(step.keys()):  # type: ignore
+			step = cast(Dict[str, Any], step)
+			child_aggregate_query: Dict[str, Any] = {'$and': []}
 			for attr in step.keys():
 				if attr.startswith('__or'):
-					child_child_aggregate_query = {'$or': []}
+					child_child_aggregate_query: Dict[str, Any] = {'$or': []}
 					cls._compile_query_step(
 						aggregate_prefix=aggregate_prefix,
 						aggregate_suffix=aggregate_suffix,
@@ -195,6 +203,7 @@ class Data:
 						and attr.split('.')[0] in attrs.keys()
 						and attrs[attr.split('.')[0]]._extn
 					):
+						# [TODO] Check if this works with EXTN as ATTR_MOD
 						step_attr = attr.split('.')[1]
 						step_attrs: Dict[str, ATTR] = Config.modules[
 							attrs[attr.split('.')[0]]._extn.module
@@ -264,7 +273,7 @@ class Data:
 							logger.warning(f'Failed to convert attr to id type: {step[attr]}')
 					# [DOC] Check for access special attrs
 					elif step_attr in step_attrs.keys() and step_attrs[step_attr]._type == 'ACCESS':
-						access_query = [
+						access_query: List[Any] = [
 							{
 								'$project': {
 									'__user': '$user',
@@ -323,6 +332,7 @@ class Data:
 			elif len(child_aggregate_query['$and']) > 1:
 				aggregate_match.append(child_aggregate_query)
 		elif type(step) == list and len(step):
+			step = cast(List[Any], step)
 			child_aggregate_query = {'$or': []}
 			for child_step in step:
 				cls._compile_query_step(
@@ -389,8 +399,8 @@ class Data:
 		cls,
 		*,
 		doc: NAWAH_DOC,
-		scope: Dict[str, Any],
-		attr_name: str,
+		scope: Union[Dict[str, Any], List[Any]],
+		attr_name: Union[str, int],
 		attr_type: ATTR,
 		env: NAWAH_ENV,
 		extn_models: Dict[str, BaseModel] = None,
@@ -469,6 +479,7 @@ class Data:
 
 		# [DOC] Attempt to extend the attr unto doc
 		if type(attr_type._extn) == ATTR_MOD:
+			attr_type._extn = cast(ATTR_MOD, attr_type._extn)
 			# [DOC] Attr is having ATTR_MOD for _extn value, call the condition callable and attempt to resolve
 			if attr_type._extn.condition(
 				skip_events=[], env=env, query=[], doc=doc, scope=scope[attr_name]
@@ -528,7 +539,7 @@ class Data:
 		*,
 		env: NAWAH_ENV,
 		doc: NAWAH_DOC,
-		attr: Union[None, NAWAH_DOC],
+		attr: Optional[NAWAH_DOC],
 		extn_id: ObjectId,
 		extn: EXTN,
 		extn_models: Dict[str, BaseModel] = {},
