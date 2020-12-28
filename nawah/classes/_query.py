@@ -16,6 +16,7 @@ from typing import (
 import copy
 
 if TYPE_CHECKING:
+	from __future__ import annotations
 	from ._types import NAWAH_QUERY, NAWAH_QUERY_SPECIAL
 
 
@@ -83,11 +84,11 @@ QUERY_INDEX_RECORD = TypedDict(
 
 
 class Query(list):
-	_query: 'NAWAH_QUERY'
-	_special: 'NAWAH_QUERY_SPECIAL'
+	_query: NAWAH_QUERY
+	_special: NAWAH_QUERY_SPECIAL
 	_index: Dict[str, List[QUERY_INDEX_RECORD]]
 
-	def __init__(self, query: Union['NAWAH_QUERY', 'Query']):
+	def __init__(self, query: Union[NAWAH_QUERY, Query]):
 		self._query = query
 		if type(self._query) == Query:
 			query = cast(Query, query)
@@ -100,7 +101,7 @@ class Query(list):
 	def __repr__(self):
 		return str(self._query + [self._special])
 
-	def _create_index(self, query: 'NAWAH_QUERY', path=[]):
+	def _create_index(self, query: NAWAH_QUERY, path=[]):
 		if not path:
 			self._index: Dict[str, List[QUERY_INDEX_RECORD]] = {}
 		for i in range(len(query)):
@@ -140,10 +141,10 @@ class Query(list):
 		if not path:
 			self._query = self._sanitise_query()
 
-	def _sanitise_query(self, query: 'NAWAH_QUERY' = None):
+	def _sanitise_query(self, query: NAWAH_QUERY = None):
 		if query == None:
 			query = self._query
-		query = cast('NAWAH_QUERY', query)
+		query = cast(NAWAH_QUERY, query)
 		query_shadow = []
 		for step in query:
 			if type(step) == dict:

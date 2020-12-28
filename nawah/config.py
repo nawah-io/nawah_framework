@@ -33,9 +33,9 @@ from passlib.hash import pbkdf2_sha512
 import os, logging, datetime, time, requests
 
 if TYPE_CHECKING:
+	from __future__ import annotations
 	from nawah.test import STEP
 	from nawah.base_module import BaseModule
-	from nawah.base_method import BaseMethod
 
 logger = logging.getLogger('nawah')
 
@@ -149,7 +149,7 @@ class Config:
 	test_env: bool = False
 	test_breakpoint: bool = False
 	test_collections: bool = False
-	tests: Dict[str, List['STEP']] = {}
+	tests: Dict[str, List[STEP]] = {}
 
 	emulate_test: bool = False
 	force_admin_check: bool = False
@@ -226,7 +226,7 @@ class Config:
 
 	types: Dict[str, Callable] = {}
 
-	modules: Dict[str, 'BaseModule'] = {}
+	modules: Dict[str, BaseModule] = {}
 	modules_packages: Dict[str, List[str]] = {}
 
 	@classmethod
@@ -387,7 +387,7 @@ class Config:
 			with open(os.path.join(__location__, 'certs', cls.data_ca_name), 'w') as f:
 				f.write(cls.data_ca)
 
-		from nawah.data import Data
+		from nawah import data as Data
 
 		# [DOC] Create default env dict
 		anon_user = cls.compile_anon_user()

@@ -19,6 +19,7 @@ from typing import (
 import datetime
 
 if TYPE_CHECKING:
+	from __future__ import annotations
 	from ._base_model import BaseModel
 	from ._dictobj import DictObj
 
@@ -27,7 +28,7 @@ NAWAH_EVENTS = List[Event]
 WATCH_TASK = TypedDict(
 	'WATCH_TASK',
 	{
-		'watch': AsyncGenerator['DictObj', 'DictObj'],
+		'watch': AsyncGenerator[DictObj, DictObj],
 		'task': Task,
 		'stream': Any,
 	},
@@ -52,7 +53,7 @@ NAWAH_ENV = TypedDict(
 		'HTTP_USER_AGENT': str,
 		'HTTP_ORIGIN': str,
 		'client_app': str,
-		'session': 'BaseModel',
+		'session': BaseModel,
 		'last_call': datetime.datetime,
 		'ws': WebSocketResponse,
 		'watch_tasks': Dict[str, WATCH_TASK],

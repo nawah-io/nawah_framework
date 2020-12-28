@@ -21,13 +21,14 @@ from bson import binary, ObjectId
 import logging, copy, re, asyncio, datetime
 
 if TYPE_CHECKING:
+	from __future__ import annotations
 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 
 
 async def process_file_obj(
-	*, doc: Union[NAWAH_DOC, dict, list], modules: Dict[str, 'BaseModule'], env: NAWAH_ENV
+	*, doc: Union[NAWAH_DOC, dict, list], modules: Dict[str, BaseModule], env: NAWAH_ENV
 ):
 	if type(doc) == dict:
 		doc_iter = doc.keys()  # type: ignore
