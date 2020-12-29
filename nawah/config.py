@@ -192,8 +192,6 @@ class Config:
 
 	data_azure_mongo: bool = False
 
-	email_auth: Dict[str, str] = {}
-
 	locales: List[str] = ['ar_AE', 'en_AE']
 	locale: str = 'ar_AE'
 	locale_strategy: LOCALE_STRATEGY = LOCALE_STRATEGY.DUPLICATE

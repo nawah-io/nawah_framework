@@ -56,7 +56,6 @@ class PACKAGE_CONFIG:
 	data_ca: Optional[str] = None
 	data_disk_use: Optional[bool] = None
 	data_azure_mongo: Optional[bool] = None
-	email_auth: Optional[Dict[str, str]] = None
 	locales: Optional[List[str]] = None
 	locale: Optional[str] = None
 	admin_doc: Optional[NAWAH_DOC] = None
