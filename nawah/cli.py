@@ -320,7 +320,13 @@ def launch(
 						logger.info(
 							f'Setting \'port\' Config Attr to Env Variable \'{port_env_var}\' value \'{port}\'.'
 						)
-						Config.port = port
+						try:
+							Config.port = int(port)
+						except:
+							logger.error(
+								f'Env Variable \'{port_env_var}\' value \'{port}\' can\'t be converted to integer. Exiting.'
+							)
+							exit(1)
 					else:
 						logger.error(f'No value found for Env Variable \'{port_env_var}\'. Exiting.')
 						exit(1)

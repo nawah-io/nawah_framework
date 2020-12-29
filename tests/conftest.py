@@ -1,26 +1,26 @@
 from nawah.classes import DictObj
 
 from dataclasses import dataclass
-from typing import Dict, Any
 from bson import ObjectId
 from contextlib import contextmanager
+from typing import Dict, Any, Optional
 
 import pytest, copy
 
 
 @dataclass
 class Module:
-	_read: DictObj
-	_create: DictObj
-	_delete: DictObj
-	_update: DictObj
+	_read: Optional[DictObj]
+	_create: Optional[DictObj]
+	_delete: Optional[DictObj]
+	_update: Optional[DictObj]
 
 	async def read(self, **kwargs):
 		return self._read
-	
+
 	async def create(self, **kwargs):
 		return self._create
-	
+
 	async def update(self, **kwargs):
 		return self._update
 
@@ -31,29 +31,31 @@ class Module:
 @pytest.fixture
 def mock_call_results():
 	def _(status: int, count: int, doc: Dict[str, Any] = None, code: str = None):
-		return DictObj({
-			'status': status,
-			'args': DictObj({
-				'count': count,
-				'code': code,
-				'docs': [
-					DictObj(doc if doc else {'_id': ObjectId()}) for __ in range(count)
-				]
-			})
-		})
+		return DictObj(
+			{
+				'status': status,
+				'args': DictObj(
+					{
+						'count': count,
+						'code': code,
+						'docs': [DictObj(doc if doc else {'_id': ObjectId()}) for __ in range(count)],
+					}
+				),
+			}
+		)
 
 	return _
 
 
 @pytest.fixture
 def mock_module():
-	def _(read: DictObj = None, create: DictObj = None, update: DictObj = None, delete: DictObj = None):
-		return Module(
-			_read=read,
-			_create=create,
-			_update=update,
-			_delete=delete
-		)
+	def _(
+		read: DictObj = None,
+		create: DictObj = None,
+		update: DictObj = None,
+		delete: DictObj = None,
+	):
+		return Module(_read=read, _create=create, _update=update, _delete=delete)
 
 	return _
 
@@ -64,7 +66,10 @@ def attr_obj():
 		'item1': 'val1',
 		'item2': 'val2',
 		'list_item1': ['list_child1', 'list_child2', 'list_child3'],
-		'dict_item1': {'dict_child1': 'child_val1', 'dict_child2': 'child_val2',},
+		'dict_item1': {
+			'dict_child1': 'child_val1',
+			'dict_child2': 'child_val2',
+		},
 		'nested_dict': {
 			'child_item': 'child_val',
 			'child_dict': {'child_child_item1': 'child_child_val1'},
