@@ -18,7 +18,6 @@ from typing import (
 import datetime
 
 if TYPE_CHECKING:
-	from __future__ import annotations
 	from nawah.base_method import BaseMethod
 	from ._attr import ATTR
 	from ._dictobj import DictObj
@@ -26,16 +25,18 @@ if TYPE_CHECKING:
 	from ._query import Query
 
 
-PRE_HANDLER_RETURN = Tuple[NAWAH_EVENTS, NAWAH_ENV, Query, NAWAH_DOC, Dict[str, Any]]
+PRE_HANDLER_RETURN = Tuple[
+	'NAWAH_EVENTS', 'NAWAH_ENV', 'Query', 'NAWAH_DOC', Dict[str, Any]
+]
 ON_HANDLER_RETURN = Tuple[
-	Dict[str, Any], NAWAH_EVENTS, NAWAH_ENV, Query, NAWAH_DOC, Dict[str, Any]
+	Dict[str, Any], 'NAWAH_EVENTS', 'NAWAH_ENV', 'Query', 'NAWAH_DOC', Dict[str, Any]
 ]
 
 
 class NAWAH_MODULE:
 	collection: Optional[str]
 	proxy: str
-	attrs: Dict[str, ATTR]
+	attrs: Dict[str, 'ATTR']
 	diff: Union[bool, 'ATTR_MOD']
 	defaults: Dict[str, Any]
 	unique_attrs: List[str]
@@ -49,224 +50,224 @@ class NAWAH_MODULE:
 
 	async def pre_read(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_read(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def read(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
-	) -> DictObj:
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
+	) -> 'DictObj':
 		pass
 
 	async def pre_watch(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_watch(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def watch(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
 		payload: Optional[Dict[str, Any]] = None,
-	) -> AsyncGenerator[DictObj, DictObj]:
+	) -> AsyncGenerator['DictObj', 'DictObj']:
 		pass
 
 	async def pre_create(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_create(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def create(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
-	) -> DictObj:
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
+	) -> 'DictObj':
 		pass
 
 	async def pre_update(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_update(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def update(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
-	) -> DictObj:
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
+	) -> 'DictObj':
 		pass
 
 	async def pre_delete(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_delete(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def delete(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
-	) -> DictObj:
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
+	) -> 'DictObj':
 		pass
 
 	async def pre_create_file(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_create_file(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def create_file(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
-	) -> DictObj:
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
+	) -> 'DictObj':
 		pass
 
 	async def pre_delete_file(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[PRE_HANDLER_RETURN, DictObj]:
+	) -> Union[PRE_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def on_delete_file(
 		self,
 		results: Dict[str, Any],
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[NAWAH_QUERY, Query],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
 		payload: Dict[str, Any],
-	) -> Union[ON_HANDLER_RETURN, DictObj]:
+	) -> Union[ON_HANDLER_RETURN, 'DictObj']:
 		pass
 
 	async def delete_file(
 		self,
-		skip_events: NAWAH_EVENTS = [],
-		env: NAWAH_ENV = {},
-		query: Union[NAWAH_QUERY, Query] = [],
-		doc: NAWAH_DOC = {},
-	) -> DictObj:
+		skip_events: 'NAWAH_EVENTS' = [],
+		env: 'NAWAH_ENV' = {},
+		query: Union['NAWAH_QUERY', 'Query'] = [],
+		doc: 'NAWAH_DOC' = {},
+	) -> 'DictObj':
 		pass
 
 
 class ATTR_MOD_CONDITION(Protocol):
 	def __call__(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[Query, NAWAH_QUERY],
-		doc: NAWAH_DOC,
-		scope: Optional[NAWAH_DOC],
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
+		doc: 'NAWAH_DOC',
+		scope: Optional['NAWAH_DOC'],
 	) -> bool:
 		...
 
@@ -274,11 +275,11 @@ class ATTR_MOD_CONDITION(Protocol):
 class ATTR_MOD_DEFAULT(Protocol):
 	def __call__(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[Query, NAWAH_QUERY],
-		doc: NAWAH_DOC,
-		scope: Optional[NAWAH_DOC],
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
+		doc: 'NAWAH_DOC',
+		scope: Optional['NAWAH_DOC'],
 	) -> Any:
 		...
 
@@ -302,8 +303,8 @@ class ATTR_MOD:
 
 class PERM:
 	privilege: str
-	query_mod: Dict[str, Optional[Union[ATTR, ATTR_MOD, Literal['$__date', '$__user']]]]
-	doc_mod: Dict[str, Optional[Union[ATTR, ATTR_MOD, Literal['$__date', '$__user']]]]
+	query_mod: Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
+	doc_mod: Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
 
 	def __repr__(self):
 		return f'<PERM:{self.privilege},{self.query_mod},{self.doc_mod}>'
@@ -313,10 +314,10 @@ class PERM:
 		*,
 		privilege: str,
 		query_mod: Optional[
-			Dict[str, Optional[Union[ATTR, ATTR_MOD, Literal['$__date', '$__user']]]]
+			Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
 		] = None,
 		doc_mod: Optional[
-			Dict[str, Optional[Union[ATTR, ATTR_MOD, Literal['$__date', '$__user']]]]
+			Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
 		] = None,
 	):
 		if not query_mod:
@@ -331,9 +332,9 @@ class PERM:
 class EXTN:
 	module: str
 	skip_events: Optional[List[Event]]
-	query: Optional[NAWAH_QUERY]
-	attrs: List[str]
-	force: bool = False
+	query: Optional['NAWAH_QUERY']
+	attrs: Union[List[str], str]
+	force: Union[bool, str] = False
 
 	def __repr__(self):
 		return f'<EXTN:{self.module},{self.attrs},{self.force}>'
@@ -343,9 +344,9 @@ class EXTN:
 		*,
 		module: str,
 		skip_events: List[Event] = None,
-		query: NAWAH_QUERY = None,
-		attrs: List[str],
-		force: bool = False,
+		query: 'NAWAH_QUERY' = None,
+		attrs: Union[List[str], str],
+		force: Union[bool, str] = False,
 	):
 		self.module = module
 		self.skip_events = skip_events
@@ -362,18 +363,18 @@ class METHOD:
 	permissions: List[PERM]
 	query_args: Union[
 		None,
-		List[Dict[str, ATTR]],
-		Dict[str, ATTR],
+		List[Dict[str, 'ATTR']],
+		Dict[str, 'ATTR'],
 	]
 	doc_args: Union[
 		None,
-		List[Dict[str, ATTR]],
-		Dict[str, ATTR],
+		List[Dict[str, 'ATTR']],
+		Dict[str, 'ATTR'],
 	] = None
 	get_method: bool
 	post_method: bool
 	watch_method: bool
-	_callable: BaseMethod
+	_callable: 'BaseMethod'
 
 	def __init__(
 		self,
@@ -381,13 +382,13 @@ class METHOD:
 		permissions: List[PERM],
 		query_args: Union[
 			None,
-			List[Dict[str, ATTR]],
-			Dict[str, ATTR],
+			List[Dict[str, 'ATTR']],
+			Dict[str, 'ATTR'],
 		] = None,
 		doc_args: Union[
 			None,
-			List[Dict[str, ATTR]],
-			Dict[str, ATTR],
+			List[Dict[str, 'ATTR']],
+			Dict[str, 'ATTR'],
 		] = None,
 		get_method: bool = False,
 		post_method: bool = False,
@@ -407,9 +408,9 @@ class METHOD:
 class CACHE_CONDITION(Protocol):
 	def __call__(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[Query, NAWAH_QUERY],
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
 	) -> bool:
 		...
 
@@ -450,10 +451,10 @@ class CACHED_QUERY:
 class ANALYTIC_CONDITION(Protocol):
 	def __call__(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[Query, NAWAH_QUERY],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
+		doc: 'NAWAH_DOC',
 		method: str,
 	) -> bool:
 		...
@@ -462,12 +463,12 @@ class ANALYTIC_CONDITION(Protocol):
 class ANALYTIC_DOC(Protocol):
 	def __call__(
 		self,
-		skip_events: NAWAH_EVENTS,
-		env: NAWAH_ENV,
-		query: Union[Query, NAWAH_QUERY],
-		doc: NAWAH_DOC,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['Query', 'NAWAH_QUERY'],
+		doc: 'NAWAH_DOC',
 		method: str,
-	) -> NAWAH_DOC:
+	) -> 'NAWAH_DOC':
 		...
 
 

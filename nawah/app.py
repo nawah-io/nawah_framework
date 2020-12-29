@@ -13,7 +13,7 @@ async def run_app():
 	from nawah.base_module import BaseModule
 	from nawah.enums import Event
 	from nawah.config import Config
-	from nawah.data import Data
+	from nawah import data as Data
 	from nawah.test import Test
 
 	from bson import ObjectId

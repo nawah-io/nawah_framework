@@ -6,17 +6,34 @@ from nawah.classes import (
 	JSONEncoder,
 	ATTR,
 	ATTR_MOD,
+	NAWAH_EVENTS,
+	NAWAH_ENV,
 	NAWAH_DOC,
 	NAWAH_QUERY,
 	PERM,
-	TYPE_CHECKING,
+	WATCH_TASK,
+	METHOD,
 )
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
 
 from asyncio import coroutine
 from aiohttp.web import WebSocketResponse
-from typing import List, Dict, Union, Any, Tuple, Set, AsyncGenerator
+from typing import (
+	List,
+	Dict,
+	Union,
+	Any,
+	Tuple,
+	Set,
+	AsyncGenerator,
+	TYPE_CHECKING,
+	Literal,
+	Iterable,
+	Optional,
+	cast,
+	Awaitable,
+)
 
 import logging, copy, traceback, sys, asyncio
 
@@ -47,11 +64,12 @@ class BaseMethod:
 		self.get_method = get_method
 		self.post_method = post_method
 
-	async def validate_args(self, args: Dict[str, Any], args_list: str):
-		args_list_label = args_list
-		args_list = getattr(self, f'{args_list}_args')
+	async def validate_args(
+		self, args: Union[Query, Dict[str, Any]], args_list_label: str
+	):
+		args_list = getattr(self, f'{args_list_label}_args')
 
-		sets_check = []
+		sets_check: List[Dict[str, Literal[True, 'missing', 'invalid', 'convert']]] = []
 
 		for args_set in args_list:
 			set_status = True
@@ -59,8 +77,9 @@ class BaseMethod:
 			sets_check.append({arg: True for arg in args_set.keys()})
 
 			if args_list_label == 'query':
-				args_check = args
+				args_check: Iterable = args
 			elif args_list_label == 'doc':
+				args = cast(Dict[str, Any], args)
 				args_check = args.keys()
 
 			for arg in args_set.keys():
@@ -103,12 +122,12 @@ class BaseMethod:
 	async def __call__(
 		self,
 		*,
-		skip_events: List[Event] = None,
-		env: Dict[str, Any] = None,
+		skip_events: NAWAH_EVENTS = None,
+		env: NAWAH_ENV = None,
 		query: Union[NAWAH_QUERY, Query] = None,
 		doc: NAWAH_DOC = None,
 		call_id: str = None,
-	) -> DictObj:
+	) -> Optional[DictObj]:
 		if skip_events == None:
 			skip_events = []
 		if env == None:
@@ -117,6 +136,11 @@ class BaseMethod:
 			query = []
 		if doc == None:
 			doc = {}
+		skip_events = cast(NAWAH_EVENTS, skip_events)
+		env = cast(NAWAH_ENV, env)
+		query = cast(Union[NAWAH_QUERY, Query], query)
+		doc = cast(NAWAH_DOC, doc)
+		call_id = cast(str, call_id)
 		# [DOC] Convert list query to Query object
 		query = Query(copy.deepcopy(query))
 		# [DOC] deepcopy() doc object ro prevent mutating original doc
@@ -186,7 +210,7 @@ class BaseMethod:
 			logger.debug(f'permissions_check: {permissions_check}.')
 			if permissions_check == False:
 				return await self.return_results(
-					ws=env['ws'],
+					ws=env['ws'] if 'ws' in env.keys() else None,
 					results=DictObj(
 						{
 							'status': 403,
@@ -247,7 +271,7 @@ class BaseMethod:
 							+ ']'
 						)
 					return await self.return_results(
-						ws=env['ws'],
+						ws=env['ws'] if 'ws' in env.keys() else None,
 						results=DictObj(
 							{
 								'status': 400,
@@ -279,7 +303,7 @@ class BaseMethod:
 							+ ']'
 						)
 					return await self.return_results(
-						ws=env['ws'],
+						ws=env['ws'] if 'ws' in env.keys() else None,
 						results=DictObj(
 							{
 								'status': 400,
@@ -297,7 +321,7 @@ class BaseMethod:
 
 		for arg in doc.keys():
 			if type(doc[arg]) == BaseModel:
-				doc[arg] = doc[arg]._id
+				doc[arg] = doc[arg]._id  # type: ignore
 
 		# [DOC] check if $soft oper is set to add it to events
 		if '$soft' in query and query['$soft'] == True:
@@ -333,19 +357,15 @@ class BaseMethod:
 						}
 					)
 				)
-				env['watch_tasks'][call_id] = {
-					'watch': method(skip_events=skip_events, env=env, query=query, doc=doc)
-				}
-				env['watch_tasks'][call_id]['watch'] = self.watch_loop(
+				watch_loop = self.watch_loop(
 					ws=env['ws'],
-					stream=env['watch_tasks'][call_id]['watch'],
+					stream=method(skip_events=skip_events, env=env, query=query, doc=doc),
 					call_id=call_id,
 					watch_task=env['watch_tasks'][call_id],
 				)
-				env['watch_tasks'][call_id]['task'] = asyncio.create_task(
-					env['watch_tasks'][call_id]['watch']
-				)
-				return
+				env['watch_tasks'][call_id] = {'watch': watch_loop}
+				env['watch_tasks'][call_id]['task'] = asyncio.create_task(watch_loop)
+				return None
 			else:
 				results = await method(skip_events=skip_events, env=env, query=query, doc=doc)
 				if type(results) == coroutine:
@@ -361,12 +381,17 @@ class BaseMethod:
 				if 'session' in results.args:
 					if results.args.session._id == 'f00000000000000000000012':
 						# [DOC] Updating session to __ANON
-						env['session'] = None
+						anon_user = Config.compile_anon_user()
+						anon_session = Config.compile_anon_session()
+						anon_session['user'] = DictObj(anon_user)
+						env['session'] = BaseModel(anon_session)
 					else:
 						# [DOC] Updating session to user
 						env['session'] = results.args.session
 
-				return await self.return_results(ws=env['ws'], results=results, call_id=call_id)
+				return await self.return_results(
+					ws=env['ws'] if 'ws' in env.keys() else None, results=results, call_id=call_id
+				)
 			# query = Query([])
 		except Exception as e:
 			logger.error(f'An error occurred. Details: {traceback.format_exc()}.')
@@ -381,7 +406,7 @@ class BaseMethod:
 			query = Query([])
 			if Config.debug:
 				return await self.return_results(
-					ws=env['ws'],
+					ws=env['ws'] if 'ws' in env.keys() else None,
 					results=DictObj(
 						{
 							'status': 500,
@@ -399,7 +424,7 @@ class BaseMethod:
 				)
 			else:
 				return await self.return_results(
-					ws=env['ws'],
+					ws=env['ws'] if 'ws' in env.keys() else None,
 					results=DictObj(
 						{
 							'status': 500,
@@ -411,22 +436,23 @@ class BaseMethod:
 				)
 
 	async def return_results(
-		self, ws: WebSocketResponse, results: DictObj, call_id: str
-	) -> Union[None, DictObj]:
+		self, ws: Optional[WebSocketResponse], results: DictObj, call_id: Optional[str]
+	) -> Optional[DictObj]:
 		if call_id and call_id != '__TEST__':
 			results.args['call_id'] = call_id
+			ws = cast(WebSocketResponse, ws)
 			await ws.send_str(JSONEncoder().encode(results))
-			return
+			return None
 		else:
 			return results
 
 	async def watch_loop(
 		self,
 		ws: WebSocketResponse,
-		stream: AsyncGenerator,
+		stream: AsyncGenerator[DictObj, DictObj],
 		call_id: str,
-		watch_task: Dict[str, Any],
-	):
+		watch_task: WATCH_TASK,
+	) -> None:
 		logger.debug('Preparing async loop at BaseMethod')
 		async for results in stream:
 			logger.debug(f'Received watch results at BaseMethod: {results}')

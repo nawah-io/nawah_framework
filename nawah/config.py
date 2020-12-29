@@ -33,7 +33,6 @@ from passlib.hash import pbkdf2_sha512
 import os, logging, datetime, time, requests
 
 if TYPE_CHECKING:
-	from __future__ import annotations
 	from nawah.test import STEP
 	from nawah.base_module import BaseModule
 
@@ -129,7 +128,7 @@ class Config:
 
 	_sys_conn: AsyncIOMotorClient
 	_sys_env: NAWAH_ENV
-	_sys_docs: Dict[str, Dict[str, str]] = {}
+	_sys_docs: Dict[ObjectId, Dict[str, str]] = {}
 	_realms: Dict[str, BaseModel] = {}
 	_jobs_base: datetime.datetime
 
@@ -149,7 +148,7 @@ class Config:
 	test_env: bool = False
 	test_breakpoint: bool = False
 	test_collections: bool = False
-	tests: Dict[str, List[STEP]] = {}
+	tests: Dict[str, List['STEP']] = {}
 
 	emulate_test: bool = False
 	force_admin_check: bool = False
@@ -226,7 +225,7 @@ class Config:
 
 	types: Dict[str, Callable] = {}
 
-	modules: Dict[str, BaseModule] = {}
+	modules: Dict[str, 'BaseModule'] = {}
 	modules_packages: Dict[str, List[str]] = {}
 
 	@classmethod
@@ -439,7 +438,7 @@ class Config:
 							logger.debug(f'Flushing test collection \'{module_collection}\'')
 							await Data.drop(
 								env=cls._sys_env,
-								collection=module_collection,
+								collection_name=module_collection,
 							)
 					else:
 						logger.debug(f'Skipping service module {module}')
@@ -511,7 +510,7 @@ class Config:
 		if not user_results.args.count:
 			logger.debug('ADMIN user not found, creating it.')
 			# [DOC] Prepare base ADMIN user doc
-			admin_doc = {
+			admin_create_doc = {
 				'_id': ObjectId('f00000000000000000000010'),
 				'name': {cls.locale: '__ADMIN'},
 				'groups': [],
@@ -519,22 +518,24 @@ class Config:
 				'locale': cls.locale,
 			}
 			# [DOC] Update ADMIN user doc with admin_doc Config Attr
-			admin_doc.update(cls.admin_doc)
+			admin_create_doc.update(cls.admin_doc)
 
 			for auth_attr in cls.user_attrs.keys():
-				admin_doc[f'{auth_attr}_hash'] = pbkdf2_sha512.using(  # pylint: disable=no-member
+				admin_create_doc[
+					f'{auth_attr}_hash'
+				] = pbkdf2_sha512.using(  # pylint: disable=no-member
 					rounds=100000
 				).hash(
-					f'{auth_attr}{admin_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
+					f'{auth_attr}{admin_create_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
 						'utf-8'
 					)
 				)
 			if cls.realm:
-				admin_doc['realm'] = '__global'
+				admin_create_doc['realm'] = '__global'
 			admin_results = await cls.modules['user'].create(
 				skip_events=[Event.PERM],
 				env=cls._sys_env,
-				doc=admin_doc,
+				doc=admin_create_doc,
 			)
 			logger.debug(f'ADMIN user creation results: {admin_results}')
 			if admin_results.status != 200:
@@ -546,7 +547,7 @@ class Config:
 			)
 		else:
 			logger.warning('ADMIN user found, checking it due to force_admin_check Config Attr.')
-			admin_doc = user_results.args.docs[0]
+			admin_doc: BaseModel = user_results.args.docs[0]
 			admin_doc_update = {}
 			for attr in cls.admin_doc.keys():
 				if (

@@ -1,6 +1,6 @@
 from nawah.config import Config
 from nawah.enums import Event, DELETE_STRATEGY, NAWAH_VALUES
-from nawah.data import Data
+from nawah import data as Data
 from nawah.utils import (
 	validate_doc,
 	InvalidAttrException,
@@ -437,7 +437,7 @@ class BaseModule:
 								if not results:
 									results = await Data.read(
 										env=env,
-										collection=self.collection,
+										collection_name=self.collection,
 										attrs=self.attrs,
 										query=query,
 									)
@@ -452,7 +452,7 @@ class BaseModule:
 						if not results:
 							results = await Data.read(
 								env=env,
-								collection=self.collection,
+								collection_name=self.collection,
 								attrs=self.attrs,
 								query=query,
 							)
@@ -460,7 +460,7 @@ class BaseModule:
 			if not results:
 				results = await Data.read(
 					env=env,
-					collection=self.collection,
+					collection_name=self.collection,
 					attrs=self.attrs,
 					query=query,
 					skip_extn='$extn' in query or Event.EXTN in skip_events,
@@ -468,7 +468,7 @@ class BaseModule:
 		else:
 			results = await Data.read(
 				env=env,
-				collection=self.collection,
+				collection_name=self.collection,
 				attrs=self.attrs,
 				query=query,
 				skip_extn='$extn' in query or Event.EXTN in skip_events,
@@ -582,7 +582,7 @@ class BaseModule:
 		self.collection = cast(str, self.collection)
 		async for results in Data.watch(
 			env=env,
-			collection=self.collection,
+			collection_name=self.collection,
 			attrs=self.attrs,
 			query=query,
 			skip_extn='$extn' in query or Event.EXTN in skip_events,
@@ -777,7 +777,7 @@ class BaseModule:
 					)
 		# [DOC] Execute Data driver create
 		results = await Data.create(
-			env=env, collection=self.collection, attrs=self.attrs, doc=doc
+			env=env, collection_name=self.collection, attrs=self.attrs, doc=doc
 		)
 		if Event.ON not in skip_events:
 			# [DOC] Check proxy module
@@ -934,7 +934,7 @@ class BaseModule:
 		# [DOC] Find which docs are to be updated
 		docs_results = await Data.read(
 			env=env,
-			collection=self.collection,
+			collection_name=self.collection,
 			attrs=self.attrs,
 			query=query,
 			skip_process=True,
@@ -997,7 +997,7 @@ class BaseModule:
 					)
 		results = await Data.update(
 			env=env,
-			collection=self.collection,
+			collection_name=self.collection,
 			attrs=self.attrs,
 			docs=[doc._id for doc in docs_results['docs']],
 			doc=doc,
@@ -1146,14 +1146,14 @@ class BaseModule:
 
 		docs_results = results = await Data.read(
 			env=env,
-			collection=self.collection,
+			collection_name=self.collection,
 			attrs=self.attrs,
 			query=query,
 			skip_process=True,
 		)
 		results = await Data.delete(
 			env=env,
-			collection=self.collection,
+			collection_name=self.collection,
 			attrs=self.attrs,
 			docs=[doc._id for doc in docs_results['docs']],
 			strategy=strategy,
@@ -1555,7 +1555,7 @@ class BaseModule:
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
-		if self.cache:
+		if self.collection and self.cache:
 			for cache_set in self.cache:
 				for cache_key in cache_set.queries.keys():
 					del cache_set.queries[cache_key]
@@ -1564,7 +1564,7 @@ class BaseModule:
 					cache_query.append(cache_special)
 					results = await Data.read(
 						env=env,
-						collection=self.collection,  # type: ignore
+						collection_name=self.collection,
 						attrs=self.attrs,
 						query=Query(cache_query),
 					)
