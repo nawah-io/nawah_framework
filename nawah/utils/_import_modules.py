@@ -124,9 +124,9 @@ async def import_modules():
 	if Config.generate_ref:
 		from nawah.utils import generate_ref
 
-		generate_ref(modules_packages=Config.modules_packages, modules=Config.modules)
+		generate_ref()
 	# [DOC] Write api_models if generate_models mode
 	if Config.generate_models:
 		from nawah.utils import generate_models
 
-		generate_models(modules_packages=Config.modules_packages, modules=Config.modules)
+		generate_models()

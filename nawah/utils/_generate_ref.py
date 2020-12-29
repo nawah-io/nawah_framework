@@ -9,59 +9,53 @@ import logging, datetime, re, inspect
 logger = logging.getLogger('nawah')
 
 
-def generate_ref(
-	*, modules_packages: Dict[str, List[str]], modules: Dict[str, BaseModule]  # type: ignore
-):
+def generate_ref():
 	# [DOC] Initialise _api_ref Config Attr
 	Config._api_ref = '# API Reference\n'
 	# [DOC] Iterate over packages in ascending order
-	for package in sorted(modules_packages.keys()):
+	for package in sorted(Config.modules_packages.keys()):
 		# [DOC] Add package header
 		Config._api_ref += f'- - -\n## Package: {package.replace("modules.", "")}\n'
-		if not len(modules_packages[package]):
+		if not len(Config.modules_packages[package]):
 			Config._api_ref += f'No modules\n'
 		# [DOC] Iterate over package modules in ascending order
-		for module in sorted(modules_packages[package]):
+		for module in sorted(Config.modules_packages[package]):
 			# [DOC] Add module header
 			Config._api_ref += f'### Module: {module}\n'
 			# [DOC] Add module description
-			Config._api_ref += f'{modules[module].__doc__}\n'
+			Config._api_ref += f'{Config.modules[module].__doc__}\n'
 			# [DOC] Add module attrs header
 			Config._api_ref += '#### Attrs\n'
 			# [DOC] Iterate over module attrs to add attrs types, defaults (if any)
-			for attr in modules[module].attrs.keys():
+			for attr in Config.modules[module].attrs.keys():
 				attr_ref = f'* {attr}:\n'
-				if modules[module].attrs[attr]._desc:
-					attr_ref += f'  * {modules[module].attrs[attr]._desc}\n'
-				attr_ref += f'  * Type: `{modules[module].attrs[attr]}`\n'
-				for default_attr in modules[module].defaults.keys():
+				if Config.modules[module].attrs[attr]._desc:
+					attr_ref += f'  * {Config.modules[module].attrs[attr]._desc}\n'
+				attr_ref += f'  * Type: `{Config.modules[module].attrs[attr]}`\n'
+				for default_attr in Config.modules[module].defaults.keys():
 					if (
 						default_attr == attr
 						or default_attr.startswith(f'{attr}.')
 						or default_attr.startswith(f'{attr}:')
 					):
-						if type(modules[module].defaults[default_attr]) == ATTR_MOD:
+						if type(Config.modules[module].defaults[default_attr]) == ATTR_MOD:
 							attr_ref += f'  * Default [{default_attr}]:\n'
-							attr_ref += f'	* ATTR_MOD condition: `{extract_lambda_body(modules[module].defaults[default_attr].condition)}`\n'
-							if callable(modules[module].defaults[default_attr].default):
-								attr_ref += f'	* ATTR_MOD default: `{extract_lambda_body(modules[module].defaults[default_attr].default)}`\n'
+							attr_ref += f'	* ATTR_MOD condition: `{extract_lambda_body(Config.modules[module].defaults[default_attr].condition)}`\n'
+							if callable(Config.modules[module].defaults[default_attr].default):
+								attr_ref += f'	* ATTR_MOD default: `{extract_lambda_body(Config.modules[module].defaults[default_attr].default)}`\n'
 							else:
-								attr_ref += (
-									f'	* ATTR_MOD default: {modules[module].defaults[default_attr].default}\n'
-								)
+								attr_ref += f'	* ATTR_MOD default: {Config.modules[module].defaults[default_attr].default}\n'
 						else:
-							attr_ref += (
-								f'  * Default [{default_attr}]: {modules[module].defaults[default_attr]}\n'
-							)
+							attr_ref += f'  * Default [{default_attr}]: {Config.modules[module].defaults[default_attr]}\n'
 				Config._api_ref += attr_ref
-			if modules[module].diff:
-				Config._api_ref += f'#### Attrs Diff: {modules[module].diff}\n'
+			if Config.modules[module].diff:
+				Config._api_ref += f'#### Attrs Diff: {Config.modules[module].diff}\n'
 			# [DOC] Add module methods
 			Config._api_ref += '#### Methods\n'
-			for method in modules[module].methods.keys():
+			for method in Config.modules[module].methods.keys():
 				Config._api_ref += f'##### Method: {method}\n'
 				Config._api_ref += f'* Permissions Sets:\n'
-				for permission in modules[module].methods[method].permissions:
+				for permission in Config.modules[module].methods[method].permissions:
 					Config._api_ref += f'  * {permission.privilege}\n'
 					# [DOC] Add Query Modifier
 					if permission.query_mod:
@@ -110,51 +104,53 @@ def generate_ref(
 					else:
 						Config._api_ref += f'	* Doc Modifier: None\n'
 				# [DOC] Add Query Args
-				if modules[module].methods[method].query_args:
+				if Config.modules[module].methods[method].query_args:
 					Config._api_ref += f'* Query Args Sets:\n'
-					for query_args_set in modules[module].methods[method].query_args:
+					for query_args_set in Config.modules[module].methods[method].query_args:
 						Config._api_ref += f'  * `{query_args_set}`\n'
 				else:
 					Config._api_ref += f'* Query Args Sets: None\n'
 				# [DOC] Add Doc Args
-				if modules[module].methods[method].doc_args:
+				if Config.modules[module].methods[method].doc_args:
 					Config._api_ref += f'* DOC Args Sets:\n'
-					for doc_args_set in modules[module].methods[method].doc_args:
+					for doc_args_set in Config.modules[module].methods[method].doc_args:
 						Config._api_ref += f'  * `{doc_args_set}`\n'
 				else:
 					Config._api_ref += f'* Doc Args Sets: None\n'
 			# [DOC] Add module extns
-			if modules[module].extns.keys():
+			if Config.modules[module].extns.keys():
 				Config._api_ref += '#### Extended Attrs\n'
-				for attr in modules[module].extns.keys():
+				for attr in Config.modules[module].extns.keys():
 					Config._api_ref += f'* {attr}:\n'
-					if type(modules[module].extns[attr]) == EXTN:
-						Config._api_ref += f'  * Module: \'{modules[module].extns[attr].module}\'\n'
-						Config._api_ref += f'  * Extend Attrs: \'{modules[module].extns[attr].attrs}\'\n'
-						Config._api_ref += f'  * Force: \'{modules[module].extns[attr].force}\'\n'
-					elif type(modules[module].extns[attr]) == ATTR_MOD:
-						Config._api_ref += f'  * ATTR_MOD condition: `{extract_lambda_body(modules[module].extns[attr].condition)}`\n'
-						Config._api_ref += f'  * ATTR_MOD default: `{extract_lambda_body(modules[module].extns[attr].default)}`\n'
+					if type(Config.modules[module].extns[attr]) == EXTN:
+						Config._api_ref += (
+							f'  * Module: \'{Config.modules[module].extns[attr].module}\'\n'
+						)
+						Config._api_ref += (
+							f'  * Extend Attrs: \'{Config.modules[module].extns[attr].attrs}\'\n'
+						)
+						Config._api_ref += f'  * Force: \'{Config.modules[module].extns[attr].force}\'\n'
+					elif type(Config.modules[module].extns[attr]) == ATTR_MOD:
+						Config._api_ref += f'  * ATTR_MOD condition: `{extract_lambda_body(Config.modules[module].extns[attr].condition)}`\n'
+						Config._api_ref += f'  * ATTR_MOD default: `{extract_lambda_body(Config.modules[module].extns[attr].default)}`\n'
 			else:
 				Config._api_ref += '#### Extended Attrs: None\n'
 			# [DOC] Add module cache sets
-			if modules[module].cache:
+			if Config.modules[module].cache:
 				Config._api_ref += '#### Cache Sets\n'
-				for i in range(len(modules[module].cache)):
+				for i in range(len(Config.modules[module].cache)):
 					Config._api_ref += f'* Set {i}:\n'
-					Config._api_ref += f'  * CACHE condition: `{extract_lambda_body(modules[module].cache[i].condition)}`\n'
-					Config._api_ref += f'  * CACHE period: {modules[module].cache[i].period}\n'
+					Config._api_ref += f'  * CACHE condition: `{extract_lambda_body(Config.modules[module].cache[i].condition)}`\n'
+					Config._api_ref += f'  * CACHE period: {Config.modules[module].cache[i].period}\n'
 			else:
 				Config._api_ref += '#### Cache Sets: None\n'
 			# [DOC] Add module analytics sets
-			if modules[module].analytics:
+			if Config.modules[module].analytics:
 				Config._api_ref += '#### Analytics Sets\n'
-				for i in range(len(modules[module].analytics)):
+				for i in range(len(Config.modules[module].analytics)):
 					Config._api_ref += f'* Set {i}:\n'
-					Config._api_ref += f'  * ANALYTIC condition: `{extract_lambda_body(modules[module].analytics[i].condition)}`\n'
-					Config._api_ref += (
-						f'  * ANALYTIC doc: `{extract_lambda_body(modules[module].analytics[i].doc)}`\n'
-					)
+					Config._api_ref += f'  * ANALYTIC condition: `{extract_lambda_body(Config.modules[module].analytics[i].condition)}`\n'
+					Config._api_ref += f'  * ANALYTIC doc: `{extract_lambda_body(Config.modules[module].analytics[i].doc)}`\n'
 			else:
 				Config._api_ref += '#### Analytics Sets: None\n'
 	import os

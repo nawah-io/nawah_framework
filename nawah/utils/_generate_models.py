@@ -9,9 +9,7 @@ import logging, datetime, re
 logger = logging.getLogger('nawah')
 
 
-def generate_models(
-	*, modules_packages: Dict[str, List[str]], modules: Dict[str, BaseModule]  # type: ignore
-):
+def generate_models():
 	# [DOC] Initialise _api_models Config Attr
 	Config._api_models = '// Nawah Models\n'
 	# [DOC] Add interface for DOC, LOCALE, LOCALES, FILE typing
@@ -29,26 +27,28 @@ def generate_models(
 	Config._api_models += 'export type ID<T> = string & T;\n'
 	Config._api_models += 'export interface FILE<T> { name: string; lastModified: number; type: T; size: number; content: string | boolean; };\n'
 	# [DOC] Iterate over packages in ascending order
-	for package in sorted(modules_packages.keys()):
+	for package in sorted(Config.modules_packages.keys()):
 		# [DOC] Add package header
 		Config._api_models += f'\n// Package: {package.replace("modules.", "")}\n'
-		if not len(modules_packages[package]):
+		if not len(Config.modules_packages[package]):
 			Config._api_models += f'// No modules\n'
 		# [DOC] Iterate over package modules in ascending order
-		for module in sorted(modules_packages[package]):
-			module_class = str(modules[module].__class__).split('.')[-1].split('\'')[0]
+		for module in sorted(Config.modules_packages[package]):
+			module_class = str(Config.modules[module].__class__).split('.')[-1].split('\'')[0]
 			# [DOC] Add module header
 			Config._api_models += f'// Module: {module_class}\n'
 
 			# [DOC] Add module interface definition
 			Config._api_models += f'export interface {module_class} extends String, Doc {{\n'
 			# [DOC] Iterate over module attrs to add attrs types, defaults (if any)
-			for attr in modules[module].attrs.keys():
+			for attr in Config.modules[module].attrs.keys():
 				attr_model = ''
-				if modules[module].attrs[attr]._desc:
-					attr_model += f'\t// @property {{__TYPE__}} {modules[module].attrs[attr]._desc}\n'
+				if Config.modules[module].attrs[attr]._desc:
+					attr_model += (
+						f'\t// @property {{__TYPE__}} {Config.modules[module].attrs[attr]._desc}\n'
+					)
 				attr_model += f'\t{attr}__DEFAULT__: __TYPE__;\n'
-				for default_attr in modules[module].defaults.keys():
+				for default_attr in Config.modules[module].defaults.keys():
 					if (
 						default_attr == attr
 						or default_attr.startswith(f'{attr}.')
@@ -63,7 +63,9 @@ def generate_models(
 				attr_model = attr_model.replace(
 					'__TYPE__',
 					_generate_model_typing(
-						module=modules[module], attr_name=attr, attr_type=modules[module].attrs[attr]
+						module=Config.modules[module],
+						attr_name=attr,
+						attr_type=Config.modules[module].attrs[attr],
 					),
 				)
 
