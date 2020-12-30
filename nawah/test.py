@@ -377,7 +377,7 @@ class Test:
 		else:
 			results['status'] = 'PARTIAL'
 
-		if test_name == Config.test:
+		if test_name == Config.test_name:
 			logger.debug(
 				'Finished testing %s steps [Passed: %s, Failed: %s, Skipped: %s] with success rate of: %s%%',
 				results['stats']['total'],

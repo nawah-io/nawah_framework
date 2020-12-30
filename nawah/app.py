@@ -46,9 +46,11 @@ async def run_app():
 						get_args = ''
 					if Config.realm:
 						get_args = get_args.replace('/{realm}', '')
-						get_routes.append(f'/{{realm}}/{module.module_name}/{method.method}{get_args}')
+						get_routes.append(
+							f'/{{realm}}/{module.module_name}/{method._callable.method}{get_args}'
+						)
 					else:
-						get_routes.append(f'/{module.module_name}/{method.method}{get_args}')
+						get_routes.append(f'/{module.module_name}/{method._callable.method}{get_args}')
 			elif method.post_method:
 				for post_args_set in method.query_args:
 					if post_args_set:
@@ -57,9 +59,11 @@ async def run_app():
 						post_args = ''
 					if Config.realm:
 						post_args = post_args.replace('/{realm}', '')
-						post_routes.append(f'/{{realm}}/{module.module_name}/{method.method}{post_args}')
+						post_routes.append(
+							f'/{{realm}}/{module.module_name}/{method._callable.method}{post_args}'
+						)
 					else:
-						post_routes.append(f'/{module.module_name}/{method.method}{post_args}')
+						post_routes.append(f'/{module.module_name}/{method._callable.method}{post_args}')
 
 	logger.debug(
 		'Loaded modules: %s',

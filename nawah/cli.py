@@ -427,7 +427,8 @@ def test(args: argparse.Namespace):
 	# [DOC] Update Config with Nawah framework CLI args
 	from nawah.config import Config
 
-	Config.test = args.test_name
+	Config.test = True
+	Config.test_name = args.test_name
 	Config.test_skip_flush = args.skip_flush
 	Config.test_force = args.force
 	Config.test_env = args.use_env

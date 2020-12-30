@@ -42,7 +42,14 @@ setuptools.setup(
 	long_description=long_description,
 	long_description_content_type='text/markdown',
 	url='https://github.com/nawah-io/nawah_framework',
-	packages=['nawah', 'nawah.packages', 'nawah.packages.core'],
+	packages=[
+		'nawah',
+		'nawah.classes',
+		'nawah.data',
+		'nawah.utils',
+		'nawah.packages',
+		'nawah.packages.core',
+	],
 	project_urls={
 		'Docs: Github': 'https://github.com/nawah-io/nawah_docs',
 		'GitHub: issues': 'https://github.com/nawah-io/nawah_framework/issues',
