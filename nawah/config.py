@@ -142,7 +142,8 @@ class Config:
 	_app_path: str
 	_app_packages: Dict[str, str]
 
-	test: str
+	test: bool = False
+	test_name: str
 	test_skip_flush: bool = False
 	test_force: bool = False
 	test_env: bool = False
@@ -874,12 +875,12 @@ class Config:
 			anon_session['user'] = DictObj(cls.compile_anon_user())
 			Test.session = DictObj(anon_session)
 			Test.env = cls._sys_env
-			await Test.run_test(test_name=cls.test)
+			await Test.run_test(test_name=cls.test_name)
 			exit(1)
 
 		# [DOC] Check for emulate_test mode
 		if cls.emulate_test:
-			cls.test = '__EMULATE_TEST__'
+			cls.test = True
 
 	@classmethod
 	def compile_anon_user(cls):
