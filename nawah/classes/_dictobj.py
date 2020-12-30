@@ -1,23 +1,27 @@
-from typing import Dict, Any
+from collections.abc import MutableMapping
+from typing import Dict, Any, Union, cast
 
-import copy
+import logging, copy
 
+logger = logging.getLogger('nawah')
 
-class DictObj(dict):
-	__attrs: Dict[str, Any] = {}
+# [REF]: https://treyhunner.com/2019/04/why-you-shouldnt-inherit-from-list-and-dict-in-python/
+class DictObj(MutableMapping):
+	__attrs: Dict[str, Any]
 
 	def __repr__(self):
 		return f'<DictObj:{self.__attrs}>'
 
-	def __init__(self, attrs):
-		if type(attrs) == DictObj:
-			attrs = attrs._attrs()
-		elif type(attrs) != dict:
+	def __init__(self, data: Union['DictObj', Dict[str, Any]]):
+		if type(data) == DictObj:
+			data = cast(DictObj, data)
+			data = data._attrs()
+		elif type(data) != dict:
 			raise TypeError(
-				f'DictObj can be initialised using DictObj or dict types only. Got \'{type(attrs)}\' instead.'
+				f'DictObj can be initialised using DictObj or dict types only. Got \'{type(data)}\' instead.'
 			)
-		super().__init__(attrs)
-		self.__attrs = attrs
+		self.__attrs = {}
+		self.update(data)
 
 	def __deepcopy__(self, memo):
 		return DictObj(copy.deepcopy(self.__attrs))
@@ -44,6 +48,12 @@ class DictObj(dict):
 
 	def __delitem__(self, attr):
 		del self.__attrs[attr]
+
+	def __iter__(self):
+		return iter(self.__attrs)
+
+	def __len__(self):
+		return len(self.__attrs)
 
 	def __contains__(self, attr):
 		return attr in self.__attrs.keys()
