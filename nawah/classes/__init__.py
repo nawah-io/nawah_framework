@@ -21,7 +21,14 @@ from ._module import (
 	PRE_HANDLER_RETURN,
 	ON_HANDLER_RETURN,
 )
-from ._package import L10N, APP_CONFIG, PACKAGE_CONFIG
+from ._package import (
+	CLIENT_APP,
+	ANALYTICS_EVENTS,
+	SYS_DOC,
+	L10N,
+	APP_CONFIG,
+	PACKAGE_CONFIG,
+)
 from ._query import Query
 from ._types import (
 	NAWAH_DOC,

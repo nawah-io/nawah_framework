@@ -7,6 +7,9 @@ from nawah.classes import (
 	ATTR,
 	APP_CONFIG,
 	PACKAGE_CONFIG,
+	CLIENT_APP,
+	ANALYTICS_EVENTS,
+	SYS_DOC,
 )
 
 from typing import (
@@ -36,30 +39,6 @@ if TYPE_CHECKING:
 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
-
-
-CLIENT_APP = TypedDict(
-	'CLIENT_APP',
-	{
-		'name': str,
-		'type': Literal['web', 'ios', 'android'],
-		'origin': List[str],
-		'hash': str,
-	},
-)
-
-ANALYTICS_EVENTS = TypedDict(
-	'ANALYTICS_EVENTS',
-	{
-		'app_conn_verified': bool,
-		'session_conn_auth': bool,
-		'session_user_auth': bool,
-		'session_conn_reauth': bool,
-		'session_user_reauth': bool,
-		'session_conn_deauth': bool,
-		'session_user_deauth': bool,
-	},
-)
 
 
 def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = None):
@@ -127,7 +106,7 @@ class Config:
 
 	_sys_conn: AsyncIOMotorClient
 	_sys_env: NAWAH_ENV
-	_sys_docs: Dict[ObjectId, Dict[str, str]] = {}
+	_sys_docs: Dict[ObjectId, SYS_DOC] = {}
 	_realms: Dict[str, BaseModel] = {}
 	_jobs_base: datetime.datetime
 
@@ -213,7 +192,7 @@ class Config:
 
 	data_indexes: List[Dict[str, Any]] = []
 
-	docs: List[Dict[str, Any]] = []
+	docs: List[SYS_DOC] = []
 
 	l10n: Dict[str, Dict[str, Any]] = {}
 
@@ -478,7 +457,7 @@ class Config:
 			)
 			for doc in realm_results.args.docs:
 				cls._realms[doc.name] = doc
-				cls._sys_docs[doc._id] = {'module': 'realm'}
+				cls._sys_docs[doc._id] = SYS_DOC(module='realm')
 			# [DOC] Create __global realm
 			if '__global' not in cls._realms:
 				logger.debug('GLOBAL realm not found, creating it.')
@@ -597,7 +576,7 @@ class Config:
 			else:
 				logger.debug('ADMIN user is up-to-date.')
 
-		cls._sys_docs[ObjectId('f00000000000000000000010')] = {'module': 'user'}
+		cls._sys_docs[ObjectId('f00000000000000000000010')] = SYS_DOC(module='user')
 
 		# [DOC] Test if ANON user exists
 		user_results = await cls.modules['user'].read(
@@ -653,7 +632,7 @@ class Config:
 			else:
 				logger.debug('ANON user is up-to-date.')
 
-		cls._sys_docs[ObjectId('f00000000000000000000011')] = {'module': 'user'}
+		cls._sys_docs[ObjectId('f00000000000000000000011')] = SYS_DOC(module='user')
 
 		logger.debug('Testing sessions collection.')
 		# [DOC] Test if ANON session exists
@@ -673,7 +652,7 @@ class Config:
 			if anon_results.status != 200:
 				logger.error('Config step failed. Exiting.')
 				exit(1)
-		cls._sys_docs[ObjectId('f00000000000000000000012')] = {'module': 'session'}
+		cls._sys_docs[ObjectId('f00000000000000000000012')] = SYS_DOC(module='session')
 
 		logger.debug('Testing groups collection.')
 		# [DOC] Test if DEFAULT group exists
@@ -729,7 +708,7 @@ class Config:
 			else:
 				logger.debug('DEFAULT group is up-to-date.')
 
-		cls._sys_docs[ObjectId('f00000000000000000000013')] = {'module': 'group'}
+		cls._sys_docs[ObjectId('f00000000000000000000013')] = SYS_DOC(module='group')
 
 		# [DOC] Test app-specific groups
 		logger.debug('Testing app-specific groups collection.')
@@ -790,7 +769,7 @@ class Config:
 				else:
 					logger.debug(f'Group with name \'{group["name"]}\' is up-to-date.')
 
-			cls._sys_docs[ObjectId(group['_id'])] = {'module': 'group'}
+			cls._sys_docs[ObjectId(group['_id'])] = SYS_DOC(module='group')
 
 		# [DOC] Test app-specific data indexes
 		logger.debug('Testing data indexes')
@@ -837,33 +816,31 @@ class Config:
 		# [DOC] Test app-specific docs
 		logger.debug('Testing docs.')
 		for doc in cls.docs:
-			if 'key' not in doc.keys():
-				doc['key'] = '_id'
-			doc_results = await cls.modules[doc['module']].read(
+			doc_results = await cls.modules[doc.module].read(
 				skip_events=[Event.PERM, Event.PRE, Event.ON, Event.ARGS],
 				env=cls._sys_env,
-				query=[{doc['key']: doc['doc'][doc['key']]}],  # type: ignore
+				query=[{doc.key: doc.key_value}],  # type: ignore
 			)
 			if not doc_results.args.count:
 				if cls.realm:
-					doc['doc']['realm'] = '__global'
+					doc.doc['realm'] = '__global'
 				skip_events = [Event.PERM]
-				if 'skip_args' in doc.keys() and doc['skip_args'] == True:
+				if doc.skip_args == True:
 					skip_events.append(Event.ARGS)
-				doc_results = await cls.modules[doc['module']].create(
-					skip_events=skip_events, env=cls._sys_env, doc=doc['doc']
+				doc_results = await cls.modules[doc.module].create(
+					skip_events=skip_events, env=cls._sys_env, doc=doc.doc
 				)
 				logger.debug(
 					'App-specific doc with %s \'%s\' of module \'%s\' creation results: %s',
-					doc['key'],
-					doc['doc'][doc['key']],
-					doc['module'],
+					doc.key,
+					doc.key_value,
+					doc.module,
 					doc_results,
 				)
 				if doc_results.status != 200:
 					logger.error('Config step failed. Exiting.')
 					exit(1)
-			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = {'module': doc['module']}
+			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = SYS_DOC(module=doc['module'])
 
 		# [DOC] Check for test mode
 		if cls.test:
