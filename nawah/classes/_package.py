@@ -1,8 +1,21 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, TypedDict, Literal, List, Callable, Union
+from typing import (
+	Optional,
+	Dict,
+	Any,
+	TypedDict,
+	Literal,
+	List,
+	Callable,
+	Union,
+	Optional,
+	cast,
+)
 
 from ._attr import ATTR
 from ._types import NAWAH_DOC
+
+from bson import ObjectId
 
 CLIENT_APP = TypedDict(
 	'CLIENT_APP',
@@ -26,6 +39,52 @@ ANALYTICS_EVENTS = TypedDict(
 		'session_user_deauth': bool,
 	},
 )
+
+
+@dataclass
+class SYS_DOC:
+	module: str
+	key: Optional[str]
+	skip_args: bool
+	doc: Optional[NAWAH_DOC]
+
+	@property
+	def key_value(self) -> Any:
+		if not (self.doc):
+			raise Exception(f'SYS_DOC instance was initialised with no \'doc\'.')
+		self.key = cast(str, self.key)
+		return self.doc[self.key]
+
+	def __init__(
+		self,
+		*,
+		module: str,
+		key: str = None,
+		skip_args: bool = False,
+		doc: NAWAH_DOC = None,
+	):
+		if doc != None:
+			if type(doc) != dict:
+				raise Exception(
+					f'Argument \'doc\' is not a valid \'NAWAH_DOC\'. Expecting type \'dict\' but got \'{type(dict)}\'.'
+				)
+			doc = cast(NAWAH_DOC, doc)
+			if not key:
+				key = '_id'
+			if key not in doc.keys():
+				raise Exception(f'Attr \'{key}\' is not present on \'doc\'.')
+			if key == '_id' and type(doc["_id"]) != ObjectId:
+				raise Exception(
+					f'Invalid attr \'_id\' of type \'{type(doc["_id"])}\' with required type \'ID\''
+				)
+		else:
+			if key or skip_args:
+				raise Exception('Arguments \'attr, skip_args\' should only be used with \'doc\'.')
+
+		self.module = module
+		self.key = key
+		self.skip_args = skip_args
+		self.doc = doc
 
 
 class L10N(dict):
@@ -70,7 +129,7 @@ class PACKAGE_CONFIG:
 	groups: Optional[List[Dict[str, Any]]] = None
 	default_privileges: Optional[Dict[str, List[str]]] = None
 	data_indexes: Optional[List[Dict[str, Any]]] = None
-	docs: Optional[List[Dict[str, Any]]] = None
+	docs: Optional[List[SYS_DOC]] = None
 	jobs: Optional[List[Dict[str, Any]]] = None
 	gateways: Optional[Dict[str, Callable]] = None
 	types: Optional[Dict[str, Callable]] = None
