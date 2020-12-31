@@ -15,7 +15,6 @@ from ._validate_utils import (
 	process_file_obj,
 	generate_dynamic_attr,
 )
-from ._nawah_module import nawah_module
 from ._import_modules import import_modules
 from ._generate_ref import generate_ref, extract_lambda_body
 from ._generate_models import generate_models

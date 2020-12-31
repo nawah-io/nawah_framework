@@ -1,5 +1,5 @@
 from nawah.config import Config
-from nawah.classes import NAWAH_MODULE
+from nawah.base_module import BaseModule
 
 from typing import Dict, List, Any
 
@@ -50,7 +50,7 @@ class Registry:
 	jobs: List[Dict[str, Any]] = Config.jobs
 
 	@staticmethod
-	def module(module: str) -> NAWAH_MODULE:
+	def module(module: str) -> BaseModule:
 		try:
 			return Config.modules[module]
 		except KeyError:

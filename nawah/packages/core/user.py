@@ -3,7 +3,7 @@ from nawah.enums import Event, NAWAH_VALUES
 from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
 from nawah.config import Config
 from nawah.registry import Registry
-from nawah.utils import nawah_module, validate_attr, encode_attr_type
+from nawah.utils import validate_attr, encode_attr_type
 
 from bson import ObjectId
 

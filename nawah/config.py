@@ -1,6 +1,5 @@
 from nawah.enums import Event, LOCALE_STRATEGY
 from nawah.classes import (
-	NAWAH_MODULE,
 	DictObj,
 	BaseModel,
 	NAWAH_DOC,

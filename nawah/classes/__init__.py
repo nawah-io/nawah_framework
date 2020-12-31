@@ -10,7 +10,6 @@ from ._base_model import BaseModel
 from ._dictobj import DictObj
 from ._json_encoder import JSONEncoder
 from ._module import (
-	NAWAH_MODULE,
 	PERM,
 	EXTN,
 	ATTR_MOD,

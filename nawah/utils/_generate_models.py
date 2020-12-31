@@ -1,6 +1,6 @@
 from nawah.config import Config
 from nawah.base_module import BaseModule
-from nawah.classes import NAWAH_MODULE, ATTR, DictObj
+from nawah.classes import ATTR, DictObj
 
 from typing import Dict, List
 
@@ -87,7 +87,7 @@ def generate_models():
 		exit(0)
 
 
-def _generate_model_typing(*, module: NAWAH_MODULE, attr_name: str, attr_type: ATTR):
+def _generate_model_typing(*, module: BaseModule, attr_name: str, attr_type: ATTR):
 	if attr_type._type == 'ANY':
 		return 'any'
 
