@@ -1,12 +1,12 @@
 from ._generate_attr import generate_attr
-from ._attr_utils import (
+from ._attr import (
 	deep_update,
 	extract_attr,
 	set_attr,
 	update_attr_values,
 	expand_attr,
 )
-from ._validate_utils import (
+from ._validate import (
 	InvalidAttrException,
 	MissingAttrException,
 	ConvertAttrException,
