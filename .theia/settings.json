@@ -1,0 +1,26 @@
+{
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "editor.wordWrap": "on",
+    "editor.minimap.enabled": false,
+    "workbench.colorTheme": "Tomorrow Night Operator Mono",
+    "editor.fontFamily": "'Operator Mono', Menlo, Monaco, 'Courier New', monospace",
+    "editor.fontSize": 16,
+    "editor.fontWeight": "300",
+    "python.linting.mypyEnabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "editor.formatOnSave": true,
+    "python.formatting.blackArgs": [
+        "-S"
+    ],
+    "python.formatting.provider": "black",
+    "python.pythonPath": "/home/gitpod/.pyenv/shims/python",
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4
+}
