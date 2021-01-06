@@ -1,6 +1,3 @@
-from ._attr import SPECIAL_ATTRS
-from ._dictobj import DictObj
-
 from typing import (
 	Literal,
 	Any,
@@ -14,6 +11,9 @@ from typing import (
 )
 
 import copy
+
+from ._attr import SPECIAL_ATTRS
+from ._dictobj import DictObj
 
 if TYPE_CHECKING:
 	from ._types import NAWAH_QUERY, NAWAH_QUERY_SPECIAL

@@ -17,23 +17,26 @@ async def test_validate_attr_COUNTER_invalid_type():
 async def test_validate_attr_COUNTER_valid_type():
 	from nawah.config import Config
 
-	ATTR.COUNTER(
-		pattern='O-$__values:0$__values:1$__values:2-$__counters.order_counter'
-	)
-	assert Config.docs[0]['doc']['var'] == '__counter:order_counter'
+	ATTR.COUNTER(pattern='O-$__values:0$__values:1$__values:2-$__counters.order_counter')
+	assert Config.docs[0].doc['var'] == '__counter:order_counter'
 
 
 @pytest.mark.asyncio
-async def test_validate_attr_COUNTER_values(preserve_state, mock_module, mock_call_results):
+async def test_validate_attr_COUNTER_values(
+	preserve_state, mock_module, mock_call_results
+):
 	import nawah.config
+
 	with preserve_state(nawah.config, 'Config'):
 		modules = {
 			'setting': mock_module(
 				read=mock_call_results(
-					status=200, count=1, doc={
+					status=200,
+					count=1,
+					doc={
 						'_id': ObjectId(),
 						'val': 5,
-					}
+					},
 				),
 			)
 		}

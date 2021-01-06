@@ -1,5 +1,6 @@
 from nawah.config import Config
 from nawah.base_module import BaseModule
+from nawah.classes import SYS_DOC
 
 from typing import Dict, List, Any
 
@@ -46,7 +47,7 @@ class InvalidVarException(Exception):
 
 
 class Registry:
-	docs: List[Dict[str, Any]] = Config.docs
+	docs: List[SYS_DOC] = Config.docs
 	jobs: List[Dict[str, Any]] = Config.jobs
 
 	@staticmethod

@@ -1,3 +1,4 @@
+from bson import ObjectId
 from dataclasses import dataclass
 from typing import (
 	Optional,
@@ -10,12 +11,14 @@ from typing import (
 	Union,
 	Optional,
 	cast,
+	TYPE_CHECKING,
 )
 
-from ._attr import ATTR
 from ._types import NAWAH_DOC
 
-from bson import ObjectId
+if TYPE_CHECKING:
+	from ._attr import ATTR
+
 
 CLIENT_APP = TypedDict(
 	'CLIENT_APP',
@@ -100,7 +103,7 @@ class PACKAGE_CONFIG:
 	port: Optional[int] = None
 	env: Optional[str] = None
 	force_admin_check: Optional[bool] = None
-	vars_types: Optional[Dict[str, ATTR]] = None
+	vars_types: Optional[Dict[str, 'ATTR']] = None
 	vars: Optional[Dict[str, Any]] = None
 	client_apps: Optional[Dict[str, CLIENT_APP]] = None
 	analytics_events: Optional[ANALYTICS_EVENTS] = None
@@ -121,7 +124,7 @@ class PACKAGE_CONFIG:
 	admin_password: Optional[str] = None
 	anon_token: Optional[str] = None
 	anon_privileges: Optional[Dict[str, List[str]]] = None
-	user_attrs: Optional[Dict[str, ATTR]] = None
+	user_attrs: Optional[Dict[str, 'ATTR']] = None
 	user_settings: Optional[
 		Dict[str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]]
 	] = None

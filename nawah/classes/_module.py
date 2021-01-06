@@ -76,8 +76,8 @@ class ATTR_MOD:
 
 class PERM:
 	privilege: str
-	query_mod: Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
-	doc_mod: Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
+	query_mod: Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
+	doc_mod: Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
 
 	def __repr__(self):
 		return f'<PERM:{self.privilege},{self.query_mod},{self.doc_mod}>'
@@ -87,10 +87,10 @@ class PERM:
 		*,
 		privilege: str,
 		query_mod: Optional[
-			Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
+			Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
 		] = None,
 		doc_mod: Optional[
-			Dict[str, Optional[Union['ATTR', ATTR_MOD, Literal['$__date', '$__user']]]]
+			Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
 		] = None,
 	):
 		if not query_mod:

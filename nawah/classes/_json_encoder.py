@@ -1,9 +1,9 @@
-from ._base_model import BaseModel
-from ._dictobj import DictObj
-
 from bson import ObjectId
 
 import json, datetime
+
+from ._base_model import BaseModel
+from ._dictobj import DictObj
 
 
 class JSONEncoder(json.JSONEncoder):

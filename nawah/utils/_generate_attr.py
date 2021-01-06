@@ -1,8 +1,8 @@
 from nawah.config import Config
 from nawah.classes import ATTR
 
-from typing import Any
 from bson import ObjectId
+from typing import Any
 
 import logging, random, datetime, re, math
 

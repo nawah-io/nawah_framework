@@ -1,4 +1,5 @@
 from nawah.classes import ATTR
+
 from typing import Union, List, Dict, cast, Any, Literal
 
 import logging

@@ -1,4 +1,6 @@
 from nawah.config import Config
+from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
+from nawah.utils import extract_attr
 from nawah.classes import (
 	ATTR,
 	NAWAH_ENV,
@@ -12,11 +14,9 @@ from nawah.classes import (
 	InvalidAttrTypeException,
 	NAWAH_EVENTS,
 )
-from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
-from nawah.utils import extract_attr
 
-from typing import Dict, Optional, List, Union, Any, cast, Literal, Tuple, TYPE_CHECKING
 from bson import binary, ObjectId
+from typing import Dict, Optional, List, Union, Any, cast, Literal, Tuple, TYPE_CHECKING
 
 import logging, copy, re, asyncio, datetime
 

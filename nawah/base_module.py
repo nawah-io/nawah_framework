@@ -62,7 +62,7 @@ class BaseModule:
 	attrs: Dict[str, ATTR]
 	diff: Union[bool, ATTR_MOD]
 	defaults: Dict[str, Any]
-	unique_attrs: List[str]
+	unique_attrs: List[Union[str, Tuple[str, ...]]]
 	extns: Dict[str, EXTN]
 	privileges: List[str]
 	methods: Dict[str, METHOD]
@@ -754,6 +754,7 @@ class BaseModule:
 				unique_attrs_query: List[Any] = [[]]
 				for attr in self.unique_attrs:
 					if type(attr) == str:
+						attr = cast(str, attr)
 						unique_attrs_query[0].append({attr: doc[attr]})
 					elif type(attr) == tuple:
 						unique_attrs_query[0].append({child_attr: doc[child_attr] for child_attr in attr})
@@ -766,7 +767,7 @@ class BaseModule:
 				if unique_results.args.count:
 					unique_attrs_str = ', '.join(
 						map(
-							lambda _: ('(' + ', '.join(_) + ')') if type(_) == tuple else _,
+							lambda _: ('(' + ', '.join(_) + ')') if type(_) == tuple else _,  # type: ignore
 							self.unique_attrs,
 						)
 					)
@@ -969,6 +970,7 @@ class BaseModule:
 				unique_attrs_query: List[Any] = [[]]
 				for attr in self.unique_attrs:
 					if type(attr) == str:
+						attr = cast(str, attr)
 						if attr in doc.keys():
 							unique_attrs_query[0].append({attr: doc[attr]})
 					elif type(attr) == tuple:
@@ -986,7 +988,7 @@ class BaseModule:
 				if unique_results.args.count:
 					unique_attrs_str = ', '.join(
 						map(
-							lambda _: ('(' + ', '.join(_) + ')') if type(_) == tuple else _,
+							lambda _: ('(' + ', '.join(_) + ')') if type(_) == tuple else _,  # type: ignore
 							self.unique_attrs,
 						)
 					)

@@ -1,5 +1,6 @@
 from nawah.enums import NAWAH_VALUES
 
+from bson import ObjectId
 from typing import (
 	Dict,
 	Union,
@@ -12,11 +13,11 @@ from typing import (
 	ForwardRef,
 	TYPE_CHECKING,
 )
-from bson import ObjectId
 
 import datetime, logging, re
 
 from ._module import ATTR_MOD, EXTN
+from ._package import SYS_DOC
 
 logger = logging.getLogger('nawah')
 
@@ -395,17 +396,17 @@ class ATTR:
 				for group in counter_groups:
 					if group.startswith('$__counters.'):
 						Config.docs.append(
-							{
-								'module': 'setting',
-								'key': 'var',
-								'doc': {
+							SYS_DOC(
+								module='setting',
+								key='var',
+								doc={
 									'user': ObjectId('f00000000000000000000010'),
 									'var': '__counter:' + group.replace('$__counters.', ''),
 									'val_type': {'type': 'INT', 'args': {}, 'allow_none': False, 'default': None},
 									'val': 0,
 									'type': 'global',
 								},
-							}
+							)
 						)
 			attr_type._valid = True
 
