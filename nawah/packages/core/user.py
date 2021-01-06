@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event, NAWAH_VALUES
-from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
+from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.utils import validate_attr, encode_attr_type
@@ -38,15 +38,13 @@ class User(BaseModule):
 	defaults = {'login_time': None, 'status': 'active', 'groups': [], 'privileges': {}}
 	unique_attrs = []
 	methods = {
-		'read': {
-			'permissions': [
+		'read': METHOD(permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='read', query_mod={'_id': '$__user'}),
-			]
-		},
-		'create': {'permissions': [PERM(privilege='admin')]},
-		'update': {
-			'permissions': [
+			]),
+		'create': METHOD(permissions=[PERM(privilege='admin')]),
+		'update': METHOD(
+			permissions=[
 				PERM(privilege='admin', doc_mod={'groups': None}),
 				PERM(
 					privilege='update',
@@ -54,34 +52,34 @@ class User(BaseModule):
 					doc_mod={'groups': None, 'privileges': None},
 				),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'delete': {
-			'permissions': [
+			query_args={'_id': ATTR.ID()},
+		),
+		'delete': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='delete', query_mod={'_id': '$__user'}),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'read_privileges': {
-			'permissions': [
+			query_args={'_id': ATTR.ID()},
+		),
+		'read_privileges': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='read', query_mod={'_id': '$__user'}),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'add_group': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'_id': ATTR.ID()},
-			'doc_args': [{'group': ATTR.ID()}, {'group': ATTR.LIST(list=[ATTR.ID()])}],
-		},
-		'delete_group': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'_id': ATTR.ID(), 'group': ATTR.ID()},
-		},
-		'retrieve_file': {'permissions': [PERM(privilege='__sys')], 'get_method': True},
-		'create_file': {'permissions': [PERM(privilege='__sys')]},
-		'delete_file': {'permissions': [PERM(privilege='__sys')]},
+			query_args={'_id': ATTR.ID()},
+		),
+		'add_group': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'_id': ATTR.ID()},
+			doc_args=[{'group': ATTR.ID()}, {'group': ATTR.LIST(list=[ATTR.ID()])}],
+		),
+		'delete_group': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'_id': ATTR.ID(), 'group': ATTR.ID()},
+		),
+		'retrieve_file': METHOD(permissions=[PERM(privilege='__sys')], get_method=True),
+		'create_file': METHOD(permissions=[PERM(privilege='__sys')]),
+		'delete_file': METHOD(permissions=[PERM(privilege='__sys')]),
 	}
 
 	async def on_read(self, results, skip_events, env, query, doc, payload):

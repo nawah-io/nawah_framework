@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM
+from nawah.classes import ATTR, PERM, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.utils import extract_attr, validate_attr
@@ -22,12 +22,12 @@ class File(BaseModule):
 		),
 	}
 	methods = {
-		'read': {'permissions': [PERM(privilege='__sys')]},
-		'create': {
-			'permissions': [PERM(privilege='create')],
-			'post_method': True,
-		},
-		'delete': {'permissions': [PERM(privilege='__sys')]},
+		'read': METHOD(permissions=[PERM(privilege='__sys')]),
+		'create': METHOD(
+			permissions=[PERM(privilege='create')],
+			post_method=True,
+		),
+		'delete': METHOD(permissions=[PERM(privilege='__sys')]),
 	}
 
 	async def on_read(self, results, skip_events, env, query, doc, payload):
@@ -87,4 +87,3 @@ class File(BaseModule):
 			)
 
 		return (skip_events, env, query, doc, payload)
-

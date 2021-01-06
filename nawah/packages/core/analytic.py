@@ -1,8 +1,10 @@
 from nawah.base_module import BaseModule
+from nawah.enums import Event
 from nawah.classes import (
 	ATTR,
 	PERM,
 	EXTN,
+	METHOD,
 	ATTR_MOD,
 	NAWAH_EVENTS,
 	NAWAH_ENV,
@@ -10,7 +12,6 @@ from nawah.classes import (
 	NAWAH_QUERY,
 	NAWAH_DOC,
 )
-from nawah.enums import Event
 
 from typing import Union
 
@@ -55,17 +56,17 @@ class Analytic(BaseModule):
 	}
 	unique_attrs = [('user', 'event', 'subevent', 'date')]
 	methods = {
-		'read': {'permissions': [PERM(privilege='read')]},
-		'create': {
-			'permissions': [PERM(privilege='__sys')],
-			'doc_args': {
+		'read': METHOD(permissions=[PERM(privilege='read')]),
+		'create': METHOD(
+			permissions=[PERM(privilege='__sys')],
+			doc_args={
 				'event': ATTR.STR(),
 				'subevent': ATTR.ANY(),
 				'args': ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.ANY()),
 			},
-		},
-		'update': {'permissions': [PERM(privilege='__sys')]},
-		'delete': {'permissions': [PERM(privilege='delete')]},
+		),
+		'update': METHOD(permissions=[PERM(privilege='__sys')]),
+		'delete': METHOD(permissions=[PERM(privilege='delete')]),
 	}
 
 	async def pre_create(self, skip_events, env, query, doc, payload):

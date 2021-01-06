@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM, NAWAH_DOC
+from nawah.classes import ATTR, PERM, NAWAH_DOC, METHOD
 from nawah.registry import Registry
 
 from bson import ObjectId
@@ -28,9 +28,9 @@ class Diff(BaseModule):
 	}
 	defaults = {'doc': None, 'remarks': ''}
 	methods = {
-		'read': {'permissions': [PERM(privilege='read')]},
-		'create': {'permissions': [PERM(privilege='__sys')]},
-		'delete': {'permissions': [PERM(privilege='delete')]},
+		'read': METHOD(permissions=[PERM(privilege='read')]),
+		'create': METHOD(permissions=[PERM(privilege='__sys')]),
+		'delete': METHOD(permissions=[PERM(privilege='delete')]),
 	}
 
 	async def pre_create(self, skip_events, env, query, doc, payload):

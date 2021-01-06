@@ -6,6 +6,7 @@ from nawah.classes import (
 	ATTR,
 	PERM,
 	EXTN,
+	METHOD,
 	Query,
 	ATTR_MOD,
 	Query,
@@ -16,9 +17,9 @@ from nawah.classes import (
 )
 from nawah.utils import extract_attr
 
-from typing import List, Dict, Any, Union
 from bson import ObjectId
 from passlib.hash import pbkdf2_sha512
+from typing import List, Dict, Any, Union, Iterable
 
 import logging, secrets, copy, datetime
 
@@ -46,26 +47,26 @@ class Session(BaseModule):
 	defaults = {'groups': []}
 	extns = {'user': EXTN(module='user', attrs=['*'], force=True)}
 	methods = {
-		'read': {'permissions': [PERM(privilege='read', query_mod={'user': '$__user'})]},
-		'create': {'permissions': [PERM(privilege='create')]},
-		'update': {
-			'permissions': [
+		'read': METHOD(permissions=[PERM(privilege='read', query_mod={'user': '$__user'})]),
+		'create': METHOD(permissions=[PERM(privilege='create')]),
+		'update': METHOD(
+			permissions=[
 				PERM(
 					privilege='update',
 					query_mod={'user': '$__user'},
 					doc_mod={'user': None},
 				)
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'delete': {
-			'permissions': [PERM(privilege='delete', query_mod={'user': '$__user'})],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'auth': {'permissions': [PERM(privilege='*')], 'doc_args': []},
-		'reauth': {
-			'permissions': [PERM(privilege='*')],
-			'query_args': [
+			query_args={'_id': ATTR.ID()},
+		),
+		'delete': METHOD(
+			permissions=[PERM(privilege='delete', query_mod={'user': '$__user'})],
+			query_args={'_id': ATTR.ID()},
+		),
+		'auth': METHOD(permissions=[PERM(privilege='*')], doc_args=[]),
+		'reauth': METHOD(
+			permissions=[PERM(privilege='*')],
+			query_args=[
 				{
 					'_id': ATTR.ID(),
 					'token': ATTR.STR(),
@@ -73,11 +74,11 @@ class Session(BaseModule):
 				},
 				{'_id': ATTR.ID(), 'token': ATTR.STR()},
 			],
-		},
-		'signout': {
-			'permissions': [PERM(privilege='*')],
-			'query_args': {'_id': ATTR.ID()},
-		},
+		),
+		'signout': METHOD(
+			permissions=[PERM(privilege='*')],
+			query_args={'_id': ATTR.ID()},
+		),
 	}
 
 	async def auth(self, skip_events=[], env={}, query=[], doc={}):
@@ -426,6 +427,8 @@ class Session(BaseModule):
 	):
 		user = env['session'].user
 
+		args_iter: Iterable
+
 		if type(permission_args) == list:
 			args_iter = range(len(permission_args))
 		elif type(permission_args) == dict:
@@ -458,6 +461,7 @@ class Session(BaseModule):
 					'$regex',
 					'$all',
 					'$in',
+					'$nin',
 				]:
 					if oper in permission_args[j].keys():
 						if oper == '$bet':

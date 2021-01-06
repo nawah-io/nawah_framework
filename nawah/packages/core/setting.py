@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
+from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD, METHOD
 from nawah.utils import InvalidAttrException, validate_doc, generate_dynamic_attr
 from nawah.config import Config
 
@@ -38,17 +38,17 @@ class Setting(BaseModule):
 		)
 	}
 	methods = {
-		'read': {
-			'permissions': [
+		'read': METHOD(
+			permissions=[
 				PERM(privilege='admin', query_mod={'$limit': 1}),
 				PERM(
 					privilege='read',
 					query_mod={
 						'user': '$__user',
 						'type': ATTR_MOD(
-							condition=lambda skip_events, env, query, doc: 'type' not in query
+							condition=lambda skip_events, env, query, doc, scope: 'type' not in query
 							or query['type'][0] == 'user_sys',
-							default=lambda skip_events, env, query, doc: InvalidAttrException(
+							default=lambda skip_events, env, query, doc, scope: InvalidAttrException(
 								attr_name='type',
 								attr_type=ATTR.LITERAL(literal=['global', 'user']),
 								val_type=str,
@@ -58,7 +58,7 @@ class Setting(BaseModule):
 					},
 				),
 			],
-			'query_args': [
+			query_args=[
 				{
 					'_id': ATTR.ID(),
 					'type': ATTR.LITERAL(literal=['global', 'user', 'user_sys']),
@@ -73,15 +73,15 @@ class Setting(BaseModule):
 					'type': ATTR.LITERAL(literal=['user', 'user_sys']),
 				},
 			],
-		},
-		'create': {
-			'permissions': [
+		),
+		'create': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='create', doc_mod={'type': 'user'}),
 			]
-		},
-		'update': {
-			'permissions': [
+		),
+		'update': METHOD(
+			permissions=[
 				PERM(privilege='admin', query_mod={'$limit': 1}),
 				PERM(
 					privilege='update',
@@ -89,7 +89,7 @@ class Setting(BaseModule):
 					doc_mod={'var': None, 'val_type': None, 'type': None},
 				),
 			],
-			'query_args': [
+			query_args=[
 				{
 					'_id': ATTR.ID(),
 					'type': ATTR.LITERAL(literal=['global', 'user', 'user_sys']),
@@ -104,15 +104,15 @@ class Setting(BaseModule):
 					'type': ATTR.LITERAL(literal=['user', 'user_sys']),
 				},
 			],
-		},
-		'delete': {
-			'permissions': [PERM(privilege='admin', query_mod={'$limit': 1})],
-			'query_args': [{'_id': ATTR.ID()}, {'var': ATTR.STR()}],
-		},
-		'retrieve_file': {
-			'permissions': [PERM(privilege='*', query_mod={'type': 'global'})],
-			'get_method': True,
-		},
+		),
+		'delete': METHOD(
+			permissions=[PERM(privilege='admin', query_mod={'$limit': 1})],
+			query_args=[{'_id': ATTR.ID()}, {'var': ATTR.STR()}],
+		),
+		'retrieve_file': METHOD(
+			permissions=[PERM(privilege='*', query_mod={'type': 'global'})],
+			get_method=True,
+		),
 	}
 
 	async def on_create(self, results, skip_events, env, query, doc, payload):

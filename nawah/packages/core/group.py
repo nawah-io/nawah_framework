@@ -1,5 +1,5 @@
 from nawah.base_module import BaseModule
-from nawah.classes import ATTR, PERM
+from nawah.classes import ATTR, PERM, METHOD
 from nawah.config import Config
 from nawah.enums import Event
 
@@ -34,10 +34,10 @@ class Group(BaseModule):
 		'settings': {},
 	}
 	methods = {
-		'read': {'permissions': [PERM(privilege='admin')]},
-		'create': {'permissions': [PERM(privilege='admin')]},
-		'update': {
-			'permissions': [
+		'read': METHOD(permissions=[PERM(privilege='admin')]),
+		'create': METHOD(permissions=[PERM(privilege='admin')]),
+		'update': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(
 					privilege='update',
@@ -45,15 +45,15 @@ class Group(BaseModule):
 					doc_mod={'privileges': None},
 				),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'delete': {
-			'permissions': [
+			query_args={'_id': ATTR.ID()},
+		),
+		'delete': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='delete', query_mod={'user': '$__user'}),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
+			query_args={'_id': ATTR.ID()},
+		),
 	}
 
 	async def pre_update(self, skip_events, env, query, doc, payload):
