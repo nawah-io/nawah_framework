@@ -1,5 +1,5 @@
-from nawah.classes import ATTR, Query, NAWAH_QUERY_SPECIAL_GROUP
 from nawah.config import Config
+from nawah.classes import ATTR, Query, NAWAH_QUERY_SPECIAL_GROUP
 
 from ._classes import InvalidQueryException
 
@@ -20,9 +20,7 @@ def _compile_query(
 	Optional[List[NAWAH_QUERY_SPECIAL_GROUP]],
 	List[Any],
 ]:
-	aggregate_prefix: List[Any] = [
-		{'$match': {'$or': [{'__deleted': {'$exists': False}}, {'__deleted': False}]}}
-	]
+	aggregate_prefix: List[Any] = []
 	aggregate_suffix: List[Any] = []
 	aggregate_query: List[Any] = [{'$match': {'$and': []}}]
 	aggregate_match = aggregate_query[0]['$match']['$and']
@@ -36,6 +34,30 @@ def _compile_query(
 		raise InvalidQueryException(f'Query of type \'{type(query)}\' is invalid.')
 	query = copy.deepcopy(query)
 
+	# [DOC] Update variables per Doc Mode
+	if '__deleted' not in query or query['__deleted'] == False:
+		aggregate_prefix.append({'$match': {'__deleted': {'$exists': False}}})
+	else:
+		# [DOC] This condition is expanded to allow __deleted = True, __deleted = None to have del query[__deleted] be applied to both conditions
+		if query['__deleted'] == True:
+			aggregate_prefix.append({'$match': {'__deleted': {'$exists': True}}})
+		del query['__deleted']
+
+	if '__create_draft' not in query or query['__create_draft'] == False:
+		aggregate_prefix.append({'$match': {'__create_draft': {'$exists': False}}})
+	else:
+		if query['__create_draft'] == True:
+			aggregate_prefix.append({'$match': {'__create_draft': {'$exists': True}}})
+		del query['__create_draft']
+
+	if '__update_draft' not in query or query['__update_draft'] == False:
+		aggregate_prefix.append({'$match': {'__update_draft': {'$exists': False}}})
+	else:
+		if query['__update_draft'] == True:
+			aggregate_prefix.append({'$match': {'__update_draft': {'$exists': True}}})
+		del query['__update_draft']
+
+	# [DOC] Update variables per Query Special Args
 	if '$skip' in query:
 		skip = query['$skip']
 		del query['$skip']

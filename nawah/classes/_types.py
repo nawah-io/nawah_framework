@@ -67,6 +67,10 @@ NAWAH_QUERY_SPECIAL_GROUP = TypedDict(
 	'NAWAH_QUERY_SPECIAL_GROUP', {'by': str, 'count': int}
 )
 
+NAWAH_QUERY_SPECIAL_GEO_NEAR = TypedDict(
+	'NAWAH_QUERY_SPECIAL_GEO_NEAR', {'val': str, 'attr': str, 'dist': int}
+)
+
 NAWAH_QUERY_SPECIAL = TypedDict(
 	'NAWAH_QUERY_SPECIAL',
 	{
@@ -76,7 +80,8 @@ NAWAH_QUERY_SPECIAL = TypedDict(
 		'$limit': Optional[int],
 		'$extn': Optional[Union[Literal[False], List[str]]],
 		'$attrs': Optional[List[str]],
-		'$group': Optional[List[NAWAH_QUERY_SPECIAL_GROUP]],
+		'$group': Optional[List[NAWAH_QUERY_SPECIAL_GEO_NEAR]],
+		'$geo_near': Optional[NAWAH_QUERY_SPECIAL_GEO_NEAR],
 	},
 	total=False,
 )

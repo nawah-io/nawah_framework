@@ -61,6 +61,8 @@ class BaseModule:
 	proxy: Optional[str]
 	attrs: Dict[str, ATTR]
 	diff: Union[bool, ATTR_MOD]
+	create_draft: Union[bool, ATTR_MOD]
+	update_draft: Union[bool, ATTR_MOD]
 	defaults: Dict[str, Any]
 	unique_attrs: List[Union[str, Tuple[str, ...]]]
 	extns: Dict[str, EXTN]
@@ -81,6 +83,10 @@ class BaseModule:
 			self.attrs = {}
 		if not getattr(self, 'diff', None):
 			self.diff = False
+		if not getattr(self, 'create_draft', None):
+			self.create_draft = False
+		if not getattr(self, 'update_draft', None):
+			self.update_draft = False
 		if not getattr(self, 'defaults', None):
 			self.defaults = {}
 		if not getattr(self, 'unique_attrs', None):
@@ -290,14 +296,14 @@ class BaseModule:
 					for attr in ['user', 'create_time']:
 						if attr not in permissions_set.doc_mod.keys():
 							permissions_set.doc_mod[attr] = None
+						# [TODO] Assert this is behaving correctly
 						elif permissions_set.doc_mod[attr] == NAWAH_VALUES.ALLOW_MOD:
 							del permissions_set.doc_mod[attr]
 			# [DOC] Check invalid query_args, doc_args types
 			for arg_set in ['query_args', 'doc_args']:
 				arg_set = cast(Literal['query_args', 'doc_args'], arg_set)
 				if getattr(method, arg_set):
-					method_arg_set = getattr(method, arg_set)
-					method_arg_set = cast(List[Dict[str, ATTR]], method_arg_set)
+					method_arg_set: List[Dict[str, ATTR]] = getattr(method, arg_set)
 					for args_set in method_arg_set:
 						for attr in args_set.keys():
 							try:
@@ -722,9 +728,15 @@ class BaseModule:
 		if 'user_agent' in self.attrs.keys() and 'user_agent' not in doc.keys():
 			doc['user_agent'] = env['HTTP_USER_AGENT']
 		if Event.ARGS not in skip_events:
+			mode: Literal['create', 'create_draft'] = (
+				'create_draft'
+				if '__create_draft' in doc.keys() and doc['__create_draft'] == True
+				else 'create'
+			)
 			# [DOC] Check presence and validate all attrs in doc args
 			try:
 				await validate_doc(
+					mode=mode,
 					doc=doc,
 					attrs=self.attrs,
 					skip_events=skip_events,
@@ -884,9 +896,9 @@ class BaseModule:
 		# [DOC] Check presence and validate all attrs in doc args
 		try:
 			await validate_doc(
+                mode='update',
 				doc=doc,
 				attrs=self.attrs,
-				allow_update=True,
 				skip_events=skip_events,
 				env=env,
 				query=query,

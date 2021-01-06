@@ -73,7 +73,7 @@ ATTRS_TYPES_ARGS: Dict[str, Dict[str, Union[Type, str]]] = {
 }
 
 SPECIAL_ATTRS = Literal[
-	'$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group'
+	'$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group', '$geo_near'
 ]
 
 

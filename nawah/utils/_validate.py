@@ -97,9 +97,9 @@ class ConvertAttrException(Exception):
 
 async def validate_doc(
 	*,
+	mode: Literal['create', 'create_draft', 'update'],
 	doc: NAWAH_DOC,
 	attrs: Dict[str, ATTR],
-	allow_update: bool = False,
 	skip_events: NAWAH_EVENTS = None,
 	env: NAWAH_ENV = None,
 	query: Union[NAWAH_QUERY, Query] = None,
@@ -108,18 +108,18 @@ async def validate_doc(
 
 	for attr in attrs.keys():
 		if attr not in attrs_map.keys():
-			if not allow_update:
+			if mode == 'create':
 				doc[attr] = None
 			else:
 				continue
-		elif allow_update and doc[attrs_map[attr]] == None:
+		elif mode != 'create' and doc[attrs_map[attr]] == None:
 			continue
-		elif allow_update and doc[attrs_map[attr]] != None:
+		elif mode != 'create' and doc[attrs_map[attr]] != None:
 			attr = attrs_map[attr]
 
 		try:
 			env = cast(NAWAH_ENV, env)
-			if allow_update and '.' in attr:
+			if mode != 'create' and '.' in attr:
 				doc[attr] = await validate_dot_notated(
 					attr=attr,
 					doc=doc,
@@ -133,7 +133,7 @@ async def validate_doc(
 					attr_name=attr,
 					attr_type=attrs[attr],
 					attr_val=doc[attr],
-					allow_update=allow_update,
+					mode=mode,
 					skip_events=skip_events,
 					env=env,
 					query=query,
@@ -204,12 +204,13 @@ async def validate_dot_notated(
 
 		attr_type = cast(ATTR, attr_type)
 		# [DOC] Validate val against final Attr Type
+		# [DOC] mode is statically set to update as dot-notation attrs are only allowed in update calls
 		env = cast(NAWAH_ENV, env)
 		attr_val = await validate_attr(
+			mode='update',
 			attr_name=attr,
 			attr_type=attr_type,
 			attr_val=doc[attr],
-			allow_update=True,
 			skip_events=skip_events,
 			env=env,
 			query=query,
@@ -224,6 +225,7 @@ async def validate_dot_notated(
 
 async def validate_default(
 	*,
+	mode: Literal['create', 'create_draft', 'update'],
 	attr_type: ATTR,
 	attr_val: Any,
 	skip_events: NAWAH_EVENTS,
@@ -231,9 +233,8 @@ async def validate_default(
 	query: Union[NAWAH_QUERY, Query],
 	doc: NAWAH_DOC,
 	scope: NAWAH_DOC,
-	allow_none: bool,
 ):
-	if not allow_none and type(attr_type._default) == ATTR_MOD:
+	if mode == 'create' and type(attr_type._default) == ATTR_MOD:
 		attr_type._default = cast(ATTR_MOD, attr_type._default)
 		if attr_type._default.condition(
 			skip_events=skip_events, env=env, query=query, doc=doc, scope=scope
@@ -288,7 +289,7 @@ async def validate_default(
 		return counter_val
 
 	elif attr_val == None:
-		if allow_none:
+		if mode != 'create':
 			return attr_val
 		elif attr_type._default != NAWAH_VALUES.NONE_VALUE:
 			return copy.deepcopy(attr_type._default)
@@ -306,10 +307,10 @@ def setting_update_callback_wrapper(counter_name):
 
 async def validate_attr(
 	*,
+	mode: Literal['create', 'create_draft', 'update'],
 	attr_name: str,
 	attr_type: ATTR,
 	attr_val: Any,
-	allow_update: bool = False,
 	skip_events: NAWAH_EVENTS = None,
 	env: NAWAH_ENV = None,
 	query: Union[NAWAH_QUERY, Query] = None,
@@ -322,6 +323,7 @@ async def validate_attr(
 		query = cast(Union[NAWAH_QUERY, Query], query)
 		doc = cast(NAWAH_DOC, doc)
 		return await validate_default(
+			mode=mode,
 			attr_type=attr_type,
 			attr_val=attr_val,
 			skip_events=skip_events,
@@ -329,7 +331,6 @@ async def validate_attr(
 			query=query,
 			doc=doc,
 			scope=scope if scope else doc,
-			allow_none=allow_update,
 		)
 	except:
 		pass
@@ -338,7 +339,7 @@ async def validate_attr(
 		None, '$add', '$multiply', '$append', '$set_index', '$del_val', '$del_index'
 	] = None
 	attr_oper_args = {}
-	if allow_update and type(attr_val) == dict:
+	if mode == 'update' and type(attr_val) == dict:
 		if '$add' in attr_val.keys():
 			attr_oper = '$add'
 			attr_val = attr_val['$add']
@@ -508,7 +509,7 @@ async def validate_attr(
 			setting = setting_results.args.docs[0]
 			dynamic_attr = generate_dynamic_attr(dynamic_attr=setting.val)[0]
 			attr_val = await validate_attr(
-				attr_name=attr_name, attr_type=dynamic_attr, attr_val=attr_val
+				mode='create', attr_name=attr_name, attr_type=dynamic_attr, attr_val=attr_val
 			)
 			return return_valid_attr(
 				attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args
@@ -542,10 +543,10 @@ async def validate_attr(
 				for child_attr_val in attr_val.keys():
 					shadow_attr_val[
 						await validate_attr(
+							mode=mode,
 							attr_name=f'{attr_name}.{child_attr_val}',
 							attr_type=attr_type._args['key'],
 							attr_val=child_attr_val,
-							allow_update=allow_update,
 							skip_events=skip_events,
 							env=env,
 							query=query,
@@ -553,10 +554,10 @@ async def validate_attr(
 							scope=attr_val,
 						)
 					] = await validate_attr(
+						mode=mode,
 						attr_name=f'{attr_name}.{child_attr_val}',
 						attr_type=attr_type._args['val'],
 						attr_val=attr_val[child_attr_val],
-						allow_update=allow_update,
 						skip_events=skip_events,
 						env=env,
 						query=query,
@@ -579,10 +580,10 @@ async def validate_attr(
 					if child_attr_type not in attr_val.keys():
 						attr_val[child_attr_type] = None
 					attr_val[child_attr_type] = await validate_attr(
+						mode=mode,
 						attr_name=f'{attr_name}.{child_attr_type}',
 						attr_type=attr_type._args['dict'][child_attr_type],
 						attr_val=attr_val[child_attr_type],
-						allow_update=allow_update,
 						skip_events=skip_events,
 						env=env,
 						query=query,
@@ -622,10 +623,10 @@ async def validate_attr(
 			if type(attr_val) == list and len(attr_val):
 				try:
 					attr_val = await validate_attr(
+						mode=mode,
 						attr_name=attr_name,
 						attr_type=attr_type,
 						attr_val=attr_val[0],
-						allow_update=allow_update,
 						skip_events=skip_events,
 						env=env,
 						query=query,
@@ -766,10 +767,10 @@ async def validate_attr(
 					for child_attr_type in attr_type._args['list']:
 						try:
 							attr_val[i] = await validate_attr(
+								mode=mode,
 								attr_name=attr_name,
 								attr_type=child_attr_type,
 								attr_val=child_attr_val,
-								allow_update=allow_update,
 								skip_events=skip_events,
 								env=env,
 								query=query,
@@ -792,6 +793,7 @@ async def validate_attr(
 
 		elif attr_type._type == 'LOCALE':
 			attr_val = await validate_attr(
+				mode=mode,
 				attr_name=attr_name,
 				attr_type=ATTR.KV_DICT(
 					key=ATTR.LITERAL(literal=[locale for locale in Config.locales]),
@@ -800,7 +802,6 @@ async def validate_attr(
 					req=[Config.locale],
 				),
 				attr_val=attr_val,
-				allow_update=allow_update,
 				skip_events=skip_events,
 				env=env,
 				query=query,
@@ -926,10 +927,10 @@ async def validate_attr(
 			for child_attr in attr_type._args['union']:
 				try:
 					attr_val = await validate_attr(
+						mode=mode,
 						attr_name=attr_name,
 						attr_type=child_attr,
 						attr_val=attr_val,
-						allow_update=allow_update,
 						skip_events=skip_events,
 						env=env,
 						query=query,
@@ -954,7 +955,7 @@ async def validate_attr(
 	except:
 		pass
 
-	if allow_update:
+	if mode != 'create':
 		return None
 	elif attr_type._default != NAWAH_VALUES.NONE_VALUE:
 		return attr_type._default

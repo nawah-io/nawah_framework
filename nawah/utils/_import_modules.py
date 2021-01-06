@@ -89,14 +89,14 @@ async def import_modules():
 	for attr in Config.user_attrs.keys():
 		Config.modules['user'].unique_attrs.append(attr)
 		Config.modules['user'].attrs[f'{attr}_hash'] = ATTR.STR()
-		Config.modules['session'].methods['auth']['doc_args'].append(
+		Config.modules['session'].methods['auth'].doc_args.append(
 			{
 				'hash': ATTR.STR(),
 				attr: Config.user_attrs[attr],
 				'groups': ATTR.LIST(list=[ATTR.ID()]),
 			}
 		)
-		Config.modules['session'].methods['auth']['doc_args'].append(
+		Config.modules['session'].methods['auth'].doc_args.append(
 			{'hash': ATTR.STR(), attr: Config.user_attrs[attr]}
 		)
 

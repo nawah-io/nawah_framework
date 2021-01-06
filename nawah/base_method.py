@@ -91,18 +91,21 @@ class BaseMethod:
 						if args_list_label == 'query' and arg[0] != '$':
 							for i in range(len(args[arg])):
 								args[arg][i] = await validate_attr(
+									mode='create',
 									attr_name=arg,
 									attr_type=args_set[arg],
 									attr_val=args[arg][i],
 								)
 						elif args_list_label == 'query' and arg[0] == '$':
 							args[arg] = await validate_attr(
+								mode='create',
 								attr_name=arg,
 								attr_type=args_set[arg],
 								attr_val=args[arg],
 							)
 						elif args_list_label == 'doc':
 							args[arg] = await validate_attr(
+								mode='create',
 								attr_name=arg,
 								attr_type=args_set[arg],
 								attr_val=args[arg],
