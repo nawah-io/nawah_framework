@@ -10,6 +10,7 @@ from nawah.utils import (
 	expand_attr,
 )
 from nawah.classes import (
+	MethodException,
 	DictObj,
 	BaseModel,
 	Query,
@@ -340,6 +341,11 @@ class BaseModule:
 	def status(
 		self, *, status: int, msg: str, args: Optional[Union[Dict[str, Any], DictObj]] = None
 	) -> DictObj:
+		if status != 200:
+			logger.warning(
+				f'BaseModule.status with msg \'{msg}\' is not called with \'200\' status code. Use BaseModule.exception instead.'
+			)
+
 		status_dict = {'status': status, 'msg': msg, 'args': {}}
 		if args and type(args) == DictObj:
 			if 'code' in args:
@@ -354,6 +360,29 @@ class BaseModule:
 				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
 			status_dict['args'] = args
 		return DictObj(status_dict)
+
+	def exception(
+		self, *, status: int, msg: str, args: Optional[Union[Dict[str, Any], DictObj]] = None
+	) -> MethodException:
+		if status == 200:
+			logger.warning(
+				f'BaseModule.exception with msg \'{msg}\' is called with \'200\' status code. Use BaseModule.status instead.'
+			)
+
+		status_dict = {'status': status, 'msg': msg, 'args': {}}
+		if args and type(args) == DictObj:
+			if 'code' in args:
+				args[
+					'code'
+				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
+			status_dict['args'] = args
+		elif args and type(args) == dict:
+			if 'code' in args.keys():
+				args[
+					'code'
+				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
+			status_dict['args'] = args
+		return MethodException(DictObj(status_dict))
 
 	def __getattribute__(self, attr):
 		# [DOC] Module is not yet initialised, skip to return exact attr
@@ -410,20 +439,14 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module pre_read
-				try:
-					proxy_pre_read = await Config.modules[self.proxy].pre_read(
-						skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-					)
-					skip_events, env, query, doc, payload = proxy_pre_read
-				except Exception as proxy_pre_read_exception:
-					return proxy_pre_read_exception.args[0]
-			try:
-				pre_read = await self.pre_read(
+				proxy_pre_read = await Config.modules[self.proxy].pre_read(
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
-				skip_events, env, query, doc, payload = pre_read
-			except Exception as pre_read_exception:
-				return pre_read_exception.args[0]
+				skip_events, env, query, doc, payload = proxy_pre_read
+			pre_read = await self.pre_read(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_read
 		else:
 			payload = {}
 		# [DOC] Check for cache workflow instructins
@@ -481,20 +504,7 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module on_read
-				try:
-					proxy_on_read = await Config.modules[self.proxy].on_read(
-						results=results,
-						skip_events=skip_events,
-						env=env,
-						query=query,
-						doc=doc,
-						payload=payload,
-					)
-					results, skip_events, env, query, doc, payload = proxy_on_read
-				except Exception as proxy_on_read_exception:
-					return proxy_on_read_exception.args[0]
-			try:
-				on_read = await self.on_read(
+				proxy_on_read = await Config.modules[self.proxy].on_read(
 					results=results,
 					skip_events=skip_events,
 					env=env,
@@ -502,9 +512,16 @@ class BaseModule:
 					doc=doc,
 					payload=payload,
 				)
-				results, skip_events, env, query, doc, payload = on_read
-			except Exception as on_read_exception:
-				return on_read_exception.args[0]
+				results, skip_events, env, query, doc, payload = proxy_on_read
+			on_read = await self.on_read(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_read
 			# [DOC] if $attrs query arg is present return only required keys.
 			if '$attrs' in query:
 				query['$attrs'].insert(0, '_id')
@@ -561,20 +578,14 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module pre_watch
-				try:
-					proxy_pre_watch = await Config.modules[self.proxy].pre_watch(
-						skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
-					)
-					skip_events, env, query, doc, payload = proxy_pre_watch
-				except Exception as proxy_pre_watch_exception:
-					yield proxy_pre_watch_exception.args[0]
-			try:
-				pre_watch = await self.pre_watch(
+				proxy_pre_watch = await Config.modules[self.proxy].pre_watch(
 					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 				)
-				skip_events, env, query, doc, payload = pre_watch
-			except Exception as pre_watch_exception:
-				yield pre_watch_exception.args[0]
+				skip_events, env, query, doc, payload = proxy_pre_watch
+			pre_watch = await self.pre_watch(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
+			)
+			skip_events, env, query, doc, payload = pre_watch
 
 		logger.debug('Preparing async loop at BaseModule')
 		self.collection = cast(str, self.collection)
@@ -597,20 +608,7 @@ class BaseModule:
 				# [DOC] Check proxy module
 				if self.proxy:
 					# [DOC] Call original module on_watch
-					try:
-						proxy_on_watch = await Config.modules[self.proxy].on_watch(
-							results=results,
-							skip_events=skip_events,
-							env=env,
-							query=query,
-							doc=doc,
-							payload=payload,
-						)
-						results, skip_events, env, query, doc, payload = proxy_on_watch
-					except Exception as proxy_on_watch_exception:
-						yield proxy_on_watch_exception.args[0]
-				try:
-					on_watch = await self.on_watch(
+					proxy_on_watch = await Config.modules[self.proxy].on_watch(
 						results=results,
 						skip_events=skip_events,
 						env=env,
@@ -618,9 +616,16 @@ class BaseModule:
 						doc=doc,
 						payload=payload,
 					)
-					results, skip_events, env, query, doc, payload = on_watch
-				except Exception as on_watch_exception:
-					yield on_watch_exception.args[0]
+					results, skip_events, env, query, doc, payload = proxy_on_watch
+				on_watch = await self.on_watch(
+					results=results,
+					skip_events=skip_events,
+					env=env,
+					query=query,
+					doc=doc,
+					payload=payload,
+				)
+				results, skip_events, env, query, doc, payload = on_watch
 
 				# [DOC] if $attrs query arg is present return only required keys.
 				if '$attrs' in query:
@@ -678,20 +683,14 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module pre_create
-				try:
-					proxy_pre_create = await Config.modules[self.proxy].pre_create(
-						skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-					)
-					skip_events, env, query, doc, payload = proxy_pre_create
-				except Exception as proxy_pre_create_exception:
-					return proxy_pre_create_exception.args[0]
-			try:
-				pre_create = await self.pre_create(
+				proxy_pre_create = await Config.modules[self.proxy].pre_create(
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
-				skip_events, env, query, doc, payload = pre_create
-			except Exception as pre_create_exception:
-				return pre_create_exception.args[0]
+				skip_events, env, query, doc, payload = proxy_pre_create
+			pre_create = await self.pre_create(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_create
 
 		else:
 			payload = {}
@@ -786,20 +785,7 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module on_create
-				try:
-					proxy_on_create = await Config.modules[self.proxy].on_create(
-						results=results,
-						skip_events=skip_events,
-						env=env,
-						query=query,
-						doc=doc,
-						payload=payload,
-					)
-					results, skip_events, env, query, doc, payload = proxy_on_create
-				except Exception as proxy_on_create_exception:
-					return proxy_on_create_exception.args[0]
-			try:
-				on_create = await self.on_create(
+				proxy_on_create = await Config.modules[self.proxy].on_create(
 					results=results,
 					skip_events=skip_events,
 					env=env,
@@ -807,9 +793,16 @@ class BaseModule:
 					doc=doc,
 					payload=payload,
 				)
-				results, skip_events, env, query, doc, payload = on_create
-			except Exception as on_create_exception:
-				return on_create_exception.args[0]
+				results, skip_events, env, query, doc, payload = proxy_on_create
+			on_create = await self.on_create(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_create
 
 		# [DOC] create soft action is to only return the new created doc _id.
 		if Event.SOFT in skip_events:
@@ -864,22 +857,15 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module pre_update
-				try:
-					proxy_pre_update = await Config.modules[self.proxy].pre_update(
-						skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-					)
-					skip_events, env, query, doc, payload = proxy_pre_update
-				except Exception as proxy_pre_update_exception:
-					return proxy_pre_update_exception.args[0]
-				proxy_pre_update = cast(PRE_HANDLER_RETURN, proxy_pre_update)
-
-			try:
-				pre_update = await self.pre_update(
+				proxy_pre_update = await Config.modules[self.proxy].pre_update(
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
-				skip_events, env, query, doc, payload = pre_update
-			except Exception as pre_update_exception:
-				return pre_update_exception.args[0]
+				skip_events, env, query, doc, payload = proxy_pre_update
+
+			pre_update = await self.pre_update(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_update
 		else:
 			payload = {}
 		# [DOC] Check presence and validate all attrs in doc args
@@ -1009,21 +995,7 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module on_update
-				try:
-					proxy_on_update = await Config.modules[self.proxy].on_update(
-						results=results,
-						skip_events=skip_events,
-						env=env,
-						query=query,
-						doc=doc,
-						payload=payload,
-					)
-					results, skip_events, env, query, doc, payload = proxy_on_update
-				except Exception as proxy_on_update_exception:
-					return proxy_on_update_exception.args[0]
-
-			try:
-				on_update = await self.on_update(
+				proxy_on_update = await Config.modules[self.proxy].on_update(
 					results=results,
 					skip_events=skip_events,
 					env=env,
@@ -1031,9 +1003,17 @@ class BaseModule:
 					doc=doc,
 					payload=payload,
 				)
-				results, skip_events, env, query, doc, payload = on_update
-			except Exception as on_update_exception:
-				return on_update_exception.args[0]
+				results, skip_events, env, query, doc, payload = proxy_on_update
+
+			on_update = await self.on_update(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_update
 
 		# [DOC] If at least one doc updated, and module has diff enabled, and __DIFF__ not skipped:
 		if results['count'] and self.diff and Event.DIFF not in skip_events:
@@ -1119,21 +1099,15 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module pre_delete
-				try:
-					proxy_pre_delete = await Config.modules[self.proxy].pre_delete(
-						skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-					)
-					skip_events, env, query, doc, payload = proxy_pre_delete
-				except Exception as proxy_pre_delete_exception:
-					return proxy_pre_delete_exception.args[0]
-
-			try:
-				pre_delete = await self.pre_delete(
+				proxy_pre_delete = await Config.modules[self.proxy].pre_delete(
 					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
 				)
-				skip_events, env, query, doc, payload = pre_delete
-			except Exception as pre_delete_exception:
-				return pre_delete_exception.args[0]
+				skip_events, env, query, doc, payload = proxy_pre_delete
+
+			pre_delete = await self.pre_delete(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_delete
 
 		else:
 			payload = {}
@@ -1165,21 +1139,7 @@ class BaseModule:
 			# [DOC] Check proxy module
 			if self.proxy:
 				# [DOC] Call original module on_delete
-				try:
-					proxy_on_delete = await Config.modules[self.proxy].on_delete(
-						results=results,
-						skip_events=skip_events,
-						env=env,
-						query=query,
-						doc=doc,
-						payload=payload,
-					)
-					results, skip_events, env, query, doc, payload = proxy_on_delete
-				except Exception as proxy_on_delete_exception:
-					return proxy_on_delete_exception.args[0]
-
-			try:
-				on_delete = await self.on_delete(
+				proxy_on_delete = await Config.modules[self.proxy].on_delete(
 					results=results,
 					skip_events=skip_events,
 					env=env,
@@ -1187,9 +1147,17 @@ class BaseModule:
 					doc=doc,
 					payload=payload,
 				)
-				results, skip_events, env, query, doc, payload = on_delete
-			except Exception as on_delete_exception:
-				return on_delete_exception.args[0]
+				results, skip_events, env, query, doc, payload = proxy_on_delete
+
+			on_delete = await self.on_delete(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_delete
 
 		# [DOC] Module collection is updated, update_cache
 		asyncio.create_task(self.update_cache(env=env))
@@ -1234,13 +1202,10 @@ class BaseModule:
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
-			try:
-				pre_create_file = await self.pre_create_file(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-				)
-				skip_events, env, query, doc, payload = pre_create_file
-			except Exception as pre_create_file_exception:
-				return pre_create_file_exception.args[0]
+			pre_create_file = await self.pre_create_file(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_create_file
 		else:
 			payload = {}
 
@@ -1261,18 +1226,15 @@ class BaseModule:
 		results = update_results['args']
 
 		if Event.ON not in skip_events:
-			try:
-				on_create_file = await self.on_create_file(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = on_create_file
-			except Exception as on_create_file_exception:
-				return on_create_file_exception.args[0]
+			on_create_file = await self.on_create_file(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_create_file
 
 		return self.status(status=200, msg=f'Updated {results["count"]} docs.', args=results)
 
@@ -1314,13 +1276,10 @@ class BaseModule:
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
-			try:
-				pre_delete_file = await self.pre_delete_file(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-				)
-				skip_events, env, query, doc, payload = pre_delete_file
-			except Exception as pre_delete_file_exception:
-				return pre_delete_file_exception.args[0]
+			pre_delete_file = await self.pre_delete_file(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_delete_file
 
 		else:
 			payload = {}
@@ -1378,18 +1337,15 @@ class BaseModule:
 		results = update_results['args']
 
 		if Event.ON not in skip_events:
-			try:
-				on_delete_file = await self.on_delete_file(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = on_delete_file
-			except Exception as on_delete_file_exception:
-				return on_delete_file_exception.args[0]
+			on_delete_file = await self.on_delete_file(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_delete_file
 
 		return results
 
@@ -1431,13 +1387,10 @@ class BaseModule:
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
-			try:
-				pre_retrieve_file = await self.pre_retrieve_file(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
-				)
-				skip_events, env, query, doc, payload = pre_retrieve_file
-			except Exception as pre_retrieve_file_exception:
-				return pre_retrieve_file_exception.args[0]
+			pre_retrieve_file = await self.pre_retrieve_file(
+				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+			)
+			skip_events, env, query, doc, payload = pre_retrieve_file
 
 		else:
 			payload = {}
@@ -1530,18 +1483,15 @@ class BaseModule:
 				pass
 
 		if Event.ON not in skip_events:
-			try:
-				on_retrieve_file = await self.on_retrieve_file(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = on_retrieve_file
-			except Exception as on_retrieve_file_exception:
-				return on_retrieve_file_exception.args[0]
+			on_retrieve_file = await self.on_retrieve_file(
+				results=results,
+				skip_events=skip_events,
+				env=env,
+				query=query,
+				doc=doc,
+				payload=payload,
+			)
+			results, skip_events, env, query, doc, payload = on_retrieve_file
 
 		results['return'] = 'file'
 		return self.status(status=200, msg='File attached to response.', args=results)
