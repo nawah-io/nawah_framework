@@ -33,6 +33,10 @@ ON_HANDLER_RETURN = Tuple[
 ]
 
 
+class MethodException(Exception):
+	pass
+
+
 class ATTR_MOD_CONDITION(Protocol):
 	def __call__(
 		self,
