@@ -1,5 +1,6 @@
 from nawah.utils import validate_attr, InvalidAttrException, ConvertAttrException
 from nawah.classes import (
+	MethodException,
 	DictObj,
 	BaseModel,
 	Query,
@@ -370,9 +371,14 @@ class BaseMethod:
 				env['watch_tasks'][call_id]['task'] = asyncio.create_task(watch_loop)
 				return None
 			else:
-				results = await method(skip_events=skip_events, env=env, query=query, doc=doc)
+				try:
+					results = await method(skip_events=skip_events, env=env, query=query, doc=doc)
+				except MethodException as e:
+					results = e.args[0]
+
 				if type(results) == coroutine:
 					raise TypeError('Method returned coroutine rather than acceptable results format.')
+
 				results = DictObj(results)
 				try:
 					results['args'] = DictObj(results.args)
