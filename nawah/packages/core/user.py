@@ -124,6 +124,7 @@ class User(BaseModule):
 				if attr in doc.keys():
 					try:
 						await validate_attr(
+							mode='create',
 							attr_name=attr,
 							attr_type=Config.user_settings[attr]['val_type'],
 							attr_val=doc[attr],

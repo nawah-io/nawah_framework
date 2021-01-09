@@ -109,7 +109,7 @@ async def import_modules():
 			exit(1)
 		try:
 			await validate_attr(
-				attr_name=var, attr_type=Config.vars_types[var]['type'], attr_val=Config.vars[var]
+				mode='create', attr_name=var, attr_type=Config.vars_types[var]['type'], attr_val=Config.vars[var]
 			)
 		except:
 			logger.error(
