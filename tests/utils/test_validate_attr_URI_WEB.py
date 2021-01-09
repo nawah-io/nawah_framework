@@ -11,7 +11,7 @@ async def test_validate_attr_URI_WEB_None():
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_URI_WEB_int():
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_URI_WEB_str_invalid():
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(),
 			attr_val='str',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -43,7 +43,7 @@ async def test_validate_attr_URI_WEB_uri_web_insecure():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(),
 		attr_val='http://sub.example.com',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'http://sub.example.com'
 
@@ -54,7 +54,7 @@ async def test_validate_attr_URI_WEB_uri_web_secure():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(),
 		attr_val='https://sub.example.com',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'https://sub.example.com'
 
@@ -65,11 +65,10 @@ async def test_validate_attr_URI_WEB_uri_web_params():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(),
 		attr_val='https://sub.example.com?param1=something-here&param2=something_else',
-		allow_update=False,
+		mode='create',
 	)
 	assert (
-		attr_val
-		== 'https://sub.example.com?param1=something-here&param2=something_else'
+		attr_val == 'https://sub.example.com?param1=something-here&param2=something_else'
 	)
 
 
@@ -80,7 +79,7 @@ async def test_validate_attr_URI_WEB_allowed_domains_uri_web_invalid():
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(allowed_domains=['foo.com', 'bar.net']),
 			attr_val='https://sub.example.com',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -91,7 +90,7 @@ async def test_validate_attr_URI_WEB_allowed_domains_strict_uri_web_invalid():
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(allowed_domains=['foo.com', 'bar.net'], strict=True),
 			attr_val='http://sub.bar.net',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -101,7 +100,7 @@ async def test_validate_attr_URI_WEB_allowed_domains_uri_web():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(allowed_domains=['foo.com', 'bar.net']),
 		attr_val='https://sub.foo.com/index?something=value',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'https://sub.foo.com/index?something=value'
 
@@ -112,7 +111,7 @@ async def test_validate_attr_URI_WEB_allowed_domains_strict_uri_web():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(allowed_domains=['foo.com', 'bar.net'], strict=True),
 		attr_val='http://bar.net/some-params/and+page',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'http://bar.net/some-params/and+page'
 
@@ -124,7 +123,7 @@ async def test_validate_attr_URI_WEB_disallowed_domains_uri_web_invalid():
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(disallowed_domains=['foo.com', 'bar.net']),
 			attr_val='https://sub.foo.com',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -135,7 +134,7 @@ async def test_validate_attr_URI_WEB_disallowed_domains_strict_uri_web_invalid()
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(disallowed_domains=['foo.com', 'bar.net'], strict=True),
 			attr_val='https://bar.net',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -145,7 +144,7 @@ async def test_validate_attr_URI_WEB_disallowed_domains_uri_web():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(disallowed_domains=['foo.com', 'bar.net']),
 		attr_val='https://sub.foobar.com',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'https://sub.foobar.com'
 
@@ -156,7 +155,7 @@ async def test_validate_attr_URI_WEB_disallowed_domains_strict_uri_web():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(disallowed_domains=['foo.com', 'bar.net'], strict=True),
 		attr_val='http://sub.bar.net',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'http://sub.bar.net'
 
@@ -167,7 +166,7 @@ async def test_validate_attr_URI_WEB_None_allow_none():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=ATTR.URI_WEB(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -180,7 +179,7 @@ async def test_validate_attr_URI_WEB_default_None():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_URI_WEB'
 
@@ -193,7 +192,7 @@ async def test_validate_attr_URI_WEB_default_int():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_URI_WEB'
 
@@ -206,6 +205,6 @@ async def test_validate_attr_URI_WEB_default_int_allow_none():
 		attr_name='test_validate_attr_URI_WEB',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

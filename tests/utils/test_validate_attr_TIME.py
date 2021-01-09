@@ -11,7 +11,7 @@ async def test_validate_attr_TIME_None():
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_TIME_int():
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_TIME_str_invalid():
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
 			attr_val='0000',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -43,7 +43,7 @@ async def test_validate_attr_TIME_datetime_short():
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val='00:00',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == '00:00'
 
@@ -54,7 +54,7 @@ async def test_validate_attr_TIME_datetime_medium():
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val='00:00:00',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == '00:00:00'
 
@@ -65,7 +65,7 @@ async def test_validate_attr_TIME_datetime_iso():
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val='00:00:00.000000',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == '00:00:00.000000'
 
@@ -76,7 +76,7 @@ async def test_validate_attr_TIME_None_allow_none():
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -89,7 +89,7 @@ async def test_validate_attr_TIME_default_None():
 		attr_name='test_validate_attr_TIME',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_TIME'
 
@@ -102,7 +102,7 @@ async def test_validate_attr_TIME_default_int():
 		attr_name='test_validate_attr_TIME',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_TIME'
 
@@ -115,6 +115,6 @@ async def test_validate_attr_TIME_default_int_allow_none():
 		attr_name='test_validate_attr_TIME',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

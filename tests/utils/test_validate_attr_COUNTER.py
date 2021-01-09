@@ -53,6 +53,6 @@ async def test_validate_attr_COUNTER_values(
 			attr_name='test_validate_attr_COUNTER',
 			attr_type=attr_type,
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 		assert attr_val == 'COUNTER-422442-6'

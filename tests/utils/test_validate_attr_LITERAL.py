@@ -11,7 +11,7 @@ async def test_validate_attr_LITERAL_None():
 			attr_name='test_validate_attr_LITERAL',
 			attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_LITERAL_str_invalid():
 			attr_name='test_validate_attr_LITERAL',
 			attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
 			attr_val='0',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_LITERAL_int_invalid():
 			attr_name='test_validate_attr_LITERAL',
 			attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -43,7 +43,7 @@ async def test_validate_attr_LITERAL_str():
 		attr_name='test_validate_attr_LITERAL',
 		attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
 		attr_val='str',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'str'
 
@@ -54,7 +54,7 @@ async def test_validate_attr_LITERAL_int():
 		attr_name='test_validate_attr_LITERAL',
 		attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
 		attr_val=0,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 0
 
@@ -65,7 +65,7 @@ async def test_validate_attr_LITERAL_None_allow_none():
 		attr_name='test_validate_attr_LITERAL',
 		attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -78,7 +78,7 @@ async def test_validate_attr_LITERAL_default_None():
 		attr_name='test_validate_attr_LITERAL',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_LITERAL'
 
@@ -91,7 +91,7 @@ async def test_validate_attr_LITERAL_default_int():
 		attr_name='test_validate_attr_LITERAL',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_LITERAL'
 
@@ -104,6 +104,6 @@ async def test_validate_attr_LITERAL_default_int_allow_none():
 		attr_name='test_validate_attr_LITERAL',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

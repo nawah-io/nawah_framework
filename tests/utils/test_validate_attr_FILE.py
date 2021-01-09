@@ -11,7 +11,7 @@ async def test_validate_attr_FILE_None():
 			attr_name='test_validate_attr_FILE',
 			attr_type=ATTR.FILE(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_FILE_int():
 			attr_name='test_validate_attr_FILE',
 			attr_type=ATTR.FILE(),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_FILE_dict_invalid():
 			attr_name='test_validate_attr_FILE',
 			attr_type=ATTR.FILE(),
 			attr_val={'key': 'value'},
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -50,7 +50,7 @@ async def test_validate_attr_FILE_file():
 		attr_name='test_validate_attr_FILE',
 		attr_type=ATTR.FILE(),
 		attr_val=file_attr_val,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == file_attr_val
 
@@ -68,7 +68,7 @@ async def test_validate_attr_FILE_file_list():
 		attr_name='test_validate_attr_FILE',
 		attr_type=ATTR.FILE(),
 		attr_val=[file_attr_val],
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == file_attr_val
 
@@ -79,7 +79,7 @@ async def test_validate_attr_FILE_None_allow_none():
 		attr_name='test_validate_attr_FILE',
 		attr_type=ATTR.FILE(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -92,7 +92,7 @@ async def test_validate_attr_FILE_default_None():
 		attr_name='test_validate_attr_FILE',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_FILE'
 
@@ -105,7 +105,7 @@ async def test_validate_attr_FILE_default_int():
 		attr_name='test_validate_attr_FILE',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_FILE'
 
@@ -118,6 +118,6 @@ async def test_validate_attr_FILE_default_int_allow_none():
 		attr_name='test_validate_attr_FILE',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

@@ -11,7 +11,7 @@ async def test_validate_attr_GEO_None():
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_GEO_int():
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_GEO_dict_invalid():
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val={'key': 'value'},
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -44,7 +44,7 @@ async def test_validate_attr_GEO_geo():
 		attr_name='test_validate_attr_GEO',
 		attr_type=ATTR.GEO(),
 		attr_val=geo_attr_val,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == geo_attr_val
 
@@ -56,7 +56,7 @@ async def test_validate_attr_GEO_geo_as_str():
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val={'type': 'Point', 'coordinates': ['21.422507', '39.826181']},
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -66,7 +66,7 @@ async def test_validate_attr_GEO_None_allow_none():
 		attr_name='test_validate_attr_GEO',
 		attr_type=ATTR.GEO(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -79,7 +79,7 @@ async def test_validate_attr_GEO_default_None():
 		attr_name='test_validate_attr_GEO',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_GEO'
 
@@ -92,7 +92,7 @@ async def test_validate_attr_GEO_default_int():
 		attr_name='test_validate_attr_GEO',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_GEO'
 
@@ -105,6 +105,6 @@ async def test_validate_attr_GEO_default_int_allow_none():
 		attr_name='test_validate_attr_GEO',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

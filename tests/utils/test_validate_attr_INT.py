@@ -11,7 +11,7 @@ async def test_validate_attr_INT_None():
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_INT_str():
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
 			attr_val='str',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_INT_float():
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
 			attr_val=1.1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -43,7 +43,7 @@ async def test_validate_attr_INT_int():
 		attr_name='test_validate_attr_INT',
 		attr_type=ATTR.INT(),
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 1
 
@@ -55,7 +55,7 @@ async def test_validate_attr_INT_float_as_str():
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
 			attr_val='1.1',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -65,7 +65,7 @@ async def test_validate_attr_INT_int_as_str():
 		attr_name='test_validate_attr_INT',
 		attr_type=ATTR.INT(),
 		attr_val='1',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 1
 
@@ -77,7 +77,7 @@ async def test_validate_attr_INT_range_int_invalid():
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(ranges=[[0, 10]]),
 			attr_val=10,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -87,7 +87,7 @@ async def test_validate_attr_INT_range_int():
 		attr_name='test_validate_attr_INT',
 		attr_type=ATTR.INT(ranges=[[0, 10]]),
 		attr_val=0,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 0
 
@@ -98,7 +98,7 @@ async def test_validate_attr_INT_range_int_as_str():
 		attr_name='test_validate_attr_INT',
 		attr_type=ATTR.INT(ranges=[[0, 10]]),
 		attr_val='0',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 0
 
@@ -109,7 +109,7 @@ async def test_validate_attr_INT_None_allow_none():
 		attr_name='test_validate_attr_INT',
 		attr_type=ATTR.INT(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -122,7 +122,7 @@ async def test_validate_attr_INT_default_None():
 		attr_name='test_validate_attr_INT',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_INT'
 
@@ -135,7 +135,7 @@ async def test_validate_attr_INT_default_str():
 		attr_name='test_validate_attr_INT',
 		attr_type=attr_type,
 		attr_val='str',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_INT'
 
@@ -148,6 +148,6 @@ async def test_validate_attr_INT_default_int_allow_none():
 		attr_name='test_validate_attr_INT',
 		attr_type=attr_type,
 		attr_val='str',
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

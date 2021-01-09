@@ -11,7 +11,7 @@ async def test_validate_attr_ANY_None():
 			attr_name='test_validate_attr_ANY',
 			attr_type=ATTR.ANY(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -21,7 +21,7 @@ async def test_validate_attr_ANY_str():
 		attr_name='test_validate_attr_ANY',
 		attr_type=ATTR.ANY(),
 		attr_val='test_validate_attr_ANY',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_ANY'
 
@@ -34,6 +34,6 @@ async def test_validate_attr_ANY_default_None():
 		attr_name='test_validate_attr_ANY',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_ANY'
