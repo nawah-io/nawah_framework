@@ -38,10 +38,12 @@ class User(BaseModule):
 	defaults = {'login_time': None, 'status': 'active', 'groups': [], 'privileges': {}}
 	unique_attrs = []
 	methods = {
-		'read': METHOD(permissions=[
+		'read': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='read', query_mod={'_id': '$__user'}),
-			]),
+			]
+		),
 		'create': METHOD(permissions=[PERM(privilege='admin')]),
 		'update': METHOD(
 			permissions=[
@@ -131,18 +133,20 @@ class User(BaseModule):
 						)
 						user_settings[attr] = doc[attr]
 					except:
-						return self.status(
-							status=400,
-							msg=f'Invalid settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
-							args={'code': 'INVALID_ATTR'},
-						)
+						raise self.exception(
+								status=400,
+								msg=f'Invalid settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
+								args={'code': 'INVALID_ATTR'},
+							)
+						
 				else:
 					if Config.user_settings[attr]['default'] == NAWAH_VALUES.NONE_VALUE:
-						return self.status(
-							status=400,
-							msg=f'Missing settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
-							args={'code': 'MISSING_ATTR'},
-						)
+						raise self.exception(
+								status=400,
+								msg=f'Missing settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
+								args={'code': 'MISSING_ATTR'},
+							)
+						
 					else:
 						user_settings[attr] = copy.deepcopy(Config.user_settings[attr]['default'])
 		payload['user_settings'] = user_settings
@@ -172,7 +176,7 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
+			raise self.exception(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
 		user = results.args.docs[0]
 		for group in user.groups:
 			group_results = await Registry.module('group').read(
@@ -205,17 +209,17 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': doc['group']}]
 		)
 		if not results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400, msg='Group is invalid.', args={'code': 'INVALID_GROUP'}
 			)
 		# [DOC] Get user details
 		results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 		if not results.args.count:
-			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
+			raise self.exception(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
 		user = results.args.docs[0]
 		# [DOC] Confirm group was not added before
 		if doc['group'] in user.groups:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='User is already a member of the group.',
 				args={'code': 'GROUP_ADDED'},
@@ -233,7 +237,7 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['group'][0]}]
 		)
 		if not results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400, msg='Group is invalid.', args={'code': 'INVALID_GROUP'}
 			)
 		# [DOC] Get user details
@@ -241,11 +245,11 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
+			raise self.exception(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
 		user = results.args.docs[0]
 		# [DOC] Confirm group was not added before
 		if query['group'][0] not in user.groups:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='User is not a member of the group.',
 				args={'code': 'GROUP_NOT_ADDED'},

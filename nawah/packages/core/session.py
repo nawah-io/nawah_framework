@@ -95,22 +95,24 @@ class Session(BaseModule):
 		if not user_results.args.count or not pbkdf2_sha512.verify(
 			doc['hash'], user_results.args.docs[0][f'{key}_hash']
 		):
-			return self.status(
+			raise self.exception(
 				status=403,
 				msg='Wrong auth credentials.',
 				args={'code': 'INVALID_CREDS'},
 			)
+
 		user = user_results.args.docs[0]
 
 		if Event.ON not in skip_events:
 			if user.status in ['banned', 'deleted']:
-				return self.status(
+				raise self.exception(
 					status=403,
 					msg=f'User is {user.status}.',
 					args={'code': 'INVALID_USER'},
 				)
+
 			elif user.status == 'disabled_password':
-				return self.status(
+				raise self.exception(
 					status=403,
 					msg='User password is disabled.',
 					args={'code': 'INVALID_USER'},
@@ -193,26 +195,28 @@ class Session(BaseModule):
 
 	async def reauth(self, skip_events=[], env={}, query=[], doc={}):
 		if str(query['_id'][0]) == 'f00000000000000000000012':
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Reauth is not required for \'__ANON\' user.',
 				args={'code': 'ANON_REAUTH'},
 			)
+
 		session_query = [{'_id': query['_id'][0]}]
 		if 'groups' in query:
 			session_query.append({'groups': {'$in': query['groups'][0]}})
 		results = await self.read(skip_events=[Event.PERM], env=env, query=session_query)
 		if not results.args.count:
-			return self.status(
+			raise self.exception(
 				status=403, msg='Session is invalid.', args={'code': 'INVALID_SESSION'}
 			)
 
 		if not pbkdf2_sha512.verify(query['token'][0], results.args.docs[0].token_hash):
-			return self.status(
+			raise self.exception(
 				status=403,
 				msg='Reauth token hash invalid.',
 				args={'code': 'INVALID_REAUTH_HASH'},
 			)
+
 		del results.args.docs[0]['token_hash']
 		results.args.docs[0]['token'] = query['token'][0]
 
@@ -222,9 +226,10 @@ class Session(BaseModule):
 				env=env,
 				query=[{'_id': env['session']._id}],
 			)
-			return self.status(
+			raise self.exception(
 				status=403, msg='Session had expired.', args={'code': 'SESSION_EXPIRED'}
 			)
+
 		# [DOC] update user's last_login timestamp
 		await Registry.module('user').update(
 			skip_events=[Event.PERM],
@@ -295,19 +300,21 @@ class Session(BaseModule):
 
 	async def signout(self, skip_events=[], env={}, query=[], doc={}):
 		if str(query['_id'][0]) == 'f00000000000000000000012':
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Singout is not allowed for \'__ANON\' user.',
 				args={'code': 'ANON_SIGNOUT'},
 			)
+
 		results = await self.read(
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 
 		if not results.args.count:
-			return self.status(
+			raise self.exception(
 				status=403, msg='Session is invalid.', args={'code': 'INVALID_SESSION'}
 			)
+
 		results = await self.delete(
 			skip_events=[Event.PERM], env=env, query=[{'_id': env['session']._id}]
 		)

@@ -127,7 +127,7 @@ class Setting(BaseModule):
 				val_attr = attr
 				break
 		else:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Could not match doc with any of the required doc_args. Failed sets:[\'val\': Missing]',
 				args={'code': 'INVALID_DOC'},
@@ -135,9 +135,10 @@ class Setting(BaseModule):
 
 		setting_results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 		if not setting_results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400, msg='Invalid Setting doc', args={'code': 'INVALID_SETTING'}
 			)
+
 		setting = setting_results.args.docs[0]
 		# [DOC] Attempt to validate val against Setting val_type
 		try:
@@ -155,7 +156,7 @@ class Setting(BaseModule):
 			exception_raised = e
 
 		if exception_raised or doc[val_attr] == None:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'Invalid value for for Setting doc of type \'{type(doc[val_attr])}\' with required type \'{setting.val_type}\'',
 				args={'code': 'INVALID_ATTR'},

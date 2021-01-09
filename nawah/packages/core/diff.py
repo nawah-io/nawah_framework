@@ -46,7 +46,7 @@ class Diff(BaseModule):
 			elif results.args.count == 1:
 				query.append({'_id': results.args.docs[0]._id})
 			else:
-				return self.status(
+				raise self.exception(
 					status=400, msg='No update docs matched.', args={'code': 'NO_MATCH'}
 				)
 		if '_id' in query and type(query['_id'][0]) == list:

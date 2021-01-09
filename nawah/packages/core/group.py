@@ -61,15 +61,17 @@ class Group(BaseModule):
 		if 'attrs' in doc.keys():
 			results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 			if not results.args.count:
-				return self.status(
+				raise self.exception(
 					status=400, msg='Group is invalid.', args={'code': 'INVALID_GROUP'}
 				)
+
 			if results.args.count > 1:
-				return self.status(
+				raise self.exception(
 					status=400,
 					msg='Updating group attrs can be done only to individual groups.',
 					args={'code': 'MULTI_ATTRS_UPDATE'},
 				)
+
 			results.args.docs[0]['attrs'].update(
 				{
 					attr: doc['attrs'][attr]
