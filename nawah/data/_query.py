@@ -214,13 +214,25 @@ def _compile_query_step(
 
 				# [DOC] Convert strings and lists of strings to ObjectId when required
 				if step_attr in step_attrs.keys() and step_attrs[step_attr]._type == 'ID':
-					try:
-						if type(step[attr]) == dict and '$in' in step[attr].keys():
-							step[attr] = {'$in': [ObjectId(child_attr) for child_attr in step[attr]['$in']]}
-						elif type(step[attr]) == str:
+
+					if (
+						type(step[attr]) == dict
+						and '$in' in step[attr].keys()
+						and type(step[attr]['$in']) == list
+					):
+						step_attr_in = []
+						for child_attr in step[attr]['$in']:
+							try:
+								step_attr_in.append(ObjectId(child_attr))
+							except:
+								step_attr_in.append(child_attr)
+								logger.warning(f'Failed to convert child_attr to ObjectId: {child_attr}')
+						step[attr] = {'$in': step_attr_in}
+					elif type(step[attr]) == str:
+						try:
 							step[attr] = ObjectId(step[attr])
-					except:
-						logger.warning(f'Failed to convert attr to id type: {step[attr]}')
+						except:
+							logger.warning(f'Failed to convert attr to ObjectId: {step[attr]}')
 				elif (
 					step_attr in step_attrs.keys()
 					and step_attrs[step_attr]._type == 'list'
