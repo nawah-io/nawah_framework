@@ -150,6 +150,7 @@ class BaseModule:
 							'get_method': Config.modules[self.proxy].methods[proxy_method_name].get_method,
 						}
 				# [DOC] Create methods functions in proxy module if not present
+				# [TODO] Validate this is working
 				if not getattr(self, proxy_method_name, None):
 					setattr(
 						self,
@@ -427,11 +428,13 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'read\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
+
+		payload: Dict[str, Any] = {}
 
 		query = cast(Query, query)
 
@@ -440,15 +443,14 @@ class BaseModule:
 			if self.proxy:
 				# [DOC] Call original module pre_read
 				proxy_pre_read = await Config.modules[self.proxy].pre_read(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 				)
 				skip_events, env, query, doc, payload = proxy_pre_read
 			pre_read = await self.pre_read(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_read
-		else:
-			payload = {}
+
 		# [DOC] Check for cache workflow instructins
 		if self.cache:
 			results: Optional[Dict[str, Any]] = None
@@ -563,14 +565,15 @@ class BaseModule:
 		env: NAWAH_ENV = {},
 		query: Union[NAWAH_QUERY, Query] = [],
 		doc: NAWAH_DOC = {},
-		payload: Dict[str, Any] = {},
 	) -> AsyncGenerator[DictObj, DictObj]:
 		if not self.collection:
-			yield self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'watch\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
+
+		payload: Dict[str, Any] = {}
 
 		query = cast(Query, query)
 
@@ -671,11 +674,13 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'create\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
+
+		payload: Dict[str, Any] = {}
 
 		query = cast(Query, query)
 
@@ -684,16 +689,13 @@ class BaseModule:
 			if self.proxy:
 				# [DOC] Call original module pre_create
 				proxy_pre_create = await Config.modules[self.proxy].pre_create(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 				)
 				skip_events, env, query, doc, payload = proxy_pre_create
 			pre_create = await self.pre_create(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_create
-
-		else:
-			payload = {}
 		# [DOC] Expant dot-notated keys onto dicts
 		doc = expand_attr(doc=doc)
 		# [DOC] Deleted all extra doc args
@@ -733,19 +735,19 @@ class BaseModule:
 					query=query,
 				)
 			except MissingAttrException as e:
-				return self.status(
+				raise self.exception(
 					status=400,
 					msg=f'{str(e)} for \'create\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 					args={'code': 'MISSING_ATTR'},
 				)
 			except InvalidAttrException as e:
-				return self.status(
+				raise self.exception(
 					status=400,
 					msg=f'{str(e)} for \'create\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 					args={'code': 'INVALID_ATTR'},
 				)
 			except ConvertAttrException as e:
-				return self.status(
+				raise self.exception(
 					status=400,
 					msg=f'{str(e)} for \'create\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 					args={'code': 'CONVERT_INVALID_ATTR'},
@@ -772,7 +774,7 @@ class BaseModule:
 							self.unique_attrs,
 						)
 					)
-					return self.status(
+					raise self.exception(
 						status=400,
 						msg=f'A doc with the same \'{unique_attrs_str}\' already exists.',
 						args={'code': 'DUPLICATE_DOC'},
@@ -845,11 +847,13 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'update\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
+
+		payload: Dict[str, Any] = {}
 
 		query = cast(Query, query)
 
@@ -858,16 +862,15 @@ class BaseModule:
 			if self.proxy:
 				# [DOC] Call original module pre_update
 				proxy_pre_update = await Config.modules[self.proxy].pre_update(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 				)
 				skip_events, env, query, doc, payload = proxy_pre_update
 
 			pre_update = await self.pre_update(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_update
-		else:
-			payload = {}
+
 		# [DOC] Check presence and validate all attrs in doc args
 		try:
 			await validate_doc(
@@ -879,19 +882,19 @@ class BaseModule:
 				query=query,
 			)
 		except MissingAttrException as e:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'{str(e)} for \'update\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 				args={'code': 'MISSING_ATTR'},
 			)
 		except InvalidAttrException as e:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'{str(e)} for \'update\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 				args={'code': 'INVALID_ATTR'},
 			)
 		except ConvertAttrException as e:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'{str(e)} for \'update\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 				args={'code': 'CONVERT_INVALID_ATTR'},
@@ -945,7 +948,7 @@ class BaseModule:
 								break
 
 				if not unique_attrs_check:
-					return self.status(
+					raise self.exception(
 						status=400,
 						msg='Update call query has more than one doc as results. This would result in duplication.',
 						args={'code': 'MULTI_DUPLICATE'},
@@ -979,7 +982,7 @@ class BaseModule:
 							self.unique_attrs,
 						)
 					)
-					return self.status(
+					raise self.exception(
 						status=400,
 						msg=f'A doc with the same \'{unique_attrs_str}\' already exists.',
 						args={'code': 'DUPLICATE_DOC'},
@@ -1087,11 +1090,13 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'delete\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
+
+		payload: Dict[str, Any] = {}
 
 		query = cast(Query, query)
 
@@ -1100,17 +1105,15 @@ class BaseModule:
 			if self.proxy:
 				# [DOC] Call original module pre_delete
 				proxy_pre_delete = await Config.modules[self.proxy].pre_delete(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 				)
 				skip_events, env, query, doc, payload = proxy_pre_delete
 
 			pre_delete = await self.pre_delete(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_delete
 
-		else:
-			payload = {}
 		# [TODO]: confirm all extns are not linked.
 		# [DOC] Pick delete strategy based on skip_events
 		strategy = DELETE_STRATEGY.SOFT_SKIP_SYS
@@ -1193,21 +1196,21 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'create_file\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
 
+		payload: Dict[str, Any] = {}
+
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
 			pre_create_file = await self.pre_create_file(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_create_file
-		else:
-			payload = {}
 
 		# [TODO] Allow use dot-notated attr path in attr query attr
 		if (
@@ -1215,7 +1218,9 @@ class BaseModule:
 			or type(self.attrs[query['attr'][0]]._type) != 'LIST'
 			or not self.attrs[query['attr'][0]]._args['list'][0]._type != 'FILE'
 		):
-			return self.status(status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'})
+			raise self.exception(
+				status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'}
+			)
 
 		update_results = await self.update(
 			skip_events=[Event.PERM],
@@ -1267,22 +1272,21 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'delete_file\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
 
+		payload: Dict[str, Any] = {}
+
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
 			pre_delete_file = await self.pre_delete_file(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_delete_file
-
-		else:
-			payload = {}
 
 		# [TODO] Allow use dot-notated attr path in attr query attr
 		if (
@@ -1290,24 +1294,26 @@ class BaseModule:
 			or type(self.attrs[query['attr'][0]]._type) != 'LIST'
 			or not self.attrs[query['attr'][0]]._args['list'][0]._type != 'FILE'
 		):
-			return self.status(status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'})
+			raise self.exception(
+				status=400, msg='Attr is invalid.', args={'code': 'INVALID_ATTR'}
+			)
 
 		read_results = await self.read(
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not read_results.args.count:
-			return self.status(status=400, msg='Doc is invalid.', args={'code': 'INVALID_DOC'})
+			raise self.exception(status=400, msg='Doc is invalid.', args={'code': 'INVALID_DOC'})
 		doc = read_results.args.docs[0]
 
 		if query['attr'][0] not in doc or not doc[query['attr'][0]]:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Doc attr is invalid.',
 				args={'code': 'INVALID_DOC_ATTR'},
 			)
 
 		if query['index'][0] not in range(len(doc[query['attr'][0]])):
-			return self.status(
+			raise self.exception(
 				status=400, msg='Index is invalid.', args={'code': 'INVALID_INDEX'}
 			)
 
@@ -1315,14 +1321,14 @@ class BaseModule:
 			type(doc[query['attr'][0]][query['index'][0]]) != dict
 			or 'name' not in doc[query['attr'][0]][query['index'][0]].keys()
 		):
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Index value is invalid.',
 				args={'code': 'INVALID_INDEX_VALUE'},
 			)
 
 		if doc[query['attr'][0]][query['index'][0]]['name'] != query['name'][0]:  # type: ignore
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='File name in query doesn\'t match value.',
 				args={'code': 'FILE_NAME_MISMATCH'},
@@ -1378,22 +1384,21 @@ class BaseModule:
 		doc: NAWAH_DOC = {},
 	) -> DictObj:
 		if not self.collection:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Utility module can\'t call \'retrieve_file\' method.',
 				args={'code': 'INVALID_CALL'},
 			)
 
+		payload: Dict[str, Any] = {}
+
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
 			pre_retrieve_file = await self.pre_retrieve_file(
-				skip_events=skip_events, env=env, query=query, doc=doc, payload={}
+				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_retrieve_file
-
-		else:
-			payload = {}
 
 		attr_name = query['attr'][0]
 		filename = query['filename'][0]
@@ -1408,7 +1413,7 @@ class BaseModule:
 			query=[{'_id': query['_id'][0]}],
 		)
 		if not read_results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='File not found.',
 				args={'code': 'NOT_FOUND', 'return': 'json'},
@@ -1421,7 +1426,7 @@ class BaseModule:
 			for path in attr_path:
 				attr = doc[path]
 		except:
-			return self.status(
+			raise self.exception(
 				status=404,
 				msg='File not found.',
 				args={'code': 'NOT_FOUND', 'return': 'json'},
@@ -1442,7 +1447,7 @@ class BaseModule:
 
 		if not retrieved_file:
 			# [DOC] No filename match
-			return self.status(
+			raise self.exception(
 				status=404,
 				msg='File not found.',
 				args={'code': 'NOT_FOUND', 'return': 'json'},
@@ -1467,7 +1472,7 @@ class BaseModule:
 
 		if thumb_dims:
 			if retrieved_file['type'].split('/')[0] != 'image':
-				return self.status(
+				raise self.exception(
 					status=400,
 					msg='File is not of type image to create thumbnail for.',
 					args={'code': 'NOT_IMAGE', 'return': 'json'},
