@@ -1,5 +1,4 @@
 import nawah
-from nawah.base_module import BaseModule
 from nawah.config import Config, process_config
 from nawah.test import TEST
 from nawah.classes import L10N, ATTR
@@ -109,7 +108,10 @@ async def import_modules():
 			exit(1)
 		try:
 			await validate_attr(
-				mode='create', attr_name=var, attr_type=Config.vars_types[var]['type'], attr_val=Config.vars[var]
+				mode='create',
+				attr_name=var,
+				attr_type=Config.vars_types[var]['type'],
+				attr_val=Config.vars[var],
 			)
 		except:
 			logger.error(

@@ -1,5 +1,4 @@
 from nawah.config import Config
-from nawah.base_module import BaseModule
 from nawah.classes import ATTR_MOD, EXTN
 
 from typing import Dict, List
