@@ -351,9 +351,17 @@ async def validate_attr(
 	if mode == 'update' and type(attr_val) == dict:
 		if '$add' in attr_val.keys():
 			attr_oper = '$add'
+			if '$field' in attr_val.keys() and attr_val['$field']:
+				attr_oper_args['$field'] = attr_val['$field']
+			else:
+				attr_oper_args['$field'] = None
 			attr_val = attr_val['$add']
 		elif '$multiply' in attr_val.keys():
 			attr_oper = '$multiply'
+			if '$field' in attr_val.keys() and attr_val['$field']:
+				attr_oper_args['$field'] = attr_val['$field']
+			else:
+				attr_oper_args['$field'] = None
 			attr_val = attr_val['$multiply']
 		elif '$append' in attr_val.keys():
 			attr_oper = '$append'
@@ -1011,7 +1019,9 @@ def return_valid_attr(
 ) -> Any:
 	if not attr_oper:
 		return attr_val
-	elif attr_oper in ['$add', '$multiply', '$del_val']:
+	elif attr_oper in ['$add', '$multiply']:
+		return {attr_oper: attr_val, '$field': attr_oper_args['$field']}
+	elif attr_oper == '$del_val':
 		return {attr_oper: attr_val}
 	elif attr_oper == '$append':
 		return {'$append': attr_val[0], '$unique': attr_oper_args['$unique']}

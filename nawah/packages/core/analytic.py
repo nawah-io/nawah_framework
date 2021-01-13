@@ -96,10 +96,13 @@ class Analytic(BaseModule):
 							'create_time': datetime.datetime.utcnow().isoformat(),
 						}
 					},
-					'score': {'$add': {'score': doc['score'] if 'score' in doc.keys() else 0}},
+					'score': {'$add': doc['score'] if 'score' in doc.keys() else 0},
 				},
 			)
-			raise analytic_results
+			if analytic_results.status == 200:
+				return analytic_results
+			else:
+				raise analytic_results
 		else:
 			doc = {
 				'event': doc['event'],
