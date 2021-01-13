@@ -121,8 +121,13 @@ NAWAH_DOC = Dict[
 		Dict[
 			str,
 			Union[
-				Dict[Literal['$add', '$multiply'], int],
-				Dict[Literal['$append', '$set_index', '$del_val', '$del_index'], Any],
+				Dict[Literal['$add'], Dict[str, int]],
+				Dict[Literal['$multiply'], Dict[str, int]],
+				Dict[Literal['$append'], Any],
+				Dict[Literal['$set_index'], Dict[int, Any]],
+				Dict[Literal['$set_index'], Dict[int, Any]],
+				Dict[Literal['$del_val'], Any],
+				Dict[Literal['$del_index'], int],
 				Any,
 			],
 		],

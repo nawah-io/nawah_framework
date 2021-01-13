@@ -54,7 +54,7 @@ def process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = 
 		)
 		exit(1)
 
-	app_only_attrs = APP_CONFIG.__annotations__.keys()  # pylint: disable=no-member
+	app_only_attrs = APP_CONFIG.__annotations__.keys()
 
 	for config_attr in dir(config):
 		config_attr_val = getattr(config, config_attr)
@@ -498,9 +498,8 @@ class Config:
 			admin_create_doc.update(cls.admin_doc)
 
 			for auth_attr in cls.user_attrs.keys():
-				admin_create_doc[
-					f'{auth_attr}_hash'
-				] = pbkdf2_sha512.using(  # pylint: disable=no-member
+				# [DOC] Avoid DollarSignAttrException by prefixing hash value with __
+				admin_create_doc[f'{auth_attr}_hash'] = '__' + pbkdf2_sha512.using(
 					rounds=100000
 				).hash(
 					f'{auth_attr}{admin_create_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
@@ -548,9 +547,8 @@ class Config:
 					logger.debug(f'Detected change in \'admin_doc.{attr}\' Config Attr.')
 					admin_doc_update[attr] = cls.admin_doc[attr]
 			for auth_attr in cls.user_attrs.keys():
-				auth_attr_hash = pbkdf2_sha512.using(  # pylint: disable=no-member
-					rounds=100000
-				).hash(
+				# [DOC] Avoid DollarSignAttrException by prefixing hash value with __
+				auth_attr_hash = '__' + pbkdf2_sha512.using(rounds=100000).hash(
 					f'{auth_attr}{admin_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
 						'utf-8'
 					)
@@ -816,6 +814,16 @@ class Config:
 		# [DOC] Test app-specific docs
 		logger.debug('Testing docs.')
 		for doc in cls.docs:
+			# [TODO] Remove with final version
+			if type(doc) == dict:
+				logger.warning(f'Config Attr \'docs\' is using deprecated dict, Update it.')
+				doc = SYS_DOC(
+					module=doc['module'],
+					key=doc['key'] if 'key' in doc.keys() else '_id',
+					skip_args=doc['skip_args'] if 'skip_args' in doc.keys() else False,
+					doc=doc['doc'],
+				)
+
 			doc_results = await cls.modules[doc.module].read(
 				skip_events=[Event.PERM, Event.PRE, Event.ON, Event.ARGS],
 				env=cls._sys_env,
@@ -840,7 +848,7 @@ class Config:
 				if doc_results.status != 200:
 					logger.error('Config step failed. Exiting.')
 					exit(1)
-			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = SYS_DOC(module=doc['module'])
+			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = SYS_DOC(module=doc.module)
 
 		# [DOC] Check for test mode
 		if cls.test:

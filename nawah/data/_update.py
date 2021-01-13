@@ -23,86 +23,289 @@ async def update(
 	collection = env['conn'][Config.data_name][collection_name]
 	results = None
 	doc = copy.deepcopy(doc)
-	update_doc = {'$set': doc}
-	# [DOC] Check for increment oper
-	del_attrs = []
+
+	# [TODO] Abstract $set pipeline with colon support for all stages
+
+	# [DOC] Prepare empty update pipeline
+	update_pipeline: List[Any] = []
+
+	# [DOC] Iterate over attrs in doc to set update stage in pipeline
 	for attr in doc.keys():
-		# [DOC] Check for $add update oper
+		# [DOC] Check for $add Doc Oper
 		if type(doc[attr]) == dict and '$add' in doc[attr].keys():
-			if '$inc' not in update_doc.keys():
-				update_doc['$inc'] = {}
-			update_doc['$inc'][attr] = doc[attr]['$add']
-			del_attrs.append(attr)
-		if type(doc[attr]) == dict and '$multiply' in doc[attr].keys():
-			if '$mul' not in update_doc.keys():
-				update_doc['$mul'] = {}
-			update_doc['$mul'][attr] = doc[attr]['$multiply']
-			del_attrs.append(attr)
-		# [DOC] Check for $append update oper
+			update_pipeline.append(
+				{
+					'$set': {
+						attr: {
+							'$add': [
+								f'${list(doc[attr]["$add"].keys())[0]}',
+								doc[attr]['$add'][list(doc[attr]["$add"].keys())[0]],
+							]
+						}
+					}
+				}
+			)
+
+		# [DOC] Check for $add Doc Oper
+		elif type(doc[attr]) == dict and '$multiply' in doc[attr].keys():
+			update_pipeline.append(
+				{
+					'$set': {
+						attr: {
+							'$multiply': [
+								f'${list(doc[attr]["$multiply"].keys())[0]}',
+								doc[attr]['$multiply'][list(doc[attr]["$multiply"].keys())[0]],
+							]
+						}
+					}
+				}
+			)
+
+		# [DOC] Check for $append Doc Oper
 		elif type(doc[attr]) == dict and '$append' in doc[attr].keys():
-			# [DOC] Check for $unique flag
-			if '$unique' in doc[attr].keys() and doc[attr]['$unique'] == True:
-				if '$addToSet' not in update_doc.keys():
-					update_doc['$addToSet'] = {}
-				update_doc['$addToSet'][attr] = doc[attr]['$append']
-				del_attrs.append(attr)
+			if '$unique' not in doc[attr].keys() or doc[attr]['$unique'] == False:
+				update_pipeline.append(
+					{'$set': {attr: {'$concatArrays': [f'${attr}', [doc[attr]['$append']]]}}}
+				)
 			else:
-				if '$push' not in update_doc.keys():
-					update_doc['$push'] = {}
-				update_doc['$push'][attr] = doc[attr]['$append']
-				del_attrs.append(attr)
-		# [DOC] Check for $set_index update oper
+				update_pipeline.append(
+					{
+						'$set': {
+							attr: {
+								'$concatArrays': [
+									f'${attr}',
+									{
+										'$cond': {
+											'if': {'$in': [doc[attr]['$append'], f'${attr}']},
+											'then': [],
+											'else': [doc[attr]['$append']],
+										}
+									},
+								]
+							}
+						}
+					}
+				)
+
+		# [DOC] Check for $set_index Doc Oper
 		elif type(doc[attr]) == dict and '$set_index' in doc[attr].keys():
-			update_doc['$set'][f'{attr}.{doc[attr]["$index"]}'] = doc[attr]
-			del_attrs.append(attr)
-		# [DOC] Check for $del_val update oper
+			update_pipeline.append(
+				{
+					'$set': {
+						attr: {
+							'$reduce': {
+								'input': f'${attr}',
+								'initialValue': [],
+								'in': {
+									'$concatArrays': [
+										'$$value',
+										{
+											'$cond': {
+												'if': {
+													'$eq': [
+														['$$this'],
+														[{'$arrayElemAt': [f'${attr}', list(doc[attr]['$set_index'].keys())[0]]}],
+													]
+												},
+												'then': [doc[attr]['$set_index'][list(doc[attr]['$set_index'].keys())[0]]],
+												'else': ['$$this'],
+											}
+										},
+									]
+								},
+							}
+						}
+					}
+				}
+			)
+
+		# [DOC] Check for $del_val Doc Oper
 		elif type(doc[attr]) == dict and '$del_val' in doc[attr].keys():
-			if '$pullAll' not in update_doc.keys():
-				update_doc['$pullAll'] = {}
-			update_doc['$pullAll'][attr] = doc[attr]['$del_val']
-			del_attrs.append(attr)
-		# [DOC] Check for $del_index update oper
+			update_pipeline.append(
+				{
+					'$set': {
+						attr: {
+							'$reduce': {
+								'input': f'${attr}',
+								'initialValue': [],
+								'in': {
+									'$concatArrays': [
+										'$$value',
+										{
+											'$cond': {
+												'if': {
+													'$eq': [
+														['$$this'],
+														[doc[attr]['$del_val']],
+													]
+												},
+												'then': [],
+												'else': ['$$this'],
+											}
+										},
+									]
+								},
+							}
+						}
+					}
+				}
+			)
+
+		# [DOC] Check for $del_index Doc Oper
 		elif type(doc[attr]) == dict and '$del_index' in doc[attr].keys():
-			if '$unset' not in update_doc.keys():
-				update_doc['$unset'] = {}
-			update_doc['$unset'][f'{attr}.{doc[attr]["$del_index"]}'] = True
-			del_attrs.append(attr)
-	for del_attr in del_attrs:
-		del doc[del_attr]
-	if not update_doc['$set']:
-		del update_doc['$set']
-	logger.debug(f'Final update doc: {update_doc}')
+			update_pipeline.append(
+				{
+					'$set': {
+						attr: {
+							'$reduce': {
+								'input': f'${attr}',
+								'initialValue': [],
+								'in': {
+									'$concatArrays': [
+										'$$value',
+										{
+											'$cond': {
+												'if': {
+													'$eq': [
+														['$$this'],
+														[{'$arrayElemAt': [f'${attr}', doc[attr]['$del_index']]}],
+													]
+												},
+												'then': [],
+												'else': ['$$this'],
+											}
+										},
+									]
+								},
+							}
+						}
+					}
+				}
+			)
+
+		else:
+			if ':' not in attr:
+				update_pipeline.append({'$set': {attr: doc[attr]}})
+			else:
+				update_pipeline_stage_root: Dict[str, Any] = {'$set': {}}
+				update_pipeline_stage_current = update_pipeline_stage_root['$set']
+				attr_path_current = []
+
+				attr_path = attr.split('.')
+				for i in range(len(attr_path)):
+					attr_path_part = attr_path[i]
+					if i == 0:
+						# [DOC] First item has to have $
+						attr_path_current.append('$' + attr_path_part.split(':')[0])
+					else:
+						attr_path_current.append(attr_path_part.split(':')[0])
+
+					if ':' not in attr_path_part:
+						part_pipeline: Dict[str, Any] = {
+							'$arrayToObject': {
+								'$concatArrays': [
+									{
+										'$objectToArray': '.'.join(attr_path_current[:-1]),
+									},
+									[
+										{
+											'k': attr_path_part,
+											'v': None,
+										}
+									],
+								]
+							}
+						}
+						if 'v' in update_pipeline_stage_current.keys():
+							update_pipeline_stage_current['v'] = part_pipeline
+						elif 'then' in update_pipeline_stage_current.keys():
+							update_pipeline_stage_current['then'] = part_pipeline
+						else:
+							update_pipeline_stage_current[attr_path_part] = part_pipeline
+
+						update_pipeline_stage_current = part_pipeline['$arrayToObject']['$concatArrays'][
+							1
+						][0]
+					else:
+						part_pipeline: Dict[str, Any] = {
+							'$map': {
+								'input': '.'.join(attr_path_current),
+								'as': f'this_{i}',
+								'in': {
+									'$cond': {
+										'if': {
+											'$eq': [
+												{
+													'$indexOfArray': [
+														'.'.join(attr_path_current),
+														f'$$this_{i}',
+													]
+												},
+												int(attr_path_part.split(':')[1]),
+											]
+										},
+										'then': None,
+										'else': f'$$this_{i}',
+									}
+								},
+							}
+						}
+
+						if i != 0:
+							# [DOC] For all subsequent array objects, wrap in object-to-array-to-object pipeline
+							part_pipeline = {
+								'$arrayToObject': {
+									'$concatArrays': [
+										{
+											'$objectToArray': '.'.join(attr_path_current[:-1]),
+										},
+										[
+											{
+												'k': attr_path_part.split(':')[0],
+												'v': part_pipeline,
+											}
+										],
+									]
+								}
+							}
+
+						if 'v' in update_pipeline_stage_current.keys():
+							update_pipeline_stage_current['v'] = part_pipeline
+						elif 'then' in update_pipeline_stage_current.keys():
+							update_pipeline_stage_current['then'] = part_pipeline
+						else:
+							update_pipeline_stage_current[attr_path_part.split(':')[0]] = part_pipeline
+
+						if i == 0:
+							update_pipeline_stage_current = part_pipeline['$map']['in']['$cond']
+						else:
+							update_pipeline_stage_current = part_pipeline['$arrayToObject']['$concatArrays'][
+								1
+							][0]['v']['$map']['in']['$cond']
+
+						attr_path_current = [f'$$this_{i}']
+
+				# [DOC] Set the end value property to value of doc[attr]
+				if 'v' in update_pipeline_stage_current.keys():
+					update_pipeline_stage_current['v'] = doc[attr]
+				elif 'then' in update_pipeline_stage_current.keys():
+					update_pipeline_stage_current['then'] = doc[attr]
+				else:
+					update_pipeline_stage_current[attr_path_part] = doc[attr]
+
+				# [DOC] Add stage to pipeline
+				update_pipeline.append(update_pipeline_stage_root)
+
+	logger.debug(f'Final update pipeline: {update_pipeline}')
+
 	# [DOC] If using Azure Mongo service update docs one by one
 	if Config.data_azure_mongo:
 		update_count = 0
 		for _id in docs:
-			results = await collection.update_one({'_id': _id}, update_doc)
-			if '$unset' in update_doc:
-				logger.debug(f'Doc Oper $del_index is in-use, will update to remove `None` value')
-				update_doc_pull_all: Dict[str, List[None]] = {}
-				for attr in update_doc['$unset']:
-					attr_parent = '.'.join(attr.split('.')[:-1])
-					if attr_parent not in update_doc_pull_all.keys():
-						update_doc_pull_all[attr_parent] = [None]
-				logger.debug(f'Follow-up update doc: {update_doc_pull_all}')
-				await collection.update_one({'_id': _id}, {'$pullAll': update_doc_pull_all})
+			results = await collection.update_one({'_id': _id}, update_pipeline)
 			update_count += results.modified_count
 	else:
-		results = await collection.update_many({'_id': {'$in': docs}}, update_doc)
+		results = await collection.update_many({'_id': {'$in': docs}}, update_pipeline)
 		update_count = results.modified_count
-		if '$unset' in update_doc:
-			logger.debug(f'Doc Oper $del_index is in-use, will update to remove `None` value')
-			update_doc_pull_all = {}
-			for attr in update_doc['$unset']:
-				attr_parent = '.'.join(attr.split('.')[:-1])
-				if attr_parent not in update_doc_pull_all.keys():
-					update_doc_pull_all[attr_parent] = [None]
-			logger.debug(f'Follow-up update doc: {update_doc_pull_all}')
-			try:
-				await collection.update_many(
-					{'_id': {'$in': docs}}, {'$pullAll': update_doc_pull_all}
-				)
-			except Exception as err:
-				if str(err) != 'Cannot apply $pull to a non-array value':
-					logger.error(f'Error occurred while removing `None` values. Details: {err}')
+
 	return {'count': update_count, 'docs': [{'_id': doc} for doc in docs]}

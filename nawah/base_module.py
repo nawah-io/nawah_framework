@@ -211,6 +211,7 @@ class BaseModule:
 			method = self.methods[method_name]
 			# [DOC] Check value type
 			if type(method) != METHOD:
+				# [TODO] Remove with final version
 				if type(method) == dict:
 					logger.warning(
 						f'Method \'{method}\' of module \'{self.module_name}\' is using deprecated dict, Update it.'
@@ -740,6 +741,7 @@ class BaseModule:
 					msg=f'{str(e)} for \'create\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 					args={'code': 'MISSING_ATTR'},
 				)
+			# [TODO] Implement DollarSignAttrException
 			except InvalidAttrException as e:
 				raise self.exception(
 					status=400,
@@ -887,6 +889,7 @@ class BaseModule:
 				msg=f'{str(e)} for \'update\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 				args={'code': 'MISSING_ATTR'},
 			)
+		# [TODO] Implement DollarSignAttrException
 		except InvalidAttrException as e:
 			raise self.exception(
 				status=400,
@@ -903,7 +906,7 @@ class BaseModule:
 		doc = {
 			attr: doc[attr]
 			for attr in ['_id', *doc.keys()]
-			if attr.split('.')[0] in self.attrs.keys()
+			if attr.split('.')[0].split(':')[0] in self.attrs.keys()
 			and (
 				(type(doc[attr]) != dict and doc[attr] != None)
 				or (

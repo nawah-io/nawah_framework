@@ -221,7 +221,8 @@ async def run_app():
 				# [DOC] Check presence and validate all attrs in doc args
 				try:
 					exception: Exception
-					await validate_doc(doc=request_args, attrs=args_set)
+					await validate_doc(mode='create', doc=request_args, attrs=args_set)
+				# [TODO] Implement DollarSignAttrException
 				except InvalidAttrException as e:
 					exception = e
 					headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -362,7 +363,9 @@ async def run_app():
 					)
 
 			if not session_results.args.count or not pbkdf2_sha512.verify(
-				request.headers['X-Auth-Token'], session_results.args.docs[0].token_hash
+				# [DOC] Skip two characters in token_hash which are prefixed __ to avoid DollarSignAttrException
+				request.headers['X-Auth-Token'],
+				session_results.args.docs[0].token_hash[2:],
 			):
 				logger.debug('Denying request due to missing failed Call Authorisation.')
 				headers['Content-Type'] = 'application/json; charset=utf-8'

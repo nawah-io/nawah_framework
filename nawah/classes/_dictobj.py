@@ -23,11 +23,14 @@ class DictObj(MutableMapping):
 		self.__attrs = {}
 		self.update(data)
 
+	def __getattribute__(self, attr):
+		if attr in object.__getattribute__(self, '_DictObj__attrs').keys():
+			return object.__getattribute__(self, '_DictObj__attrs')[attr]
+		else:
+			return object.__getattribute__(self, attr)
+
 	def __deepcopy__(self, memo):
 		return DictObj(copy.deepcopy(self.__attrs))
-
-	def __getattr__(self, attr):
-		return self.__attrs[attr]
 
 	def __setattr__(self, attr, val):
 		if not attr.endswith('__attrs'):

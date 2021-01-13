@@ -145,9 +145,9 @@ class Setting(BaseModule):
 			exception_raised: Exception = None
 			setting_val_type, _ = generate_dynamic_attr(dynamic_attr=setting.val_type)
 			await validate_doc(
+				mode='update',
 				doc=doc,
 				attrs={'val': setting_val_type},
-				allow_update=True,
 				skip_events=skip_events,
 				env=env,
 				query=query,
@@ -165,6 +165,7 @@ class Setting(BaseModule):
 		return (skip_events, env, query, doc, payload)
 
 	async def on_update(self, results, skip_events, env, query, doc, payload):
+		# [TODO] Update according to the changes of Doc Opers
 		try:
 			if (
 				query['type'][0] in ['user', 'user_sys']

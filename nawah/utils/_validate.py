@@ -95,6 +95,15 @@ class ConvertAttrException(Exception):
 		return f'Can\'t convert attr \'{self.attr_name}\' of type \'{self.val_type}\' to type \'{self.attr_type._type}\''
 
 
+class DollarSignAttrException(Exception):
+	def __init__(self, *, attr_name):
+		self.attr_name = attr_name
+		logger.debug(f'DollarSignAttrException: {str(self)}')
+
+	def __str__(self):
+		return f'Value of attr \'{self.attr_name}\' begins with dollar-sign.'
+
+
 async def validate_doc(
 	*,
 	mode: Literal['create', 'create_draft', 'update'],
@@ -385,6 +394,10 @@ async def validate_attr(
 	# [DOC] Deepcopy attr_val to eliminate changes in in original object
 	attr_val = copy.deepcopy(attr_val)
 
+	# [DOC] Assert value doesn't begin with dollar-sign
+	if type(attr_val) == str and len(attr_val) and attr_val[0] == '$':
+		raise DollarSignAttrException(attr_name=attr_name)
+
 	try:
 		if attr_type._type == 'ANY':
 			if attr_val != None:
@@ -479,8 +492,11 @@ async def validate_attr(
 						return return_valid_attr(
 							attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args
 						)
-				except:
-					pass
+				except Exception as e:
+					logger.debug(
+						'Exception occurred while validating type \'DYNAMIC_ATTR\'. Exception details:'
+					)
+					logger.debug(e)
 
 		elif attr_type._type == 'DYNAMIC_VAL':
 			# [DOC] Populate setting_query
@@ -579,17 +595,24 @@ async def validate_attr(
 				for child_attr_type in attr_type._args['dict'].keys():
 					if child_attr_type not in attr_val.keys():
 						attr_val[child_attr_type] = None
-					attr_val[child_attr_type] = await validate_attr(
-						mode=mode,
-						attr_name=f'{attr_name}.{child_attr_type}',
-						attr_type=attr_type._args['dict'][child_attr_type],
-						attr_val=attr_val[child_attr_type],
-						skip_events=skip_events,
-						env=env,
-						query=query,
-						doc=doc,
-						scope=attr_val,
-					)
+					try:
+						attr_val[child_attr_type] = await validate_attr(
+							mode=mode,
+							attr_name=f'{attr_name}.{child_attr_type}',
+							attr_type=attr_type._args['dict'][child_attr_type],
+							attr_val=attr_val[child_attr_type],
+							skip_events=skip_events,
+							env=env,
+							query=query,
+							doc=doc,
+							scope=attr_val,
+						)
+					except Exception as e:
+						logger.debug(
+							'Exception occurred while validating type \'TYPED_DICT\'. Exception details:'
+						)
+						logger.debug(e)
+						raise e
 				return return_valid_attr(
 					attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args
 				)
@@ -633,7 +656,11 @@ async def validate_attr(
 						doc=doc,
 						scope=attr_val,
 					)
-				except:
+				except Exception as e:
+					logger.debug(
+						'Exception occurred while validating type \'FILE\'. Exception details:'
+					)
+					logger.debug(e)
 					raise InvalidAttrException(
 						attr_name=attr_name,
 						attr_type=attr_type,
@@ -713,7 +740,9 @@ async def validate_attr(
 					return return_valid_attr(
 						attr_val=ObjectId(attr_val), attr_oper=attr_oper, attr_oper_args=attr_oper_args
 					)
-				except:
+				except Exception as e:
+					logger.debug('Exception occurred while validating type \'ID\'. Exception details:')
+					logger.debug(e)
 					raise ConvertAttrException(
 						attr_name=attr_name,
 						attr_type=attr_type,
@@ -779,8 +808,11 @@ async def validate_attr(
 							)
 							child_attr_check = True
 							break
-						except:
-							pass
+						except Exception as e:
+							logger.debug(
+								'Exception occurred while validating type \'LIST\'. Exception details:'
+							)
+							logger.debug(e)
 					if not child_attr_check:
 						raise InvalidAttrException(
 							attr_name=attr_name,
@@ -937,7 +969,11 @@ async def validate_attr(
 						doc=doc,
 						scope=attr_val,
 					)
-				except:
+				except Exception as e:
+					logger.debug(
+						'Exception occurred while validating type \'UNION\'. Exception details:'
+					)
+					logger.debug(e)
 					continue
 				return return_valid_attr(
 					attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args

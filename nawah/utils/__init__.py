@@ -10,6 +10,7 @@ from ._validate import (
 	InvalidAttrException,
 	MissingAttrException,
 	ConvertAttrException,
+	DollarSignAttrException,
 	validate_doc,
 	validate_attr,
 	process_file_obj,

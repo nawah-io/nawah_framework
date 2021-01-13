@@ -111,6 +111,7 @@ class BaseMethod:
 								attr_type=args_set[arg],
 								attr_val=args[arg],
 							)
+					# [TODO] Implement DollarSignAttrException
 					except InvalidAttrException:
 						set_status = False
 						sets_check[set_check][arg] = 'invalid'
