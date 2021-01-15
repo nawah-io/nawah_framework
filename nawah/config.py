@@ -498,8 +498,7 @@ class Config:
 			admin_create_doc.update(cls.admin_doc)
 
 			for auth_attr in cls.user_attrs.keys():
-				# [DOC] Avoid DollarSignAttrException by prefixing hash value with __
-				admin_create_doc[f'{auth_attr}_hash'] = '__' + pbkdf2_sha512.using(
+				admin_create_doc[f'{auth_attr}_hash'] = pbkdf2_sha512.using(
 					rounds=100000
 				).hash(
 					f'{auth_attr}{admin_create_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
@@ -547,8 +546,7 @@ class Config:
 					logger.debug(f'Detected change in \'admin_doc.{attr}\' Config Attr.')
 					admin_doc_update[attr] = cls.admin_doc[attr]
 			for auth_attr in cls.user_attrs.keys():
-				# [DOC] Avoid DollarSignAttrException by prefixing hash value with __
-				auth_attr_hash = '__' + pbkdf2_sha512.using(rounds=100000).hash(
+				auth_attr_hash = pbkdf2_sha512.using(rounds=100000).hash(
 					f'{auth_attr}{admin_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
 						'utf-8'
 					)

@@ -321,11 +321,11 @@ async def update(
 		else:
 			# [DOC] Add part_pipeline to update_pipeline_stage_current
 			if 'v' in update_pipeline_stage_current.keys():
-				update_pipeline_stage_current['v'] = doc[attr]
+				update_pipeline_stage_current['v'] = {'$literal': doc[attr]}
 			elif 'then' in update_pipeline_stage_current.keys():
-				update_pipeline_stage_current['then'] = doc[attr]
+				update_pipeline_stage_current['then'] = {'$literal': doc[attr]}
 			else:
-				update_pipeline_stage_current[attr_path_part] = doc[attr]
+				update_pipeline_stage_current[attr_path_part] = {'$literal': doc[attr]}
 
 		# [DOC] Add stage to pipeline
 		update_pipeline.append(update_pipeline_stage_root)

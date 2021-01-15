@@ -93,9 +93,8 @@ class Session(BaseModule):
 			skip_events=[Event.PERM, Event.ON], env=env, query=user_query
 		)
 		if not user_results.args.count or not pbkdf2_sha512.verify(
-			# [DOC] Skip two characters in token_hash which are prefixed __ to avoid DollarSignAttrException
 			doc['hash'],
-			user_results.args.docs[0][f'{key}_hash'][2:],
+			user_results.args.docs[0][f'{key}_hash'],
 		):
 			raise self.exception(
 				status=403,
@@ -127,8 +126,7 @@ class Session(BaseModule):
 			'host_add': env['REMOTE_ADDR'],
 			'user_agent': env['HTTP_USER_AGENT'],
 			'expiry': (datetime.datetime.utcnow() + datetime.timedelta(days=30)).isoformat(),
-			# [DOC] Avoid DollarSignAttrException by prefixing hash value with __
-			'token_hash': '__' + pbkdf2_sha512.using(rounds=100000).hash(token),
+			'token_hash': pbkdf2_sha512.using(rounds=100000).hash(token),
 		}
 
 		results = await self.create(skip_events=[Event.PERM], env=env, doc=session)
@@ -211,8 +209,7 @@ class Session(BaseModule):
 				status=403, msg='Session is invalid.', args={'code': 'INVALID_SESSION'}
 			)
 
-		# [DOC] Skip two characters in token_hash which are prefixed __ to avoid DollarSignAttrException
-		if not pbkdf2_sha512.verify(query['token'][0], results.args.docs[0].token_hash[2:]):
+		if not pbkdf2_sha512.verify(query['token'][0], results.args.docs[0].token_hash):
 			raise self.exception(
 				status=403,
 				msg='Reauth token hash invalid.',

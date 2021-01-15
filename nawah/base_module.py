@@ -741,7 +741,6 @@ class BaseModule:
 					msg=f'{str(e)} for \'create\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 					args={'code': 'MISSING_ATTR'},
 				)
-			# [TODO] Implement DollarSignAttrException
 			except InvalidAttrException as e:
 				raise self.exception(
 					status=400,
@@ -889,7 +888,6 @@ class BaseModule:
 				msg=f'{str(e)} for \'update\' request on module \'{self.package_name.upper()}_{self.module_name.upper()}\'.',
 				args={'code': 'MISSING_ATTR'},
 			)
-		# [TODO] Implement DollarSignAttrException
 		except InvalidAttrException as e:
 			raise self.exception(
 				status=400,

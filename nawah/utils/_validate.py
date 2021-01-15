@@ -95,15 +95,6 @@ class ConvertAttrException(Exception):
 		return f'Can\'t convert attr \'{self.attr_name}\' of type \'{self.val_type}\' to type \'{self.attr_type._type}\''
 
 
-class DollarSignAttrException(Exception):
-	def __init__(self, *, attr_name):
-		self.attr_name = attr_name
-		logger.debug(f'DollarSignAttrException: {str(self)}')
-
-	def __str__(self):
-		return f'Value of attr \'{self.attr_name}\' begins with dollar-sign.'
-
-
 async def validate_doc(
 	*,
 	mode: Literal['create', 'create_draft', 'update'],
@@ -401,10 +392,6 @@ async def validate_attr(
 
 	# [DOC] Deepcopy attr_val to eliminate changes in in original object
 	attr_val = copy.deepcopy(attr_val)
-
-	# [DOC] Assert value doesn't begin with dollar-sign
-	if type(attr_val) == str and len(attr_val) and attr_val[0] == '$':
-		raise DollarSignAttrException(attr_name=attr_name)
 
 	try:
 		if attr_type._type == 'ANY':

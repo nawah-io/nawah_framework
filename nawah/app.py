@@ -222,7 +222,6 @@ async def run_app():
 				try:
 					exception: Exception
 					await validate_doc(mode='create', doc=request_args, attrs=args_set)
-				# [TODO] Implement DollarSignAttrException
 				except InvalidAttrException as e:
 					exception = e
 					headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -363,9 +362,8 @@ async def run_app():
 					)
 
 			if not session_results.args.count or not pbkdf2_sha512.verify(
-				# [DOC] Skip two characters in token_hash which are prefixed __ to avoid DollarSignAttrException
 				request.headers['X-Auth-Token'],
-				session_results.args.docs[0].token_hash[2:],
+				session_results.args.docs[0].token_hash,
 			):
 				logger.debug('Denying request due to missing failed Call Authorisation.')
 				headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -412,9 +410,9 @@ async def run_app():
 
 		env['session'] = session
 
-		doc = await request.content.read()
+		doc_content = await request.content.read()
 		try:
-			doc = json.loads(doc)
+			doc = json.loads(doc_content)
 		except:
 			try:
 				multipart_content_type = request.headers['Content-Type']
@@ -424,7 +422,7 @@ async def run_app():
 					.replace('form-data; name=', '')
 					.replace('"', '')
 					.split(';')[0]: part.content
-					for part in decoder.MultipartDecoder(doc, multipart_content_type).parts
+					for part in decoder.MultipartDecoder(doc_content, multipart_content_type).parts
 				}
 			except Exception as e:
 				doc = {}
