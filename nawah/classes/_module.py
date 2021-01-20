@@ -32,10 +32,10 @@ ON_HANDLER_RETURN = Tuple[
 	Dict[str, Any], 'NAWAH_EVENTS', 'NAWAH_ENV', 'Query', 'NAWAH_DOC', Dict[str, Any]
 ]
 
-PERM_QUERY_MOD_UNIT = Dict[str, Union[ATTR_MOD, Literal['$__date', '$__user'], Any]]
+PERM_QUERY_MOD_UNIT = Dict[str, Union['ATTR_MOD', Literal['$__date', '$__user'], Any]]
 PERM_QUERY_MOD = Union[PERM_QUERY_MOD_UNIT, 'NAWAH_QUERY', List['PERM_QUERY_MOD']]  # type: ignore
 
-PERM_DOC_MOD_UNIT = Dict[str, Union[ATTR_MOD, Literal['$__date', '$__user'], Any]]
+PERM_DOC_MOD_UNIT = Dict[str, Union['ATTR_MOD', Literal['$__date', '$__user'], Any]]
 PERM_DOC_MOD = Union[PERM_DOC_MOD_UNIT, 'NAWAH_DOC']
 
 
