@@ -11,13 +11,17 @@ from typing import (
 	Union,
 	Optional,
 	cast,
+	Protocol,
 	TYPE_CHECKING,
 )
+
+from croniter import croniter
 
 from ._types import NAWAH_DOC
 
 if TYPE_CHECKING:
 	from ._attr import ATTR
+	from ._types import NAWAH_ENV
 
 
 CLIENT_APP = TypedDict(
@@ -44,7 +48,6 @@ ANALYTICS_EVENTS = TypedDict(
 )
 
 
-@dataclass
 class SYS_DOC:
 	module: str
 	key: Optional[str]
@@ -90,6 +93,34 @@ class SYS_DOC:
 		self.doc = doc
 
 
+class JOB_CALLABLE(Protocol):
+	def __call__(
+		self,
+		env: 'NAWAH_ENV',
+	) -> bool:
+		...
+
+
+class JOB:
+	job: JOB_CALLABLE
+	schedule: str
+	prevent_disable: bool
+	_cron_schedule: croniter
+	_next_time: Optional[str] = None
+	_disabled: bool = False
+
+	def __init__(
+		self,
+		*,
+		job: JOB_CALLABLE,
+		schedule: str,
+		prevent_disable: bool = False,
+	):
+		self.job = job
+		self.schedule = schedule
+		self.prevent_disable = prevent_disable
+
+
 class L10N(dict):
 	pass
 
@@ -133,7 +164,7 @@ class PACKAGE_CONFIG:
 	default_privileges: Optional[Dict[str, List[str]]] = None
 	data_indexes: Optional[List[Dict[str, Any]]] = None
 	docs: Optional[List[SYS_DOC]] = None
-	jobs: Optional[List[Dict[str, Any]]] = None
+	jobs: Optional[Dict[str, JOB]] = None
 	gateways: Optional[Dict[str, Callable]] = None
 	types: Optional[Dict[str, Callable]] = None
 

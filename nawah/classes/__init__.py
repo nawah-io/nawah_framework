@@ -29,6 +29,7 @@ from ._package import (
 	L10N,
 	APP_CONFIG,
 	PACKAGE_CONFIG,
+	JOB,
 )
 from ._query import Query
 from ._types import (

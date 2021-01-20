@@ -221,7 +221,7 @@ async def run_app():
 				# [DOC] Check presence and validate all attrs in doc args
 				try:
 					exception: Exception
-					await validate_doc(mode='create', doc=request_args, attrs=args_set)
+					await validate_doc(mode='create', doc=request_args, attrs=args_set)  # type: ignore
 				except InvalidAttrException as e:
 					exception = e
 					headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -1056,63 +1056,30 @@ async def run_app():
 				# [DOC] Jobs Workflow
 				current_time = datetime.datetime.utcnow().isoformat()[:16]
 				logger.debug('Time to check for jobs!')
-				for job in Config.jobs:
-					logger.debug(f'Checking: {job}')
-					if 'disabled' in job.keys() and job['disabled']:
+				for job_name in Config.jobs:
+					job = Config.jobs[job_name]
+					logger.debug(f'Checking: {job_name}')
+					if job._disabled:
 						logger.debug('-Job is disabled. Skipping..')
 						continue
 					# [DOC] Check if job is scheduled for current_time
-					if current_time == job['next_time']:
+					if current_time == job._next_time:
 						logger.debug('-Job is due, running!')
 						# [DOC] Update job next_time
-						job['next_time'] = datetime.datetime.fromtimestamp(
-							job['schedule'].get_next(), datetime.timezone.utc
+						job._next_time = datetime.datetime.fromtimestamp(
+							job._cron_schedule.get_next(), datetime.timezone.utc
 						).isoformat()[:16]
-						if job['type'] == 'job':
-							logger.debug('-Type of job: job.')
-							job['job'](
-								env=Config._sys_env,
-								session=Config._sys_env,
-							)
-						elif job['type'] == 'call':
-							logger.debug('-Type of job: call.')
-							if 'auth' in job.keys():
-								logger.debug(f'-Detected job auth: {job["auth"]}')
-								session_results = Config.modules['session'].auth(
-									env=Config._sys_env,
-									query=[
-										{
-											job['auth']['var']: job['auth']['val'],
-											'hash': job['auth']['hash'],
-										}
-									],
-								)
-								if session_results.status != 200:
-									logger.warning('-Job auth failed. Skipping..')
-									continue
-								session = session_results.args.docs[0]
+						try:
+							job.job(env=Config._sys_env)
+						except Exception as e:
+							logger.error('Job \'{job_name}\' has failed with exception.')
+							logger.error('Exception details:')
+							logger.error(traceback.format_exc())
+							if job.prevent_disable:
+								logger.warning('-Detected job prevent_disable. Skipping disabling job..')
 							else:
-								session = Config._sys_env
-							job_results = Config.modules[job['module']].methods[job['method']](
-								skip_events=job['skip_events'],
-								env=Config._sys_env,
-								query=job['query'],
-								doc=job['doc'],
-							)
-							results_accepted = True
-							for measure in job['acceptance'].keys():
-								if job_results[measure] != job['acceptance'][measure]:
-									# [DOC] Job results are not accepted
-									results_accepted = False
-									break
-							if not results_accepted:
-								logger.warning(f'Job has failed: {job}.')
-								logger.warning(f'-Job results: {job_results}.')
-								if 'prevent_disable' not in job.keys() or job['prevent_disable'] != True:
-									logger.warning('-Disabling job.')
-									job['disabled'] = True
-								else:
-									logger.warning('-Detected job prevent_disable. Skipping disabling job..')
+								logger.warning('-Disabling job.')
+								job._disabled = True
 					else:
 						logger.debug('-Not yet due.')
 			except Exception:

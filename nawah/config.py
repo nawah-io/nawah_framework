@@ -10,6 +10,7 @@ from nawah.classes import (
 	CLIENT_APP,
 	ANALYTICS_EVENTS,
 	SYS_DOC,
+	JOB,
 )
 
 from typing import (
@@ -196,7 +197,7 @@ class Config:
 
 	l10n: Dict[str, Dict[str, Any]] = {}
 
-	jobs: List[Dict[str, Any]] = []
+	jobs: Dict[str, JOB] = {}
 
 	gateways: Dict[str, Callable] = {}
 
@@ -299,15 +300,16 @@ class Config:
 		if cls.jobs:
 			# [DOC] Check jobs schedule validity
 			cls._jobs_base = datetime.datetime.utcnow()
-			for job in cls.jobs:
-				if not croniter.is_valid(job['schedule']):
-					logger.error(f'Job with schedule \'{job["schedule"]}\' is invalid. Exiting.')
+			for job_name in cls.jobs.keys():
+				job = cls.jobs[job_name]
+				if not croniter.is_valid(job.schedule):
+					logger.error(f'Job with schedule \'{job_name}\' schedule is invalid. Exiting.')
 					exit(1)
-				else:
-					job['schedule'] = croniter(job['schedule'], cls._jobs_base)
-					job['next_time'] = datetime.datetime.fromtimestamp(
-						job['schedule'].get_next(), datetime.timezone.utc
-					).isoformat()[:16]
+
+				job._cron_schedule = croniter(job.schedule, cls._jobs_base)
+				job._next_time = datetime.datetime.fromtimestamp(
+					job._cron_schedule.get_next(), datetime.timezone.utc
+				).isoformat()[:16]
 
 		# [DOC] Check for presence of user_auth_attrs
 		if not cls.user_attrs.keys():
@@ -498,9 +500,7 @@ class Config:
 			admin_create_doc.update(cls.admin_doc)
 
 			for auth_attr in cls.user_attrs.keys():
-				admin_create_doc[f'{auth_attr}_hash'] = pbkdf2_sha512.using(
-					rounds=100000
-				).hash(
+				admin_create_doc[f'{auth_attr}_hash'] = pbkdf2_sha512.using(rounds=100000).hash(
 					f'{auth_attr}{admin_create_doc[auth_attr]}{cls.admin_password}{cls.anon_token}'.encode(
 						'utf-8'
 					)
