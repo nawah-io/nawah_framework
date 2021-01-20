@@ -57,3 +57,4 @@ Classifier: Topic :: Internet :: WWW/HTTP
 Classifier: Framework :: AsyncIO
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
+Provides-Extra: dev

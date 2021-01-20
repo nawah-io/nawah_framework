@@ -33,6 +33,12 @@ class generate_stubs(install):
 with open('README.md', 'r') as f:
 	long_description = f.read()
 
+with open('./requirements.txt', 'r') as f:
+	requirements = f.readlines()
+
+with open('./dev_requirements.txt', 'r') as f:
+	dev_requirements = f.readlines()
+
 setuptools.setup(
 	name='nawah',
 	version=__version__,
@@ -73,6 +79,8 @@ setuptools.setup(
 		'Framework :: AsyncIO',
 	],
 	python_requires='>=3.8',
+	install_requires=requirements,
+	extras_require={'dev': dev_requirements},
 	cmdclass={
 		'generate_stubs': generate_stubs,
 		'version': version,

@@ -15,6 +15,7 @@ nawah.egg-info/PKG-INFO
 nawah.egg-info/SOURCES.txt
 nawah.egg-info/dependency_links.txt
 nawah.egg-info/not-zip-safe
+nawah.egg-info/requires.txt
 nawah.egg-info/top_level.txt
 nawah/classes/__init__.py
 nawah/classes/_attr.py
