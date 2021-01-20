@@ -6,6 +6,7 @@ from typing import (
 	Union,
 	Type,
 	List,
+	Sequence,
 	Any,
 	Literal,
 	Callable,
@@ -328,7 +329,7 @@ class ATTR:
 		return ATTR(attr_type='TYPED_DICT', desc=desc, dict=dict)
 
 	@classmethod
-	def LITERAL(cls, *, desc: str = None, literal: List[Union[str, int, float, bool]]):
+	def LITERAL(cls, *, desc: str = None, literal: Sequence[Union[str, int, float, bool]]):
 		return ATTR(attr_type='LITERAL', desc=desc, literal=literal)
 
 	@classmethod

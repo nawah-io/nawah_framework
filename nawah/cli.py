@@ -602,7 +602,7 @@ def packages_audit(args: argparse.Namespace):
 				f'- {package} requires version \'{req_packages[package]}\' but \'{added_packages[package]}\' is added'
 			)
 	else:
-		logger.info('Great! Your app is not having any extra package.')
+		logger.info('Great! Your app is not having any version-mismatching package.')
 
 
 def generate_ref(args: argparse.Namespace):

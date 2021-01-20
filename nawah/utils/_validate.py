@@ -581,12 +581,6 @@ async def validate_attr(
 
 		elif attr_type._type == 'TYPED_DICT':
 			if type(attr_val) == dict:
-				if set(attr_val.keys()) != set(attr_type._args['dict'].keys()):
-					raise InvalidAttrException(
-						attr_name=attr_name,
-						attr_type=attr_type,
-						val_type=type(attr_val),
-					)
 				for child_attr_type in attr_type._args['dict'].keys():
 					if child_attr_type not in attr_val.keys():
 						attr_val[child_attr_type] = None
@@ -608,6 +602,15 @@ async def validate_attr(
 						)
 						logger.debug(e)
 						raise e
+
+				# [DOC] Match keys _after_ checking child attrs in order to allow validate_default to run on all child attrs
+				if set(attr_val.keys()) != set(attr_type._args['dict'].keys()):
+					raise InvalidAttrException(
+						attr_name=attr_name,
+						attr_type=attr_type,
+						val_type=type(attr_val),
+					)
+
 				return return_valid_attr(
 					attr_val=attr_val, attr_oper=attr_oper, attr_oper_args=attr_oper_args
 				)

@@ -32,6 +32,12 @@ ON_HANDLER_RETURN = Tuple[
 	Dict[str, Any], 'NAWAH_EVENTS', 'NAWAH_ENV', 'Query', 'NAWAH_DOC', Dict[str, Any]
 ]
 
+PERM_QUERY_MOD_UNIT = Dict[str, Union[ATTR_MOD, Literal['$__date', '$__user'], Any]]
+PERM_QUERY_MOD = Union[PERM_QUERY_MOD_UNIT, 'NAWAH_QUERY', List['PERM_QUERY_MOD']]  # type: ignore
+
+PERM_DOC_MOD_UNIT = Dict[str, Union[ATTR_MOD, Literal['$__date', '$__user'], Any]]
+PERM_DOC_MOD = Union[PERM_DOC_MOD_UNIT, 'NAWAH_DOC']
+
 
 class MethodException(Exception):
 	pass
@@ -80,8 +86,8 @@ class ATTR_MOD:
 
 class PERM:
 	privilege: str
-	query_mod: Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
-	doc_mod: Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
+	query_mod: PERM_QUERY_MOD
+	doc_mod: PERM_DOC_MOD
 
 	def __repr__(self):
 		return f'<PERM:{self.privilege},{self.query_mod},{self.doc_mod}>'
@@ -90,12 +96,8 @@ class PERM:
 		self,
 		*,
 		privilege: str,
-		query_mod: Optional[
-			Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
-		] = None,
-		doc_mod: Optional[
-			Dict[str, Optional[Union[str, ATTR_MOD, Literal['$__date', '$__user']]]]
-		] = None,
+		query_mod: Optional[PERM_QUERY_MOD] = None,
+		doc_mod: Optional[PERM_DOC_MOD] = None,
 	):
 		if not query_mod:
 			query_mod = {}
