@@ -42,6 +42,14 @@ setuptools.setup(
 	long_description=long_description,
 	long_description_content_type='text/markdown',
 	url='https://github.com/nawah-io/nawah_framework',
+	package_data={
+		'nawah': ['py.typed'],
+		'nawah.classes': ['py.typed'],
+		'nawah.data': ['py.typed'],
+		'nawah.utils': ['py.typed'],
+		'nawah.packages': ['py.typed'],
+		'nawah.packages.core': ['py.typed'],
+	},
 	packages=[
 		'nawah',
 		'nawah.classes',
@@ -70,4 +78,5 @@ setuptools.setup(
 		'version': version,
 		'api_level': api_level,
 	},
+	zip_safe=False,
 )
