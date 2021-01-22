@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from nawah.utils import validate_attr, InvalidAttrException, ConvertAttrException
 from nawah.classes import (
 	MethodException,
@@ -38,8 +40,8 @@ from typing import (
 
 import logging, copy, traceback, sys, asyncio
 
-if TYPE_CHECKING:
-	from nawah.base_module import BaseModule
+# if TYPE_CHECKING:
+# 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 

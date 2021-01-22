@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import (
 	Literal,
 	Any,
@@ -15,8 +17,8 @@ import copy
 from ._attr import SPECIAL_ATTRS
 from ._dictobj import DictObj
 
-if TYPE_CHECKING:
-	from ._types import NAWAH_QUERY, NAWAH_QUERY_SPECIAL
+# if TYPE_CHECKING:
+# 	from ._types import NAWAH_QUERY, NAWAH_QUERY_SPECIAL
 
 
 class InvalidQueryArgException(Exception):

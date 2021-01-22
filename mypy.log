@@ -1,0 +1,224 @@
+nawah/classes/_module.py:31: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:31: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:31: error: Name 'Query' is not defined
+nawah/classes/_module.py:31: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:34: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:34: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:34: error: Name 'Query' is not defined
+nawah/classes/_module.py:34: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:41: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:51: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:52: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:53: error: Name 'Query' is not defined
+nawah/classes/_module.py:53: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:54: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:55: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:63: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:64: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:65: error: Name 'Query' is not defined
+nawah/classes/_module.py:65: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:66: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:67: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:116: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:128: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:145: error: Name 'ATTR' is not defined
+nawah/classes/_module.py:150: error: Name 'ATTR' is not defined
+nawah/classes/_module.py:158: error: Name 'BaseMethod' is not defined
+nawah/classes/_module.py:164: error: Name 'ATTR' is not defined
+nawah/classes/_module.py:169: error: Name 'ATTR' is not defined
+nawah/classes/_module.py:192: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:193: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:194: error: Name 'Query' is not defined
+nawah/classes/_module.py:194: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:235: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:236: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:237: error: Name 'Query' is not defined
+nawah/classes/_module.py:237: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:238: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:247: error: Name 'NAWAH_EVENTS' is not defined
+nawah/classes/_module.py:248: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_module.py:249: error: Name 'Query' is not defined
+nawah/classes/_module.py:249: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_module.py:250: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_module.py:252: error: Name 'NAWAH_DOC' is not defined
+nawah/classes/_json_encoder.py:1: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/classes/_types.py:6: error: Skipping analyzing 'motor.motor_asyncio': found module but no type hints or library stubs
+nawah/classes/_types.py:58: error: Name 'BaseModel' is not defined
+nawah/classes/_package.py:3: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/classes/_package.py:101: error: Name 'NAWAH_ENV' is not defined
+nawah/classes/_package.py:139: error: Name 'ATTR' is not defined
+nawah/classes/_package.py:160: error: Name 'ATTR' is not defined
+nawah/classes/_attr.py:3: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/classes/_query.py:88: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_query.py:89: error: Name 'NAWAH_QUERY_SPECIAL' is not defined
+nawah/classes/_query.py:92: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_query.py:105: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_query.py:145: error: Name 'NAWAH_QUERY' is not defined
+nawah/classes/_query.py:148: error: Name 'NAWAH_QUERY' is not defined
+nawah/config.py:34: error: Skipping analyzing 'motor.motor_asyncio': found module but no type hints or library stubs
+nawah/config.py:35: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/config.py:36: error: Skipping analyzing 'passlib.hash': found module but no type hints or library stubs
+nawah/config.py:133: error: Name 'STEP' is not defined
+nawah/config.py:208: error: Name 'BaseModule' is not defined
+nawah/data/_query.py:7: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/data/_query.py:181: error: Item "ATTR_MOD" of "Union[EXTN, ATTR_MOD, None]" has no attribute "module"
+nawah/data/_query.py:181: error: Item "None" of "Union[EXTN, ATTR_MOD, None]" has no attribute "module"
+nawah/data/_query.py:192: error: Item "ATTR_MOD" of "Union[EXTN, ATTR_MOD, None]" has no attribute "module"
+nawah/data/_query.py:192: error: Item "None" of "Union[EXTN, ATTR_MOD, None]" has no attribute "module"
+nawah/data/_delete.py:6: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/data/_update.py:4: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/data/_conn.py:2: error: Skipping analyzing 'motor.motor_asyncio': found module but no type hints or library stubs
+nawah/utils/_generate_models.py:94: error: Name 'BaseModule' is not defined
+nawah/utils/_generate_attr.py:4: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/utils/_validate.py:20: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/utils/_validate.py:32: error: Name 'BaseModule' is not defined
+nawah/test.py:14: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/test.py:130: error: Missing named argument "mode" for "validate_attr"
+nawah/test.py:443: error: Argument 1 to "update" of "dict" has incompatible type "NAWAH_ENV"; expected "Mapping[str, DictObj]"
+nawah/test.py:456: error: Argument "scope" to "extract_attr" has incompatible type "DictObj"; expected "Dict[str, Any]"
+nawah/test.py:544: error: Argument "scope" to "extract_attr" has incompatible type "DictObj"; expected "Dict[str, Any]"
+nawah/data/_read.py:7: error: Skipping analyzing 'motor.motor_asyncio': found module but no type hints or library stubs
+nawah/data/_read.py:8: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/data/_watch.py:8: error: Skipping analyzing 'motor.motor_asyncio': found module but no type hints or library stubs
+nawah/data/_watch.py:9: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/base_method.py:52: error: Name 'BaseModule' is not defined
+nawah/base_module.py:51: error: Skipping analyzing 'PIL': found module but no type hints or library stubs
+nawah/base_module.py:52: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/base_module.py:220: error: Value of type "METHOD" is not indexable
+nawah/base_module.py:221: error: "METHOD" has no attribute "keys"
+nawah/base_module.py:221: error: Value of type "METHOD" is not indexable
+nawah/base_module.py:222: error: "METHOD" has no attribute "keys"
+nawah/base_module.py:222: error: Value of type "METHOD" is not indexable
+nawah/base_module.py:223: error: "METHOD" has no attribute "keys"
+nawah/base_module.py:223: error: Value of type "METHOD" is not indexable
+nawah/base_module.py:225: error: "METHOD" has no attribute "keys"
+nawah/base_module.py:226: error: Value of type "METHOD" is not indexable
+nawah/base_module.py:228: error: "METHOD" has no attribute "keys"
+nawah/base_module.py:229: error: Value of type "METHOD" is not indexable
+nawah/base_module.py:451: error: Argument "query" to "pre_read" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:460: error: Item "List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]" of "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]" has no attribute "_query"
+nawah/base_module.py:460: error: Item "List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]" of "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]" has no attribute "_special"
+nawah/base_module.py:472: error: Argument "query" to "read" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:487: error: Argument "query" to "read" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:495: error: Argument "query" to "read" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:503: error: Argument "query" to "read" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:520: error: Argument "results" to "on_read" of "BaseModule" has incompatible type "Optional[Dict[str, Any]]"; expected "Dict[str, Any]"
+nawah/base_module.py:523: error: Argument "query" to "on_read" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:530: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:530: note: Possible overload variants:
+nawah/base_module.py:530: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:530: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:535: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:535: note: Possible overload variants:
+nawah/base_module.py:535: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:535: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:590: error: Argument "query" to "pre_watch" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:600: error: Argument "query" to "watch" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:628: error: Argument "query" to "on_watch" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:636: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:636: note: Possible overload variants:
+nawah/base_module.py:636: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:636: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:641: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:641: note: Possible overload variants:
+nawah/base_module.py:641: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:641: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:697: error: Argument "query" to "pre_create" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:804: error: Argument "query" to "on_create" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:871: error: Argument "query" to "pre_update" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:931: error: Argument "query" to "read" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1016: error: Argument "query" to "on_update" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1114: error: Argument "query" to "pre_delete" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1132: error: Argument "query" to "read" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1160: error: Argument "query" to "on_delete" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1218: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1218: note: Possible overload variants:
+nawah/base_module.py:1218: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1218: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1219: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1219: note: Possible overload variants:
+nawah/base_module.py:1219: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1219: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1220: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1220: note: Possible overload variants:
+nawah/base_module.py:1220: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1220: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1229: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1229: note: Possible overload variants:
+nawah/base_module.py:1229: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1229: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1230: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1230: note: Possible overload variants:
+nawah/base_module.py:1230: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1230: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1239: error: Argument "query" to "on_create_file" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1294: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1294: note: Possible overload variants:
+nawah/base_module.py:1294: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1294: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1295: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1295: note: Possible overload variants:
+nawah/base_module.py:1295: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1295: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1296: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1296: note: Possible overload variants:
+nawah/base_module.py:1296: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1296: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1303: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1303: note: Possible overload variants:
+nawah/base_module.py:1303: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1303: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1309: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1309: note: Possible overload variants:
+nawah/base_module.py:1309: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1309: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1316: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1316: note: Possible overload variants:
+nawah/base_module.py:1316: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1316: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1322: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1322: note: Possible overload variants:
+nawah/base_module.py:1322: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1322: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1323: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1323: note: Possible overload variants:
+nawah/base_module.py:1323: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1323: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1341: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1341: note: Possible overload variants:
+nawah/base_module.py:1341: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1341: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1342: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1342: note: Possible overload variants:
+nawah/base_module.py:1342: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1342: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1351: error: Argument "query" to "on_delete_file" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/base_module.py:1404: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1404: note: Possible overload variants:
+nawah/base_module.py:1404: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1404: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1405: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1405: note: Possible overload variants:
+nawah/base_module.py:1405: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1405: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1407: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1407: note: Possible overload variants:
+nawah/base_module.py:1407: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1407: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1414: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1414: note: Possible overload variants:
+nawah/base_module.py:1414: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1414: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1463: error: No overload variant of "__getitem__" of "list" matches argument type "str"
+nawah/base_module.py:1463: note: Possible overload variants:
+nawah/base_module.py:1463: note:     def __getitem__(self, int) -> Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]
+nawah/base_module.py:1463: note:     def __getitem__(self, slice) -> List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]]
+nawah/base_module.py:1496: error: Argument "query" to "on_retrieve_file" of "BaseModule" has incompatible type "Union[List[Union[Any, Dict[str, <union: 13 items>], NAWAH_QUERY_SPECIAL]], Query]"; expected "Query"
+nawah/app.py:19: error: Skipping analyzing 'bson': found module but no type hints or library stubs
+nawah/app.py:19: note: See https://mypy.readthedocs.io/en/latest/running_mypy.html#missing-imports
+nawah/app.py:20: error: Skipping analyzing 'passlib.hash': found module but no type hints or library stubs
+nawah/app.py:21: error: Skipping analyzing 'requests_toolbelt.multipart': found module but no type hints or library stubs
+nawah/app.py:24: error: Skipping analyzing 'nest_asyncio': found module but no type hints or library stubs
+nawah/app.py:266: error: Incompatible types (expression has type "Optional[str]", TypedDict item "REMOTE_ADDR" has type "str")
+nawah/app.py:488: error: Incompatible types (expression has type "Optional[str]", TypedDict item "REMOTE_ADDR" has type "str")
+Found 150 errors in 20 files (checked 1 source file)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from nawah.enums import Event
 
 from typing import (
@@ -17,12 +19,12 @@ from typing import (
 
 import datetime
 
-if TYPE_CHECKING:
-	from nawah.base_method import BaseMethod
-	from ._attr import ATTR
-	from ._dictobj import DictObj
-	from ._types import NAWAH_EVENTS, NAWAH_ENV, NAWAH_DOC, NAWAH_QUERY
-	from ._query import Query
+# if TYPE_CHECKING:
+# 	from nawah.base_method import BaseMethod
+# 	from ._attr import ATTR
+# 	from ._dictobj import DictObj
+# 	from ._types import NAWAH_EVENTS, NAWAH_ENV, NAWAH_DOC, NAWAH_QUERY
+# 	from ._query import Query
 
 
 PRE_HANDLER_RETURN = Tuple[

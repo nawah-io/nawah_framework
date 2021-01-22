@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from nawah.config import Config
 from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
 from nawah.utils import extract_attr
@@ -20,8 +22,8 @@ from typing import Dict, Optional, List, Union, Any, cast, Literal, Tuple, TYPE_
 
 import logging, copy, re, asyncio, datetime
 
-if TYPE_CHECKING:
-	from nawah.base_module import BaseModule
+# if TYPE_CHECKING:
+# 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 

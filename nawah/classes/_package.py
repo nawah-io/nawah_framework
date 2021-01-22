@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from bson import ObjectId
 from dataclasses import dataclass
 from typing import (
@@ -19,9 +21,9 @@ from croniter import croniter
 
 from ._types import NAWAH_DOC
 
-if TYPE_CHECKING:
-	from ._attr import ATTR
-	from ._types import NAWAH_ENV
+# if TYPE_CHECKING:
+# 	from ._attr import ATTR
+# 	from ._types import NAWAH_ENV
 
 
 CLIENT_APP = TypedDict(

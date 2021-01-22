@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from nawah.config import Config
 from nawah.classes import ATTR, DictObj
 
@@ -5,8 +7,8 @@ from typing import Dict, List, TYPE_CHECKING
 
 import logging, datetime, re
 
-if TYPE_CHECKING:
-	from nawah.base_module import BaseModule
+# if TYPE_CHECKING:
+# 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 

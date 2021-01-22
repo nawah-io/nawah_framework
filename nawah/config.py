@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from nawah.enums import Event, LOCALE_STRATEGY
 from nawah.classes import (
 	DictObj,
@@ -35,9 +37,9 @@ from passlib.hash import pbkdf2_sha512
 
 import os, logging, datetime, time, requests
 
-if TYPE_CHECKING:
-	from nawah.test import STEP
-	from nawah.base_module import BaseModule
+# if TYPE_CHECKING:
+# 	from nawah.test import STEP
+#	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 

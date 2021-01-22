@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from nawah.enums import Event
 
 from asyncio import Task
@@ -19,9 +21,9 @@ from typing import (
 
 import datetime
 
-if TYPE_CHECKING:
-	from ._base_model import BaseModel
-	from ._dictobj import DictObj
+# if TYPE_CHECKING:
+# 	from ._base_model import BaseModel
+# 	from ._dictobj import DictObj
 
 NAWAH_EVENTS = List[Event]
 
