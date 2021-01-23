@@ -34,6 +34,15 @@ CLIENT_APP = TypedDict(
 	},
 )
 
+USER_SETTING = TypedDict(
+	'USER_SETTING',
+	{
+		'type': Literal['user', 'user_sys'],
+		'val_type': 'ATTR',
+		'default': Optional[Any],
+	}
+)
+
 ANALYTICS_EVENTS = TypedDict(
 	'ANALYTICS_EVENTS',
 	{

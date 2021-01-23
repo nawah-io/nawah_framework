@@ -211,28 +211,10 @@ class BaseModule:
 			method = self.methods[method_name]
 			# [DOC] Check value type
 			if type(method) != METHOD:
-				# [TODO] Remove with final version
-				if type(method) == dict:
-					logger.warning(
-						f'Method \'{method}\' of module \'{self.module_name}\' is using deprecated dict, Update it.'
-					)
-					method = self.methods[method_name] = METHOD(
-						permissions=method['permissions'],
-						query_args=None if 'query_args' not in method.keys() else method['query_args'],
-						doc_args=None if 'doc_args' not in method.keys() else method['doc_args'],
-						get_method=False if 'get_method' not in method.keys() else method['get_method'],
-						post_method=False
-						if 'post_method' not in method.keys()
-						else method['post_method'],
-						watch_method=False
-						if 'watch_method' not in method.keys()
-						else method['watch_method'],
-					)
-				else:
-					logger.error(
-						f'Invalid method \'{method}\' of module \'{self.module_name}\'. Exiting.'
-					)
-					exit(1)
+				logger.error(
+					f'Invalid method \'{method}\' of module \'{self.module_name}\'. Exiting.'
+				)
+				exit(1)
 			# [DOC] Check for existence of at least single permissions set per method
 			if not len(method.permissions):
 				logger.error(
@@ -241,9 +223,9 @@ class BaseModule:
 				exit(1)
 			# [DOC] Check method query_args attr, set it or update it if required.
 			if not method.query_args:
-				if method == 'create_file':
+				if method_name == 'create_file':
 					method.query_args = [{'_id': ATTR.ID(), 'attr': ATTR.STR()}]
-				elif method == 'delete_file':
+				elif method_name == 'delete_file':
 					method.query_args = [
 						{
 							'_id': ATTR.ID(),
@@ -258,7 +240,7 @@ class BaseModule:
 				method.query_args = [method_query_args]
 			# [DOC] Check method doc_args attr, set it or update it if required.
 			if not method.doc_args:
-				if method == 'create_file':
+				if method_name == 'create_file':
 					method.doc_args = [{'file': ATTR.FILE()}]
 			elif type(method.doc_args) == dict:
 				method_doc_args = method.doc_args
@@ -267,7 +249,7 @@ class BaseModule:
 			# [DOC] Check method get_method attr, update it if required.
 			if method.get_method == True:
 				if not method.query_args:
-					if method == 'retrieve_file':
+					if method_name == 'retrieve_file':
 						method.query_args = [
 							{
 								'_id': ATTR.ID(),
