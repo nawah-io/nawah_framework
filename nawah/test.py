@@ -101,7 +101,7 @@ class STEP:
 		)
 
 	@classmethod
-	def TEST(cls, *, test: str, steps: List[int] = None):
+	def TEST(cls, *, test: str, steps: Union[List[int], range] = None):
 		return STEP(step='TEST', test=test, steps=steps)
 
 	@classmethod
@@ -128,6 +128,7 @@ class STEP:
 			else:
 				try:
 					await validate_attr(
+						mode='create',
 						attr_name='val',
 						attr_type=Config.user_attrs[step._args['var']],
 						attr_val=step._args['val'],

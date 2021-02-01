@@ -210,28 +210,21 @@ class Query(list):
 			for index_attr in self._index.keys():
 				if attr_filter and index_attr != attr_filter:
 					continue
-
-				attrs += [
-					index_attr
-					for val in self._index[index_attr]
-					if not oper_filter or (oper_filter and val['oper'] == oper_filter)
-				]
-				vals += [
-					val['val']
-					for val in self._index[index_attr]
-					if not oper_filter or (oper_filter and val['oper'] == oper_filter)
-				]
-				paths += [
-					val['path']  # type: ignore
-					for val in self._index[index_attr]
-					if not oper_filter or (oper_filter and val['oper'] == oper_filter)
-				]
-				indexes += [
-					i
-					for i in range(len(self._index[index_attr]))
-					if not oper_filter
-					or (oper_filter and self._index[index_attr][i]['oper'] == oper_filter)
-				]
+				i = 0
+				for val in self._index[index_attr]:
+					if not oper_filter or (oper_filter and val['oper'] == oper_filter):
+						attrs.append(index_attr)
+						# [TODO] Simplify this condition by enforcing Query Args with $eq Query Oper are always stripped down to value
+						if not oper_filter or (
+							oper_filter == '$eq'
+							and (type(val['val']) != dict or '$eq' not in val['val'].keys())
+						):
+							vals.append(val['val'])
+						else:
+							vals.append(val['val'][oper_filter])
+						paths.append(val['path'])
+						indexes.append(i)
+						i += 1
 			return QueryAttrList(self, attrs, paths, indexes, vals)
 
 	def __setitem__(self, attr: str, val: Any):  # type: ignore

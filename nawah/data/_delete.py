@@ -58,7 +58,7 @@ async def delete(
 			logger.warning('Detected \'DELETE_FORCE_SYS\' strategy for delete call.')
 			del_docs = [ObjectId(doc) for doc in docs]
 		# [DOC] Perform delete query on matching docs
-		collection = env['conn'][Config.data_name][collection]
+		collection = env['conn'][Config.data_name][collection_name]
 		if Config.data_azure_mongo:
 			delete_count = 0
 			for _id in del_docs:

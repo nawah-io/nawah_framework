@@ -667,6 +667,37 @@ class BaseModule:
 
 		query = cast(Query, query)
 
+		# [DOC] Check for __create_draft
+		if '__create_draft' in query:
+			# [DOC] Check for conflicts
+			if len(doc.keys()):
+				raise self.exception(
+					status=400,
+					msg='Can\'t use \'__create_draft\' with attrs provided in \'doc\'',
+					args={'code': 'INVALID_CREATE_DRAFT_DOC'},
+				)
+
+			# [DOC] Load __create_draft and use it as doc
+			draft_results = await Data.read(
+				env=env,
+				collection_name=self.collection,
+				attrs=self.attrs,
+				query=Query([{'_id': query['__create_draft'][0], '__create_draft': True}]),
+				skip_process=True,
+			)
+
+			if not draft_results['count']:
+				raise self.exception(
+					status=400,
+					msg='Invalid \'__create_draft\' doc.',
+					args={'code': 'INVALID_CREATE_DRAFT'},
+				)
+
+			# [DOC] Data.read returns doc as BaseModel, extract values using BaseModel._attrs()
+			doc = draft_results['docs'][0]._attrs()
+			# [DOC] Delete special attrs
+			del doc['_id']
+
 		if Event.PRE not in skip_events:
 			# [DOC] Check proxy module
 			if self.proxy:
@@ -679,12 +710,13 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_create
+
 		# [DOC] Expant dot-notated keys onto dicts
 		doc = expand_attr(doc=doc)
 		# [DOC] Deleted all extra doc args
 		doc = {
 			attr: doc[attr]
-			for attr in ['_id', *self.attrs.keys()]
+			for attr in ['_id', '__create_draft', '__update_draft', *self.attrs.keys()]
 			if attr in doc.keys() and doc[attr] != None
 		}
 		# [DOC] Append host_add, user_agent, create_time, diff if it's present in attrs.
@@ -702,11 +734,51 @@ class BaseModule:
 		if 'user_agent' in self.attrs.keys() and 'user_agent' not in doc.keys():
 			doc['user_agent'] = env['HTTP_USER_AGENT']
 		if Event.ARGS not in skip_events:
-			mode: Literal['create', 'create_draft'] = (
-				'create_draft'
-				if '__create_draft' in doc.keys() and doc['__create_draft'] == True
-				else 'create'
-			)
+			mode: Literal['create', 'create_draft'] = 'create'
+			if '__create_draft' in doc.keys() and doc['__create_draft'] == True:
+				if not self.create_draft:
+					raise self.exception(
+						status=400,
+						msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' doesn\'t support \'create_draft\'',
+						args={'code': 'NO_CREATE_DRAFT'},
+					)
+				if type(self.create_draft) == ATTR_MOD:
+					self.create_draft = cast(ATTR_MOD, self.create_draft)
+					if not self.create_draft.condition(
+						skip_events=skip_events, env=env, query=query, doc=doc, scope=None
+					):
+						raise self.exception(
+							status=400,
+							msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' \'create_draft\' failed.',
+							args={'code': 'NO_CREATE_DRAFT_CONDITION'},
+						)
+				mode = 'create_draft'
+
+			elif '__update_draft' in doc.keys() and (
+				type(doc['__update_draft']) == ObjectId
+				or (
+					type(doc['__update_draft']) == str
+					and re.match(r'^[0-9a-fA-F]{24}$', doc['__update_draft'])
+				)
+			):
+				doc['__update_draft'] = ObjectId(doc['__update_draft'])
+				if not self.update_draft:
+					raise self.exception(
+						status=400,
+						msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' doesn\'t support \'update_draft\'',
+						args={'code': 'NO_UPDATE_DRAFT'},
+					)
+				if type(self.update_draft) == ATTR_MOD:
+					self.update_draft = cast(ATTR_MOD, self.update_draft)
+					if not self.update_draft.condition(
+						skip_events=skip_events, env=env, query=query, doc=doc, scope=None
+					):
+						raise self.exception(
+							status=400,
+							msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' \'update_draft\' failed.',
+							args={'code': 'NO_UPDATE_DRAFT_CONDITION'},
+						)
+				mode = 'create_draft'
 			# [DOC] Check presence and validate all attrs in doc args
 			try:
 				await validate_doc(
@@ -766,6 +838,21 @@ class BaseModule:
 		results = await Data.create(
 			env=env, collection_name=self.collection, attrs=self.attrs, doc=doc
 		)
+
+		# [DOC] Check for __create_draft and delete it
+		if '__create_draft' in query:
+			delete_draft_results = await Data.delete(
+				env=env,
+				collection_name=self.collection,
+				attrs=self.attrs,
+				docs=[ObjectId(query['__create_draft'][0])],
+				strategy=DELETE_STRATEGY.FORCE_SYS,
+			)
+			if delete_draft_results['count'] != 1:
+				logger.error(
+					f'Failed to delete \'__create_draft\'. Results: {delete_draft_results}'
+				)
+
 		if Event.ON not in skip_events:
 			# [DOC] Check proxy module
 			if self.proxy:
@@ -839,6 +926,44 @@ class BaseModule:
 		payload: Dict[str, Any] = {}
 
 		query = cast(Query, query)
+
+		update_draft = None
+		# [DOC] Check for __update_draft
+		if '__update_draft' in query:
+			update_draft = query['__update_draft'][0]
+			# [DOC] Check for conflicts
+			if len(doc.keys()):
+				raise self.exception(
+					status=400,
+					msg='Can\'t use \'__update_draft\' with attrs provided in \'doc\'',
+					args={'code': 'INVALID_UPDATE_DRAFT_DOC'},
+				)
+
+			# [DOC] Load __create_draft and use it as doc
+			draft_results = await Data.read(
+				env=env,
+				collection_name=self.collection,
+				attrs=self.attrs,
+				query=Query(
+					[{'_id': query['__update_draft'][0], '__update_draft': {'$ne': False}}]
+				),
+				skip_process=True,
+			)
+
+			if not draft_results['count']:
+				raise self.exception(
+					status=400,
+					msg='Invalid \'__update_draft\' doc.',
+					args={'code': 'INVALID_UPDATE_DRAFT'},
+				)
+
+			# [DOC] Update query per the value of doc.__update_draft
+			del query['__update_draft'][0]
+			query.append({'_id': draft_results['docs'][0]['__update_draft']})
+			# [DOC] Data.read returns doc as BaseModel, extract values using BaseModel._attrs()
+			doc = draft_results['docs'][0]._attrs()
+			# [DOC] Delete special attrs
+			del doc['_id']
 
 		if Event.PRE not in skip_events:
 			# [DOC] Check proxy module
@@ -977,6 +1102,21 @@ class BaseModule:
 			docs=[doc._id for doc in docs_results['docs']],
 			doc=doc,
 		)
+
+		# [DOC] Check for update_draft and delete it
+		if update_draft:
+			delete_draft_results = await Data.delete(
+				env=env,
+				collection_name=self.collection,
+				attrs=self.attrs,
+				docs=[ObjectId(update_draft)],
+				strategy=DELETE_STRATEGY.FORCE_SYS,
+			)
+			if delete_draft_results['count'] != 1:
+				logger.error(
+					f'Failed to delete \'__update_draft\'. Results: {delete_draft_results}'
+				)
+
 		if Event.ON not in skip_events:
 			# [DOC] Check proxy module
 			if self.proxy:

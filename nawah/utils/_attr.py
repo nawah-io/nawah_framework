@@ -1,18 +1,18 @@
 from nawah.classes import ATTR
 
-from typing import Union, List, Dict, cast, Any, Literal
+from typing import Union, List, Dict, cast, Any, Literal, MutableMapping
 
 import logging
 
 logger = logging.getLogger('nawah')
 
 
-def extract_attr(*, scope: Dict[str, Any], attr_path: str):
+def extract_attr(*, scope: MutableMapping[str, Any], attr_path: str):
 	if attr_path.startswith('$__'):
 		attr_path_parts = attr_path[3:].split('.')
 	else:
 		attr_path_parts = attr_path.split('.')
-	attr = scope
+	attr: Any = scope
 	for i in range(len(attr_path_parts)):
 		child_attr = attr_path_parts[i]
 		try:

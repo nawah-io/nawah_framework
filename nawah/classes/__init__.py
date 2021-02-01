@@ -10,7 +10,6 @@ from ._base_model import BaseModel
 from ._dictobj import DictObj
 from ._json_encoder import JSONEncoder
 from ._module import (
-	MethodException,
 	PERM,
 	EXTN,
 	ATTR_MOD,
@@ -21,6 +20,7 @@ from ._module import (
 	ANALYTIC,
 	PRE_HANDLER_RETURN,
 	ON_HANDLER_RETURN,
+	MethodException,
 )
 from ._package import (
 	CLIENT_APP,

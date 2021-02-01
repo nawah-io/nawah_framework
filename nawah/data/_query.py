@@ -39,23 +39,33 @@ def _compile_query(
 		aggregate_prefix.append({'$match': {'__deleted': {'$exists': False}}})
 	else:
 		# [DOC] This condition is expanded to allow __deleted = True, __deleted = None to have del query[__deleted] be applied to both conditions
-		if query['__deleted'] == True:
+		if query['__deleted'][0] == True:
 			aggregate_prefix.append({'$match': {'__deleted': {'$exists': True}}})
-		del query['__deleted']
+		del query['__deleted'][0]
 
 	if '__create_draft' not in query or query['__create_draft'] == False:
 		aggregate_prefix.append({'$match': {'__create_draft': {'$exists': False}}})
 	else:
-		if query['__create_draft'] == True:
+		if query['__create_draft'][0] == True:
 			aggregate_prefix.append({'$match': {'__create_draft': {'$exists': True}}})
-		del query['__create_draft']
+		del query['__create_draft'][0]
 
-	if '__update_draft' not in query or query['__update_draft'] == False:
+	if ('__update_draft' not in query and '__update_draft:$ne' not in query) or query[
+		'__update_draft'
+	] == False:
+		query_update_draft = False
 		aggregate_prefix.append({'$match': {'__update_draft': {'$exists': False}}})
 	else:
-		if query['__update_draft'] == True:
-			aggregate_prefix.append({'$match': {'__update_draft': {'$exists': True}}})
-		del query['__update_draft']
+		query_update_draft = True
+		aggregate_prefix.append({'$match': {'__update_draft': {'$exists': True}}})
+		if '__update_draft' in query and type(query['__update_draft'][0]) == ObjectId:
+			aggregate_prefix.append({'$match': {'__update_draft': query['__update_draft'][0]}})
+		elif '__update_draft:$ne' in query and query['__update_draft:$ne'][0] == False:
+			aggregate_prefix.append({'$match': {'__update_draft': {'$ne': False}}})
+		try:
+			del query['__update_draft'][0]
+		except:
+			del query['__update_draft:$ne'][0]
 
 	# [DOC] Update variables per Query Special Args
 	if '$skip' in query:
@@ -107,25 +117,23 @@ def _compile_query(
 		)
 
 	if '$attrs' in query and type(query['$attrs']) == list:
-		aggregate_suffix.append(
-			{
-				'$group': {
-					'_id': '$_id',
-					**{
-						attr: {'$first': f'${attr}'} for attr in query['$attrs'] if attr in attrs.keys()
-					},
-				}
-			}
-		)
+		group_query = {
+			'_id': '$_id',
+			**{attr: {'$first': f'${attr}'} for attr in query['$attrs'] if attr in attrs.keys()},
+		}
+		# [DOC] We need to expose __update_draft value if it is queried as this refers to the original doc to be updated
+		if query_update_draft:
+			group_query['__update_draft'] = {'$first': '$__update_draft'}
+		aggregate_suffix.append({'$group': group_query})
 	else:
-		aggregate_suffix.append(
-			{
-				'$group': {
-					'_id': '$_id',
-					**{attr: {'$first': f'${attr}'} for attr in attrs.keys()},
-				}
-			}
-		)
+		group_query = {
+			'_id': '$_id',
+			**{attr: {'$first': f'${attr}'} for attr in attrs.keys()},
+		}
+		# [DOC] We need to expose __update_draft value if it is queried as this refers to the original doc to be updated
+		if query_update_draft:
+			group_query['__update_draft'] = {'$first': '$__update_draft'}
+		aggregate_suffix.append({'$group': group_query})
 
 	logger.debug(
 		f'processed query, aggregate_prefix:{aggregate_prefix}, aggregate_suffix:{aggregate_suffix}, aggregate_match:{aggregate_match}'
