@@ -287,26 +287,27 @@ async def update(
 		# [DOC] Check for $del_index Doc Oper
 		elif type(doc[attr]) == dict and '$del_index' in doc[attr].keys():
 			part_pipeline = {
-				'$reduce': {
-					'input': f'${attr}',
-					'initialValue': [],
-					'in': {
-						'$concatArrays': [
-							'$$value',
-							{
-								'$cond': {
-									'if': {
-										'$eq': [
-											['$$this'],
-											[{'$arrayElemAt': [f'${attr}', doc[attr]['$del_index']]}],
-										]
-									},
-									'then': doc[attr],
-									'else': ['$$this'],
-								}
-							},
-						]
-					},
+				'$arrayToObject': {
+					'$reduce': {
+						'input': {
+							'$objectToArray': f'${attr}',
+						},
+						'initialValue': [],
+						'in': {
+							'$concatArrays': [
+								'$$value',
+								{
+									'$cond': {
+										'if': {
+											'$eq': ['$$this.k', doc[attr]['$del_index']],
+										},
+										'then': [],
+										'else': ['$$this'],
+									}
+								},
+							]
+						},
+					}
 				}
 			}
 
