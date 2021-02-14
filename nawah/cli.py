@@ -12,6 +12,9 @@ logger.addHandler(handler)
 
 logger.setLevel(logging.INFO)
 
+# [DOC] Constatnt TESTING_COMPATIBILITY indicates whether package is loaded in testing compatibility mode
+TESTING_COMPATIBILITY = False
+
 
 def nawah_cli():
 	global sys, os
@@ -100,18 +103,17 @@ def nawah_cli():
 	)
 	parser_packages_add.set_defaults(
 		func=lambda args: _packages_add(
-			package_name=args.package, source=args.source, version=args.version
+			package_name=args.package_name, source=args.source, version=args.version
 		)
 	)
 	parser_packages_add.add_argument(
-		'package', help='Package identifier/URI/path to add to Nawah app'
+		'package_name', help='Package name to add to Nawah app'
 	)
 	parser_packages_add.add_argument(
 		'--source',
 		help='Package source [default https://gitlab.com/api/v4/projects/24381550/packages/pypi/simple]',
 		default='https://gitlab.com/api/v4/projects/24381550/packages/pypi/simple',
 	)
-
 	parser_packages_add.add_argument(
 		'--version',
 		help='Package version (repo tag name) to install [default latest]',
@@ -121,10 +123,13 @@ def nawah_cli():
 	parser_packages_rm = packages_subparser.add_parser(
 		'rm', help='Remove package from Nawah app'
 	)
-	parser_packages_rm.set_defaults(func=packages_rm)
+	parser_packages_rm.set_defaults(
+		func=lambda args: _packages_rm(package_name=args.package_name, confirm=not args.y)
+	)
 	parser_packages_rm.add_argument(
 		'package_name', help='Package name to remove from Nawah app'
 	)
+	parser_packages_rm.add_argument('-y', help='Skip confirmation', action='store_true')
 
 	parser_packages_audit = packages_subparser.add_parser(
 		'audit', help='Audit packages in Nawah app'
@@ -468,6 +473,8 @@ def packages_install(args: argparse.Namespace):
 
 # [DOC] The single underscore to indicate this is not being called directly by argsparser but through a proxy callable
 def _packages_add(*, package_name: str, source: str, version: str):
+	global TESTING_COMPATIBILITY
+	TESTING_COMPATIBILITY = True
 	logger.info('Checking packages conflicts.')
 	packages_path = os.path.realpath(os.path.join('.', 'packages'))
 	package_path = os.path.realpath(os.path.join('.', 'packages', package_name))
@@ -480,7 +487,18 @@ def _packages_add(*, package_name: str, source: str, version: str):
 
 	logger.info(f'Attempting to add package \'{package_name}\' from source \'{source}\'.')
 
-	pip_command = [sys.executable, '-m', 'pip', 'install', '--no-deps', '--target', packages_path, '--extra-index-url', source, package_name]
+	pip_command = [
+		sys.executable,
+		'-m',
+		'pip',
+		'install',
+		'--no-deps',
+		'--target',
+		packages_path,
+		'--extra-index-url',
+		source,
+		package_name,
+	]
 
 	pip_call = subprocess.call(pip_command)
 
@@ -488,12 +506,47 @@ def _packages_add(*, package_name: str, source: str, version: str):
 		logger.error('Last \'pip\' call failed. Check console for more details. Exiting.')
 		exit(1)
 
-	logger.info('Attempting to update \'nawah_packages.py\'.')
+	logger.info(
+		f'Package installed. Attempting to test compatibility with API Level {api_level}.'
+	)
 
-	sys.path.insert(0, os.path.realpath('.'))
-	sys.path.insert(0, package_path)
-	package = __import__('__init__')
-	import nawah_packages
+	try:
+		sys.path.insert(0, os.path.realpath('.'))
+		sys.path.insert(0, packages_path)
+		package = __import__(package_name)
+		import nawah_packages
+	except Exception:
+		logger.error('Failed to load package to test compatibility. Exiting.')
+		exit(1)
+
+	if package.config.api_level != api_level:
+		logger.error(
+			f'App is using API Level {api_level}, but package is on API Level {package.config.api_level}.'
+		)
+		_packages_rm(package_name=package_name, confirm=False)
+
+	logger.info(
+		f'Package is compatible with app API Level. Attempting to install package requirements.'
+	)
+
+	requirements_path = os.path.join(package_path, 'requirements.txt')
+
+	pip_command = [
+		sys.executable,
+		'-m',
+		'pip',
+		'install',
+		'--user',
+		'-r',
+		requirements_path,
+	]
+
+	pip_call = subprocess.call(pip_command)
+
+	if pip_call != 0:
+		logger.error('Last \'pip\' call failed. Check console for more details.')
+
+	logger.info('Attempting to update \'nawah_packages.py\'.')
 
 	packages = nawah_packages.packages
 	packages[package_name] = {'version': package.config.version, 'source': source}
@@ -507,11 +560,48 @@ def _packages_add(*, package_name: str, source: str, version: str):
 		'Remember to check package docs for any \'vars\' you are required to add to your app.'
 	)
 
+	TESTING_COMPATIBILITY = False
 
-def packages_rm(args: argparse.Namespace):
-	logger.warning(
-		'Due to compatibility issues you will be required to manually remove the package from \'packages\' and \'nawah_packages.py\'. Exiting.'
+
+def _packages_rm(*, package_name: str, confirm: bool = True):
+	if confirm:
+		confirmation = input(
+			f'Are you sure you want to remove package \'{package_name}\'? [yN] '
+		)
+		if not len(confirmation) or confirmation.lower()[0] != 'y':
+			logger.info(f'Cancelled removing package \'{package_name}\'. Exiting.')
+			exit(0)
+
+	global TESTING_COMPATIBILITY
+	TESTING_COMPATIBILITY = True
+
+	try:
+		packages_path = os.path.realpath(os.path.join('.', 'packages'))
+		package_path = os.path.realpath(os.path.join('.', 'packages', package_name))
+		sys.path.insert(0, packages_path)
+		package = __import__(package_name)
+	except Exception:
+		logger.error(
+			'Failed to load package to remove it Confirm packaga name is correct. Exiting.'
+		)
+		exit(1)
+
+	logger.warning(f'Removing package \'{package_name}\'...')
+	# [DOC] Handle removing files for Windows/NT when shutil.rmtree fails
+	# [REF] https://stackoverflow.com/a/28476782/2393762
+	def errorRemoveReadonly(func, path, exc):
+		excvalue = exc[1]
+		if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+			os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+			func(path)
+
+	shutil.rmtree(package_path, ignore_errors=False, onerror=errorRemoveReadonly)
+	shutil.rmtree(
+		os.path.join(packages_path, f'{package_name}-{package.config.version}.dist-info'),
+		ignore_errors=False,
+		onerror=errorRemoveReadonly,
 	)
+	logger.info(f'Package \'{package_name}\' removed. Exiting.')
 	exit(1)
 
 
