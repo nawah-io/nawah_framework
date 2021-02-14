@@ -100,9 +100,13 @@ class Analytic(BaseModule):
 				},
 			)
 			if analytic_results.status == 200:
-				return analytic_results
+				return (skip_events, env, query, doc, {'__results': analytic_results})
 			else:
-				raise analytic_results
+				raise self.exception(
+					status=analytic_results.status,
+					msg=analytic_results.msg,
+					args=analytic_results.args,
+				)
 		else:
 			doc = {
 				'event': doc['event'],

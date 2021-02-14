@@ -434,6 +434,10 @@ class BaseModule:
 			)
 			skip_events, env, query, doc, payload = pre_read
 
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
+
 		# [DOC] Check for cache workflow instructins
 		if self.cache:
 			results: Optional[Dict[str, Any]] = None
@@ -711,6 +715,10 @@ class BaseModule:
 			)
 			skip_events, env, query, doc, payload = pre_create
 
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
+
 		# [DOC] Expant dot-notated keys onto dicts
 		doc = expand_attr(doc=doc)
 		# [DOC] Deleted all extra doc args
@@ -979,6 +987,10 @@ class BaseModule:
 			)
 			skip_events, env, query, doc, payload = pre_update
 
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
+
 		# [DOC] Check presence and validate all attrs in doc args
 		try:
 			await validate_doc(
@@ -1237,6 +1249,10 @@ class BaseModule:
 			)
 			skip_events, env, query, doc, payload = pre_delete
 
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
+
 		# [TODO]: confirm all extns are not linked.
 		# [DOC] Pick delete strategy based on skip_events
 		strategy = DELETE_STRATEGY.SOFT_SKIP_SYS
@@ -1335,6 +1351,10 @@ class BaseModule:
 			)
 			skip_events, env, query, doc, payload = pre_create_file
 
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
+
 		# [TODO] Allow use dot-notated attr path in attr query attr
 		if (
 			query['attr'][0] not in self.attrs.keys()
@@ -1410,6 +1430,10 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_delete_file
+
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
 
 		# [TODO] Allow use dot-notated attr path in attr query attr
 		if (
@@ -1522,6 +1546,10 @@ class BaseModule:
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
 			skip_events, env, query, doc, payload = pre_retrieve_file
+
+			# [DOC] Check if __results are passed in payload
+			if '__results' in payload.keys():
+				return payload['__results']
 
 		attr_name = query['attr'][0]
 		filename = query['filename'][0]
