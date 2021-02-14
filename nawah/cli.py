@@ -90,18 +90,32 @@ def nawah_cli():
 		dest='packages_command',
 	)
 
+	parser_packages_install = packages_subparser.add_parser(
+		'install', help='Install Nawah app packages'
+	)
+	parser_packages_install.set_defaults(func=packages_install)
+
 	parser_packages_add = packages_subparser.add_parser(
 		'add', help='Add package to Nawah app'
 	)
-	parser_packages_add.set_defaults(func=packages_add)
+	parser_packages_add.set_defaults(
+		func=lambda args: _packages_add(
+			package_name=args.package, source=args.source, version=args.version
+		)
+	)
 	parser_packages_add.add_argument(
 		'package', help='Package identifier/URI/path to add to Nawah app'
 	)
 	parser_packages_add.add_argument(
 		'--source',
-		help='Package source [default nawah]',
-		choices=['nawah', 'local'],
-		default='nawah',
+		help='Package source [default https://gitlab.com/api/v4/projects/24381550/packages/pypi/simple]',
+		default='https://gitlab.com/api/v4/projects/24381550/packages/pypi/simple',
+	)
+
+	parser_packages_add.add_argument(
+		'--version',
+		help='Package version (repo tag name) to install [default latest]',
+		default='latest',
 	)
 
 	parser_packages_rm = packages_subparser.add_parser(
@@ -436,9 +450,26 @@ def test(args: argparse.Namespace):
 	launch(args=args, custom_launch='test')
 
 
-def packages_add(args: argparse.Namespace):
+def packages_install(args: argparse.Namespace):
+	logger.info('Checking \'nawah_packages.py\'.')
+
+	app_path = os.path.realpath('.')
+	sys.path.insert(0, app_path)
+	from nawah_packages import packages
+
+	for package_name in packages:
+		logger.info(f'Attempting to install package \'{package_name}\'')
+		_packages_add(
+			package_name=package_name,
+			source=packages[package_name]['source'],
+			version=packages[package_name]['version'],
+		)
+
+
+# [DOC] The single underscore to indicate this is not being called directly by argsparser but through a proxy callable
+def _packages_add(*, package_name: str, source: str, version: str):
 	logger.info('Checking packages conflicts.')
-	package_name = args.package
+	packages_path = os.path.realpath(os.path.join('.', 'packages'))
 	package_path = os.path.realpath(os.path.join('.', 'packages', package_name))
 
 	if os.path.exists(package_path):
@@ -447,64 +478,15 @@ def packages_add(args: argparse.Namespace):
 
 	api_level = '.'.join(__version__.split('.')[:2])
 
-	if args.source == 'nawah':
-		logger.info(f'Attempting to add package from Nawah source.')
-		package_root = f'{package_name}-APIv{api_level}'
-		package_url = (
-			f'https://github.com/nawah-io/{package_name}/archive/APIv{api_level}.tar.gz'
-		)
-		logger.info(f'Attempting to download package from: {package_url}')
-		# [REF] https://stackoverflow.com/a/7244263/2393762
-		package_archive, _ = urllib.request.urlretrieve(package_url)
-		logger.info('Package archive downloaded successfully!')
+	logger.info(f'Attempting to add package \'{package_name}\' from source \'{source}\'.')
 
-	elif args.source == 'local':
-		logger.info(f'Attempting to add package from local source: \'{args.package}\'.')
-		try:
-			source_path = os.path.realpath(args.package)
-			package_name = package_root = os.path.basename(source_path)
-			sys.path.insert(0, source_path)
-			package = __import__('__init__')
-		except:
-			logger.error('Failed to load package. Exiting.')
-			exit(1)
+	pip_command = [sys.executable, '-m', 'pip', 'install', '--no-deps', '--target', packages_path, '--extra-index-url', source, package_name]
 
-		logger.info(f'Attempting to check package API Level matching \'{api_level}\'.')
-		if package.config.api_level != api_level:
-			logger.error(
-				f'Package is using incompatible API Level \'{package.config.api_level}\'. Exiting.'
-			)
-			exit(1)
+	pip_call = subprocess.call(pip_command)
 
-		logger.info('Attempting to archive package from local source.')
-		temp_package_archive = tempfile.NamedTemporaryFile(mode='w')
-		# [REF] https://stackoverflow.com/a/17081026
-		# [REF] https://stackoverflow.com/a/16000963
-		with tarfile.open(temp_package_archive.name, 'w:gz') as archive:
-			archive.add(
-				source_path,
-				arcname=package_name,
-				filter=lambda member: None if '.git/' in member.name else member,
-			)
-		logger.info('Package archive created successfully!')
-		package_archive = temp_package_archive.name
-
-	def archive_members(
-		*, archive: tarfile.TarFile, root_path: str, search_path: str = None
-	):
-		l = len(f'{root_path}/')
-		for member in archive.getmembers():
-			if member.path.startswith(f'{root_path}/{search_path or ""}'):
-				member.path = member.path[l:]
-				yield member
-
-	logger.info('Attempting to extract package archive to Nawah app \'packages\'.')
-	with tarfile.open(name=package_archive, mode='r:gz') as archive:
-		archive.extractall(
-			path=package_path,
-			members=archive_members(archive=archive, root_path=package_root),
-		)
-	logger.info('Package archive extracted successfully!')
+	if pip_call != 0:
+		logger.error('Last \'pip\' call failed. Check console for more details. Exiting.')
+		exit(1)
 
 	logger.info('Attempting to update \'nawah_packages.py\'.')
 
@@ -514,11 +496,11 @@ def packages_add(args: argparse.Namespace):
 	import nawah_packages
 
 	packages = nawah_packages.packages
-	packages[package_name] = package.config.version
+	packages[package_name] = {'version': package.config.version, 'source': source}
 	with open(os.path.realpath(os.path.join('.', 'nawah_packages.py')), 'w') as f:
 		packages_string = ''
 		for package in packages.keys():
-			packages_string += f'    \'{package}\': \'{packages[package]}\',\n'
+			packages_string += f'    \'{package}\': {{\'version\': \'{packages[package]["version"]}\', \'source\': \'{source}\'}},\n'
 		f.write(f'packages = {{\n{packages_string}}}\n')
 	logger.info('Successfully updated \'nawah_packages.py\'.')
 	logger.info(
