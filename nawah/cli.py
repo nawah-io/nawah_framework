@@ -1,6 +1,6 @@
 from nawah import __version__
 
-from typing import Literal, Any
+from typing import Literal, Any, Optional
 
 import argparse, os, logging, datetime, sys, subprocess, asyncio, traceback, shutil, urllib.request, re, tarfile, string, random, tempfile, pkgutil, glob
 
@@ -103,7 +103,7 @@ def nawah_cli():
 	)
 	parser_packages_add.set_defaults(
 		func=lambda args: _packages_add(
-			package_name=args.package_name, source=args.source, version=args.version
+			package_name=args.package_name, source=args.source, version=args.version, auth=args.auth
 		)
 	)
 	parser_packages_add.add_argument(
@@ -118,6 +118,10 @@ def nawah_cli():
 		'--version',
 		help='Package version (repo tag name) to install [default latest]',
 		default='latest',
+	)
+	parser_packages_add.add_argument(
+		'--auth',
+		help='String representing colon-separated username and password combination to authorise the source',
 	)
 
 	parser_packages_rm = packages_subparser.add_parser(
@@ -228,7 +232,7 @@ def launch(
 			sys.path.append('.')
 			nawah_app = __import__('nawah_app')
 			app_config = nawah_app.config
-			Config._app_packages = nawah_app.packages
+			Config._app_packages = {k:v['version'] for k, v in nawah_app.packages.items()}
 		except ModuleNotFoundError:
 			logger.error(f'No \'nawah_app.py\' file found in CWD. Exiting.')
 			exit(1)
@@ -431,7 +435,7 @@ def launch(
 		# [TODO] Implement realm APP Config Attr checks
 		# [DOC] Process other app config attrs as PACKAGE_CONFIG
 		process_config(config=app_config)
-	except Exception:
+	except:
 		logger.error(
 			'An unexpected exception happened while attempting to process Nawah app. Exception details:'
 		)
@@ -468,11 +472,14 @@ def packages_install(args: argparse.Namespace):
 			package_name=package_name,
 			source=packages[package_name]['source'],
 			version=packages[package_name]['version'],
+			auth=packages[package_name]['auth'] if 'auth' in packages[package_name].keys() else None,
 		)
+	
+	logger.info('Done installing all packages!')
 
 
 # [DOC] The single underscore to indicate this is not being called directly by argsparser but through a proxy callable
-def _packages_add(*, package_name: str, source: str, version: str):
+def _packages_add(*, package_name: str, source: str, version: str, auth: Optional[str]):
 	global TESTING_COMPATIBILITY
 	TESTING_COMPATIBILITY = True
 	logger.info('Checking packages conflicts.')
@@ -485,6 +492,23 @@ def _packages_add(*, package_name: str, source: str, version: str):
 
 	api_level = '.'.join(__version__.split('.')[:2])
 
+	authed_source = source
+	try:
+		if auth:
+			logger.info(f'Detected \'auth\' configuration for source. Attempting to authorise source.')
+			auth_username, auth_password = auth.split(':')
+			if auth_username.startswith('__env.'):
+				logger.info(f'Detected environement variable for \'auth_username\' configuration. Setting it.')
+				auth_username = os.environ[auth_username.replace('__env.', '')]
+			if auth_password.startswith('__env.'):
+				logger.info(f'Detected environement variable for \'auth_password\' configuration. Setting it.')
+				auth_password = os.environ[auth_password.replace('__env.', '')]
+			authed_source = authed_source.split('://', 1)[0] + '://' + auth_username + ':' + auth_password + '@' + authed_source.split('://', 1)[1]
+			logger.info(f'Processed \'auth\' configuration successfully.')
+	except:
+		logger.error(f'Failed to process \'auth\' configuration. Exiting.')
+		exit(1)
+
 	logger.info(f'Attempting to add package \'{package_name}\' from source \'{source}\'.')
 
 	pip_command = [
@@ -496,7 +520,7 @@ def _packages_add(*, package_name: str, source: str, version: str):
 		'-d',
 		packages_path,
 		'--extra-index-url',
-		source,
+		authed_source,
 		package_name if version == 'latest' else f'{package_name}=={version}',
 		'--no-binary',
 		':all:'
@@ -537,7 +561,7 @@ def _packages_add(*, package_name: str, source: str, version: str):
 		sys.path.insert(0, packages_path)
 		package = __import__(package_name)
 		import nawah_packages
-	except Exception:
+	except:
 		logger.error('Failed to load package to test compatibility. Exiting.')
 		exit(1)
 
@@ -572,10 +596,15 @@ def _packages_add(*, package_name: str, source: str, version: str):
 
 	packages = nawah_packages.packages
 	packages[package_name] = {'version': package.config.version, 'source': source}
+	if auth:
+		packages[package_name]['auth'] = auth
 	with open(os.path.realpath(os.path.join('.', 'nawah_packages.py')), 'w') as f:
 		packages_string = ''
 		for package in packages.keys():
-			packages_string += f'    \'{package}\': {{\'version\': \'{packages[package]["version"]}\', \'source\': \'{source}\'}},\n'
+			package_auth_string = ''
+			if 'auth' in packages[package].keys():
+				package_auth_string = f', \'auth\': \'{packages[package]["auth"]}\''
+			packages_string += f'    \'{package}\': {{\'version\': \'{packages[package]["version"]}\', \'source\': \'{packages[package]["source"]}\'{package_auth_string}}},\n'
 		f.write(f'packages = {{\n{packages_string}}}\n')
 	logger.info('Successfully updated \'nawah_packages.py\'.')
 	logger.info(
@@ -602,9 +631,9 @@ def _packages_rm(*, package_name: str, confirm: bool = True):
 		package_path = os.path.realpath(os.path.join('.', 'packages', package_name))
 		sys.path.insert(0, packages_path)
 		package = __import__(package_name)
-	except Exception:
+	except:
 		logger.error(
-			'Failed to load package to remove it Confirm packaga name is correct. Exiting.'
+			'Failed to load package to remove it Confirm package name is correct. Exiting.'
 		)
 		exit(1)
 
@@ -685,7 +714,7 @@ def packages_audit(args: argparse.Namespace):
 		package
 		for package in req_packages
 		if package in added_packages.keys()
-		and added_packages[package] != req_packages[package]
+		and added_packages[package] != req_packages[package]['version']
 	]
 	if mismatch_packages:
 		logger.warning(
