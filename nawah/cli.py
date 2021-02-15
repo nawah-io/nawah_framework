@@ -515,15 +515,13 @@ def _packages_add(*, package_name: str, source: str, version: str, auth: Optiona
 		sys.executable,
 		'-m',
 		'pip',
-		'download',
+		'install',
 		'--no-deps',
-		'-d',
+		'--target',
 		packages_path,
 		'--extra-index-url',
 		authed_source,
 		package_name if version == 'latest' else f'{package_name}=={version}',
-		'--no-binary',
-		':all:'
 	]
 
 	pip_call = subprocess.call(pip_command)
@@ -531,26 +529,6 @@ def _packages_add(*, package_name: str, source: str, version: str, auth: Optiona
 	if pip_call != 0:
 		logger.error('Last \'pip\' call failed. Check console for more details. Exiting.')
 		exit(1)
-	
-	def archive_members(
-		*, archive: tarfile.TarFile, root_path: str, search_path: str = None
-	):
-		l = len(f'{root_path}/')
-		for member in archive.getmembers():
-			if member.path.startswith(f'{root_path}/{search_path or ""}'):
-				member.path = member.path[l:]
-				yield member
-
-	package_archive = glob.glob(os.path.join(packages_path, f'{package_name}-*.tar.gz'))[0]
-	archive_root = os.path.basename(package_archive).replace('.tar.gz', '')
-
-	with tarfile.open(name=package_archive, mode='r:gz') as archive:
-		archive.extractall(
-			path=package_path,
-			members=archive_members(archive=archive, root_path=f'{archive_root}/{package_name}'),
-		)
-	
-	os.remove(package_archive)
 
 	logger.info(
 		f'Package installed. Attempting to test compatibility with API Level {api_level}.'
