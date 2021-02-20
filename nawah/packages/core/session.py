@@ -444,7 +444,7 @@ class Session(BaseModule):
 			if type(permission_args[j]) == ATTR_MOD:
 				# [DOC] If attr is of type ATTR_MOD, call condition callable
 				if permission_args[j].condition(
-					skip_events=skip_events, env=env, query=query, doc=doc
+					skip_events=skip_events, env=env, query=query, doc=doc, scope=doc
 				):
 					# [DOC] If condition return is True, update attr value
 					if callable(permission_args[j].default):
