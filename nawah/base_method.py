@@ -91,24 +91,29 @@ class BaseMethod:
 					try:
 						if args_list_label == 'query' and arg[0] != '$':
 							for i in range(len(args[arg])):
-								if (
-									':' in arg
-									and type(args[arg][i]) == dict
-									and (arg_oper := arg.split(':')[1]) in args[arg][i].keys()
-								):
-									args[arg][i][arg_oper] = await validate_attr(
-										mode='create',
-										attr_name=arg,
-										attr_type=args_set[arg],
-										attr_val=args[arg][i][arg_oper],
-									)
-								else:
+								if ':' not in arg:
 									args[arg][i] = await validate_attr(
 										mode='create',
 										attr_name=arg,
 										attr_type=args_set[arg],
 										attr_val=args[arg][i],
 									)
+								else:
+									attr_val = args[arg][i]
+									if (arg_oper := arg.split(':')[1]) in ['*', '$eq']:
+										if type(args[arg][i]) and arg_oper in args[arg][i].keys():
+											attr_val = args[arg][i][arg_oper]
+									attr_val = await validate_attr(
+										mode='create',
+										attr_name=arg,
+										attr_type=args_set[arg],
+										attr_val=attr_val,
+									)
+									if arg_oper in ['*', '$eq']:
+										args[arg][i] = attr_val
+									else:
+										args[arg][i] = {arg_oper: attr_val}
+									
 						elif args_list_label == 'query' and arg[0] == '$':
 							args[arg] = await validate_attr(
 								mode='create',
