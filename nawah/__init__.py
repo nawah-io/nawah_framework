@@ -1,3 +1,3 @@
 # Ancora Imparo.
 
-__version__ = '1.1.0b9'
+__version__ = '1.1.0b10'
