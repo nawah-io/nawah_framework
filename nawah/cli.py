@@ -598,12 +598,13 @@ def _packages_add(*, package_name: str, source: str, version: str, auth: Optiona
 
 	logger.info('Attempting to update \'packages.json\'.')
 
-	with open(os.path.realpath(os.path.join('.', 'packages.json')), 'rw') as f:
+	with open(os.path.realpath(os.path.join('.', 'packages.json')), 'r') as f:
 		packages = json.loads(f.read())
 		packages[package_name] = {'version': package.config.version, 'source': source}
 		if auth:
 			packages[package_name]['auth'] = auth
-		breakpoint()
+
+	with open(os.path.realpath(os.path.join('.', 'packages.json')), 'w') as f:
 		f.write(json.dumps(packages))
 
 	logger.info('Successfully updated \'packages.json\'.')
