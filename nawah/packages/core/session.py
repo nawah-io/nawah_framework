@@ -1,4 +1,4 @@
-from nawah.base_module import BaseModule, BaseModel
+from nawah.base_module import BaseModule
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.enums import Event
@@ -14,6 +14,7 @@ from nawah.classes import (
 	NAWAH_QUERY,
 	ANALYTIC,
 	DictObj,
+	BaseModel,
 )
 from nawah.utils import extract_attr
 
@@ -449,7 +450,7 @@ class Session(BaseModule):
 					# [DOC] If condition return is True, update attr value
 					if callable(permission_args[j].default):
 						permission_args[j] = permission_args[j].default(
-							skip_events=skip_events, env=env, query=query, doc=doc
+							skip_events=skip_events, env=env, query=query, doc=doc, scope=doc
 						)
 						if type(permission_args[j]) == Exception:
 							raise permission_args[j]
