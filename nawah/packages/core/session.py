@@ -485,8 +485,8 @@ class Session(BaseModule):
 								env=env,
 								query=query,
 								doc=doc,
-								permission_args=[permission_args[j][oper]],
-							)[0]
+								permission_args={oper:permission_args[j][oper]},
+							)[oper]
 						# [DOC] Continue the iteration
 						continue
 				# [DOC] Child args, parse
@@ -510,10 +510,18 @@ class Session(BaseModule):
 				if permission_args[j] == '$__user':
 					permission_args[j] = user._id
 				elif permission_args[j].startswith('$__user.'):
-					permission_args[j] = extract_attr(
-						scope=user,
-						attr_path=permission_args[j].replace('$__user.', '$__'),
-					)
+					try:
+						permission_args[j] = extract_attr(
+							scope=user,
+							attr_path=permission_args[j].replace('$__user.', '$__'),
+						)
+					except Exception as e:
+						# [TODO] Log exception
+						# [DOC] For values that are expected to have a list value, return empty list
+						if type(permission_args) == dict and j in ['$in', '$nin']:
+							permission_args[j] = [None]
+						else:
+							permission_args[j] = None
 				elif permission_args[j] == '$__access':
 					permission_args[j] = {'$__user': user._id, '$__groups': user.groups}
 				elif permission_args[j] == '$__datetime':

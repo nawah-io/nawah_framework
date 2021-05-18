@@ -229,6 +229,16 @@ class User(BaseModule):
 		results = await self.update(
 			skip_events=[Event.PERM], env=env, query=query, doc={'groups': user.groups}
 		)
+		# [DOC] if update fails, return update results
+		if results.status != 200:
+			return results
+		# [DOC] Check if the updated User doc belongs to current session and update it
+		if env['session'].user._id == user._id:
+			user_results = await self.read_privileges(
+				skip_events=[Event.PERM], env=env, query=[{'_id': user._id}]
+			)
+			env['session']['user'] = user_results.args.docs[0]
+		
 		return results
 
 	async def delete_group(self, skip_events=[], env={}, query=[], doc={}):
@@ -261,4 +271,14 @@ class User(BaseModule):
 			query=[{'_id': query['_id'][0]}],
 			doc={'groups': {'$del_val': [query['group'][0]]}},
 		)
+		# [DOC] if update fails, return update results
+		if results.status != 200:
+			return results
+		# [DOC] Check if the updated User doc belongs to current session and update it
+		if env['session'].user._id == user._id:
+			user_results = await self.read_privileges(
+				skip_events=[Event.PERM], env=env, query=[{'_id': user._id}]
+			)
+			env['session']['user'] = user_results.args.docs[0]
+		
 		return results

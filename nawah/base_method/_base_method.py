@@ -245,7 +245,6 @@ class BaseMethod:
 				if type(permissions_check['query']) == dict:
 					permissions_check['query'] = [permissions_check['query']]
 				for i in range(len(permissions_check['query'])):
-					del_args = []
 					# [DOC] attempt to process query_set as nested-list (OR) even if it's dict
 					if type(permissions_check['query'][i]) == dict:
 						query_set_list = [permissions_check['query'][i]]
@@ -253,6 +252,7 @@ class BaseMethod:
 						query_set_list = permissions_check['query'][i]
 					# [DOC] loop over query_set_list, query_set
 					for query_set in query_set_list:
+						del_args = []
 						for attr in query_set.keys():
 							# [DOC] Flag attr for deletion if value is None
 							if query_set[attr] == None or type(query_set[attr]) == ATTR_MOD:
