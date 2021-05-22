@@ -264,7 +264,7 @@ async def update(
 									'if': {
 										'$eq': [
 											['$$this'],
-											[doc[attr]['$del_val']],
+											doc[attr]['$del_val'],
 										]
 									},
 									'then': [],
