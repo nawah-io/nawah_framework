@@ -1,10 +1,12 @@
 from nawah.config import Config
-from nawah.base_module import BaseModule
 from nawah.classes import SYS_DOC
 
-from typing import Dict, List, Any
+from typing import Dict, List, Any, TYPE_CHECKING
 
 import logging
+
+if TYPE_CHECKING:
+	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 
@@ -51,7 +53,7 @@ class Registry:
 	jobs: List[Dict[str, Any]] = Config.jobs
 
 	@staticmethod
-	def module(module: str) -> BaseModule:
+	def module(module: str) -> 'BaseModule':
 		try:
 			return Config.modules[module]
 		except KeyError:

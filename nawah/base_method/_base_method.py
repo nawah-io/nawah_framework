@@ -18,6 +18,8 @@ from nawah.classes import (
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
 
+from ._check_permissions import check_permissions, InvalidPermissionsExcpetion
+
 from asyncio import coroutine
 from aiohttp.web import WebSocketResponse
 from typing import (
@@ -113,7 +115,7 @@ class BaseMethod:
 										args[arg][i] = attr_val
 									else:
 										args[arg][i] = {arg_oper: attr_val}
-									
+
 						elif args_list_label == 'query' and arg[0] == '$':
 							args[arg] = await validate_attr(
 								mode='create',
@@ -220,16 +222,54 @@ class BaseMethod:
 				)
 
 		if Event.PERM not in skip_events and env['session']:
-			permissions_check = Config.modules['session'].check_permissions(
-				skip_events=skip_events,
-				env=env,
-				query=query,
-				doc=doc,
-				module=self.module,
-				permissions=self.permissions,
-			)
-			logger.debug(f'permissions_check: {permissions_check}.')
-			if permissions_check == False:
+			try:
+				permissions_check = check_permissions(
+					skip_events=skip_events,
+					env=env,
+					query=query,
+					doc=doc,
+					module=self.module,
+					permissions=self.permissions,
+				)
+				logger.debug(f'permissions_check: Pass.')
+			except Exception as e:
+				logger.debug(f'permissions_check: Fail.')
+				# [DOC] InvalidAttrException, usually raised by ATTR_MOD
+				if type(e) == InvalidAttrException:
+					return await self.return_results(
+						ws=env['ws'] if 'ws' in env.keys() else None,
+						results=DictObj(
+							{
+								'status': 400,
+								'msg': str(e),
+								'args': DictObj({'code': 'INVALID_ARGS'}),
+							}
+						),
+						call_id=call_id,
+					)
+				# [DOC] Any other exception, treat as server error
+				elif type(e) != InvalidPermissionsExcpetion:
+					logger.error(f'An error occurred. Details: {traceback.format_exc()}.')
+					tb = sys.exc_info()[2]
+					if tb is not None:
+						prev = tb
+						current = tb.tb_next
+						while current is not None:
+							prev = current
+							current = current.tb_next
+						logger.error(f'Scope variables: {JSONEncoder().encode(prev.tb_frame.f_locals)}')
+					return await self.return_results(
+						ws=env['ws'] if 'ws' in env.keys() else None,
+						results=DictObj(
+							{
+								'status': 500,
+								'msg': 'Unexpected error has occurred.',
+								'args': DictObj({'code': 'CORE_SERVER_ERROR'}),
+							}
+						),
+						call_id=call_id,
+					)
+				# [DOC] Regular InvalidPermissionsExcpetion failure
 				return await self.return_results(
 					ws=env['ws'] if 'ws' in env.keys() else None,
 					results=DictObj(

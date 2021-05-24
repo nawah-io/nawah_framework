@@ -14,6 +14,7 @@ nawah.egg-info/requires.txt
 nawah.egg-info/top_level.txt
 nawah/base_method/__init__.py
 nawah/base_method/_base_method.py
+nawah/base_method/_check_permissions.py
 nawah/base_method/py.typed
 nawah/base_module/__init__.py
 nawah/base_module/_base_module.py
