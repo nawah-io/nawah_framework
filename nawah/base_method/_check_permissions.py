@@ -1,6 +1,7 @@
 from nawah.registry import Registry
-from nawah.classes import NAWAH_QUERY, Query, NAWAH_DOC, PERM, ATTR_MOD
-from nawah.utils import extract_attr
+from nawah.classes import NAWAH_ENV, NAWAH_QUERY, Query, NAWAH_DOC, PERM, ATTR
+from nawah.utils import extract_attr, validate_attr, InvalidAttrException
+from nawah.enums import Event
 
 from typing import List, Dict, Union, Any, Iterable, TYPE_CHECKING
 
@@ -16,9 +17,9 @@ class InvalidPermissionsExcpetion(Exception):
 	pass
 
 
-def check_permissions(
-	skip_events: List[str],
-	env: Dict[str, Any],
+async def check_permissions(
+	skip_events: List[Event],
+	env: NAWAH_ENV,
 	query: Union[NAWAH_QUERY, Query],
 	doc: NAWAH_DOC,
 	module: 'BaseModule',
@@ -59,14 +60,14 @@ def check_permissions(
 				permission_pass = True
 
 		if permission_pass:
-			query = _parse_permission_args(
+			query = await _parse_permission_args(
 				skip_events=skip_events,
 				env=env,
 				query=query,
 				doc=doc,
 				permission_args=permission.query_mod,
 			)
-			doc = _parse_permission_args(
+			doc = await _parse_permission_args(
 				skip_events=skip_events,
 				env=env,
 				query=query,
@@ -78,9 +79,9 @@ def check_permissions(
 	raise InvalidPermissionsExcpetion()
 
 
-def _parse_permission_args(
+async def _parse_permission_args(
 	skip_events: List[str],
-	env: Dict[str, Any],
+	env: NAWAH_ENV,
 	query: Union[NAWAH_QUERY, Query],
 	doc: NAWAH_DOC,
 	permission_args: Any,
@@ -95,20 +96,35 @@ def _parse_permission_args(
 		args_iter = list(permission_args.keys())
 
 	for j in args_iter:
-		if type(permission_args[j]) == ATTR_MOD:
-			# [DOC] If attr is of type ATTR_MOD, call condition callable
-			if permission_args[j].condition(
-				skip_events=skip_events, env=env, query=query, doc=doc, scope=doc
-			):
-				# [DOC] If condition return is True, update attr value
-				if callable(permission_args[j].default):
-					permission_args[j] = permission_args[j].default(
-						skip_events=skip_events, env=env, query=query, doc=doc, scope=doc
+		if type(permission_args[j]) == ATTR:
+			try:
+				permission_args[j] = await validate_attr(
+					mode='create',
+					attr_name=j,
+					attr_type=permission_args[j],
+					attr_val=doc[j],
+					skip_events=[],
+					env=env,
+					query=query,
+					doc=doc,
+					scope=doc,
+				)
+			except InvalidAttrException as e:
+				raise e
+			except:
+				# [DOC] There is a chance doc[j] is invalid, so try to get the type in try..except
+				try:
+					raise InvalidAttrException(
+						attr_name=j,
+						attr_type=permission_args[j],
+						val_type=type(doc[j]),
 					)
-					if isinstance(permission_args[j], Exception):
-						raise permission_args[j]
-				else:
-					permission_args[j] = permission_args[j].default
+				except:
+					raise InvalidAttrException(
+						attr_name=j,
+						attr_type=permission_args[j],
+						val_type=None,
+					)
 		elif type(permission_args[j]) == dict:
 			# [DOC] Check opers
 			for oper in [
@@ -125,7 +141,7 @@ def _parse_permission_args(
 			]:
 				if oper in permission_args[j].keys():
 					if oper == '$bet':
-						permission_args[j]['$bet'] = _parse_permission_args(
+						permission_args[j]['$bet'] = await _parse_permission_args(
 							skip_events=skip_events,
 							env=env,
 							query=query,
@@ -133,17 +149,18 @@ def _parse_permission_args(
 							permission_args=permission_args[j]['$bet'],
 						)
 					else:
-						permission_args[j][oper] = _parse_permission_args(
+						permission_args[j][oper] = await _parse_permission_args(
 							skip_events=skip_events,
 							env=env,
 							query=query,
 							doc=doc,
 							permission_args={oper: permission_args[j][oper]},
-						)[oper]
+						)
+						permission_args[j][oper] = permission_args[j][oper][oper]
 					# [DOC] Continue the iteration
 					continue
 			# [DOC] Child args, parse
-			permission_args[j] = _parse_permission_args(
+			permission_args[j] = await _parse_permission_args(
 				skip_events=skip_events,
 				env=env,
 				query=query,
@@ -151,7 +168,7 @@ def _parse_permission_args(
 				permission_args=permission_args[j],
 			)
 		elif type(permission_args[j]) == list:
-			permission_args[j] = _parse_permission_args(
+			permission_args[j] = await _parse_permission_args(
 				skip_events=skip_events,
 				env=env,
 				query=query,

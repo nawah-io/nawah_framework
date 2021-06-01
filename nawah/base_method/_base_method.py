@@ -6,7 +6,6 @@ from nawah.classes import (
 	Query,
 	JSONEncoder,
 	ATTR,
-	ATTR_MOD,
 	NAWAH_EVENTS,
 	NAWAH_ENV,
 	NAWAH_DOC,
@@ -223,7 +222,7 @@ class BaseMethod:
 
 		if Event.PERM not in skip_events and env['session']:
 			try:
-				permissions_check = check_permissions(
+				permissions_check = await check_permissions(
 					skip_events=skip_events,
 					env=env,
 					query=query,
@@ -234,7 +233,7 @@ class BaseMethod:
 				logger.debug(f'permissions_check: Pass.')
 			except Exception as e:
 				logger.debug(f'permissions_check: Fail.')
-				# [DOC] InvalidAttrException, usually raised by ATTR_MOD
+				# [DOC] InvalidAttrException, usually raised by Attr Type TYPE
 				if type(e) == InvalidAttrException:
 					return await self.return_results(
 						ws=env['ws'] if 'ws' in env.keys() else None,
@@ -295,7 +294,8 @@ class BaseMethod:
 						del_args = []
 						for attr in query_set.keys():
 							# [DOC] Flag attr for deletion if value is None
-							if query_set[attr] == None or type(query_set[attr]) == ATTR_MOD:
+							# [TODO] Check why the condition included (or type(query_set[attr]) == ATTR_MOD:)
+							if query_set[attr] == None:
 								del_args.append(attr)
 						for attr in del_args:
 							del query_set[attr]
