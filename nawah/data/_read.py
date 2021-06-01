@@ -1,7 +1,7 @@
 from nawah.config import Config
 from nawah.enums import LOCALE_STRATEGY, Event
-from nawah.utils import extract_attr
-from nawah.classes import NAWAH_ENV, ATTR, Query, BaseModel, NAWAH_DOC, EXTN, ATTR_MOD
+from nawah.utils import extract_attr, InvalidAttrException
+from nawah.classes import NAWAH_ENV, ATTR, Query, BaseModel, NAWAH_DOC, EXTN
 from ._query import _compile_query
 
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -251,17 +251,24 @@ async def _extend_attr(
 						)
 
 	# [DOC] Attempt to extend the attr unto doc
-	if type(attr_type._extn) == ATTR_MOD:
+	if type(attr_type._extn) == ATTR:
 		attr_name = cast(str, attr_name)
 		scope = cast(Dict[str, Any], scope)
-		attr_type._extn = cast(ATTR_MOD, attr_type._extn)
-		# [DOC] Attr is having ATTR_MOD for _extn value, call the condition callable and attempt to resolve
-		if attr_type._extn.condition(
-			skip_events=[], env=env, query=[], doc=doc, scope=scope[attr_name]
-		):
-			extn_set = attr_type._extn.default(
-				skip_events=[], env=env, query=[], doc=doc, scope=scope[attr_name]
+		attr_type._extn = cast(ATTR, attr_type._extn)
+		# [DOC] Attr is having Attr Type TYPE (checked by BaseModule.initialise) for _extn value, resolve using the callable
+		try:
+			extn_set = await attr_type._extn._args['func'](
+				mode='create',
+				attr_name=attr_name,
+				attr_type=attr_type._extn,
+				attr_val=scope[attr_name],
+				skip_events=[],
+				env=env,
+				query=[],
+				doc=doc,
+				scope=scope,
 			)
+
 			if type(extn_set['__val']) == ObjectId:
 				scope[attr_name] = await _extend_doc(
 					env=env,
@@ -283,6 +290,10 @@ async def _extend_attr(
 					)
 					for extn_id in extn_set['__val']
 				]
+		except InvalidAttrException as e:
+			logger.debug(
+				f'Skipping extending attr \'{attr_name}\' due to \'InvalidAttrException\' by Attr Type TYPE.'
+			)
 
 	elif type(attr_type._extn) == EXTN:
 		attr_name = cast(str, attr_name)

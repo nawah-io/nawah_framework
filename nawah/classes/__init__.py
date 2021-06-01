@@ -12,7 +12,6 @@ from ._json_encoder import JSONEncoder
 from ._module import (
 	PERM,
 	EXTN,
-	ATTR_MOD,
 	METHOD,
 	CACHE,
 	CACHED_QUERY,

@@ -1,5 +1,5 @@
 from nawah.config import Config
-from nawah.classes import ATTR_MOD, EXTN
+from nawah.classes import EXTN
 
 from typing import Dict, List
 
@@ -9,6 +9,7 @@ logger = logging.getLogger('nawah')
 
 
 def generate_ref():
+	# [TODO] Update function to replace ATTR_MOD checks with Attr Type TYPE
 	# [DOC] Initialise _api_ref Config Attr
 	Config._api_ref = '# API Reference\n'
 	# [DOC] Iterate over packages in ascending order
@@ -37,15 +38,15 @@ def generate_ref():
 						or default_attr.startswith(f'{attr}.')
 						or default_attr.startswith(f'{attr}:')
 					):
-						if type(Config.modules[module].defaults[default_attr]) == ATTR_MOD:
-							attr_ref += f'  * Default [{default_attr}]:\n'
-							attr_ref += f'	* ATTR_MOD condition: `{extract_lambda_body(Config.modules[module].defaults[default_attr].condition)}`\n'
-							if callable(Config.modules[module].defaults[default_attr].default):
-								attr_ref += f'	* ATTR_MOD default: `{extract_lambda_body(Config.modules[module].defaults[default_attr].default)}`\n'
-							else:
-								attr_ref += f'	* ATTR_MOD default: {Config.modules[module].defaults[default_attr].default}\n'
-						else:
-							attr_ref += f'  * Default [{default_attr}]: {Config.modules[module].defaults[default_attr]}\n'
+						# if type(Config.modules[module].defaults[default_attr]) == ATTR_MOD:
+						# 	attr_ref += f'  * Default [{default_attr}]:\n'
+						# 	attr_ref += f'	* ATTR_MOD condition: `{extract_lambda_body(Config.modules[module].defaults[default_attr].condition)}`\n'
+						# 	if callable(Config.modules[module].defaults[default_attr].default):
+						# 		attr_ref += f'	* ATTR_MOD default: `{extract_lambda_body(Config.modules[module].defaults[default_attr].default)}`\n'
+						# 	else:
+						# 		attr_ref += f'	* ATTR_MOD default: {Config.modules[module].defaults[default_attr].default}\n'
+						# else:
+						attr_ref += f'  * Default [{default_attr}]: {Config.modules[module].defaults[default_attr]}\n'
 				Config._api_ref += attr_ref
 			if Config.modules[module].diff:
 				Config._api_ref += f'#### Attrs Diff: {Config.modules[module].diff}\n'

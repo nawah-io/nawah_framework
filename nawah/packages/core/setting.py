@@ -1,8 +1,55 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD, METHOD
+from nawah.classes import ATTR, PERM, EXTN, METHOD
 from nawah.utils import InvalidAttrException, validate_doc, generate_dynamic_attr
 from nawah.config import Config
+
+
+async def attr_extn_val(
+	*,
+	mode,
+	attr_name,
+	attr_type,
+	attr_val,
+	skip_events,
+	env,
+	query,
+	doc,
+	scope,
+):
+	if type(doc['val']) == dict and '__extn' in doc['val'].keys():
+		return {
+			'__extn': EXTN(
+				module=doc['val']['__extn']['__module'],
+				attrs=doc['val']['__extn']['__attrs'],
+				force=doc['val']['__extn']['__force'],
+			),
+			'__val': doc['val']['__extn']['__val'],
+		}
+
+	raise InvalidAttrException(
+		attr_name=attr_name, attr_type=attr_type, val_type=type(doc['val'])
+	)
+
+
+async def attr_query_mod_type(
+	*,
+	mode,
+	attr_name,
+	attr_type,
+	attr_val,
+	skip_events,
+	env,
+	query,
+	doc,
+	scope,
+):
+	if 'type' not in query or query['type'][0] == 'user_sys':
+		raise InvalidAttrException(
+			attr_name='type',
+			attr_type=ATTR.LITERAL(literal=['global', 'user']),
+			val_type=str,
+		)
 
 
 class Setting(BaseModule):
@@ -24,18 +71,7 @@ class Setting(BaseModule):
 	diff = True
 	unique_attrs = [('user', 'var', 'type')]
 	extns = {
-		'val': ATTR_MOD(
-			condition=lambda skip_events, env, query, doc, scope: type(scope) == dict
-			and '__extn' in scope.keys(),
-			default=lambda skip_events, env, query, doc, scope: {
-				'__extn': EXTN(
-					module=scope['__extn']['__module'],
-					attrs=scope['__extn']['__attrs'],
-					force=scope['__extn']['__force'],
-				),
-				'__val': scope['__extn']['__val'],
-			},
-		)
+		'val': ATTR.TYPE(type=attr_extn_val),
 	}
 	methods = {
 		'read': METHOD(
@@ -45,15 +81,7 @@ class Setting(BaseModule):
 					privilege='read',
 					query_mod={
 						'user': '$__user',
-						'type': ATTR_MOD(
-							condition=lambda skip_events, env, query, doc, scope: 'type' not in query
-							or query['type'][0] == 'user_sys',
-							default=lambda skip_events, env, query, doc, scope: InvalidAttrException(
-								attr_name='type',
-								attr_type=ATTR.LITERAL(literal=['global', 'user']),
-								val_type=str,
-							),
-						),
+						'type': ATTR.TYPE(type=attr_query_mod_type),
 						'$limit': 1,
 					},
 				),

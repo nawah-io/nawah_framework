@@ -5,7 +5,6 @@ from nawah.classes import (
 	PERM,
 	EXTN,
 	METHOD,
-	ATTR_MOD,
 	NAWAH_EVENTS,
 	NAWAH_ENV,
 	Query,

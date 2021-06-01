@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event, NAWAH_VALUES
-from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD, METHOD
+from nawah.classes import ATTR, PERM, EXTN, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.utils import validate_attr, encode_attr_type

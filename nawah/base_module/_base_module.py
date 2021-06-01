@@ -25,7 +25,6 @@ from nawah.classes import (
 	PERM,
 	EXTN,
 	METHOD,
-	ATTR_MOD,
 	CACHE,
 	CACHED_QUERY,
 	ANALYTIC,
@@ -61,12 +60,12 @@ class BaseModule:
 	collection: Optional[str]
 	proxy: Optional[str]
 	attrs: Dict[str, ATTR]
-	diff: Union[bool, ATTR_MOD]
-	create_draft: Union[bool, ATTR_MOD]
-	update_draft: Union[bool, ATTR_MOD]
+	diff: Union[bool, ATTR]
+	create_draft: Union[bool, ATTR]
+	update_draft: Union[bool, ATTR]
 	defaults: Dict[str, Any]
 	unique_attrs: List[Union[str, Tuple[str, ...]]]
-	extns: Dict[str, EXTN]
+	extns: Dict[str, Union[EXTN, ATTR]]
 	privileges: List[str]
 	methods: Dict[str, METHOD]
 	cache: List[CACHE]
@@ -182,11 +181,32 @@ class BaseModule:
 					f'Invalid Attr Type Arg for \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
 				)
 				exit(1)
-			# [DOC] Update default value
+			# [DOC] Check default for invalid types, update default value
 			for default in self.defaults.keys():
 				if (
 					default == attr or default.startswith(f'{attr}.') or default.startswith(f'{attr}:')
 				):
+					if type(self.defaults[default]) == ATTR:
+						if self.defaults[default]._type != 'TYPE':
+							logger.error(
+								f'Invalid Attr Type for default \'{default}\' of module \'{self.module_name}\'. Only Attr Type TYPE is allowed. Exiting.'
+							)
+							exit(1)
+						logger.debug(
+							f'Attempting to validate Attr Type of default \'{default}\' of module \'{self.module_name}\'.'
+						)
+						try:
+							ATTR.validate_type(attr_type=self.defaults[default])
+						except InvalidAttrTypeException as e:
+							logger.error(
+								f'Invalid Attr Type for default \'{default}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+							)
+							exit(1)
+						except InvalidAttrTypeArgException as e:
+							logger.error(
+								f'Invalid Attr Type Arg for default \'{default}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+							)
+							exit(1)
 					logger.debug(
 						f'Updating default value for attr \'{attr}\' to: \'{self.defaults[default]}\''
 					)
@@ -276,6 +296,7 @@ class BaseModule:
 						f'Invalid permissions set \'{permissions_set}\' of method \'{method}\' of module \'{self.module_name}\'. Exiting.'
 					)
 					exit(1)
+				permissions_set = cast(PERM, permissions_set)
 				# [DOC] Add default Doc Modifiers to prevent sys attrs from being modified
 				if method_name == 'update':
 					for attr in ['user', 'create_time']:
@@ -284,6 +305,30 @@ class BaseModule:
 						# [TODO] Assert this is behaving correctly
 						elif permissions_set.doc_mod[attr] == NAWAH_VALUES.ALLOW_MOD:
 							del permissions_set.doc_mod[attr]
+				# [DOC] Check invalid query_mod, doc_mod Attrs Types
+				for arg_set in ['query_mod', 'doc_mod']:
+					arg_set = cast(Literal['query_mod', 'doc_mod'], arg_set)
+					if getattr(permissions_set, arg_set):
+						permissions_arg_set: Dict[str, Any] = getattr(permissions_set, arg_set)
+						# [TODO] Develop method to iterate over complex query_mod. e.g. Addon.read
+						if False:
+							for attr in permissions_arg_set.keys():
+								if type(permissions_arg_set[attr]) == ATTR:
+									if permissions_arg_set[attr]._type != 'TYPE':
+										logger.error(
+											f'Invalid Attr Type for method {arg_set} \'{attr}\' of module \'{self.module_name}\'. Only Attr Type TYPE is allowed. Exiting.'
+										)
+										exit(1)
+									logger.debug(
+										f'Attempting to validate Attr Type method {arg_set} \'{attr}\' of module \'{self.module_name}\'.'
+									)
+									try:
+										ATTR.validate_type(attr_type=permissions_arg_set[attr])
+									except:
+										logger.error(
+											f'Invalid Attr Type method {arg_set} \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+										)
+										exit(1)
 			# [DOC] Check invalid query_args, doc_args types
 			for arg_set in ['query_args', 'doc_args']:
 				arg_set = cast(Literal['query_args', 'doc_args'], arg_set)
@@ -315,11 +360,88 @@ class BaseModule:
 			)
 		# [DOC] Check extns for invalid extended attrs
 		for attr in self.extns.keys():
-			if type(self.extns[attr]) not in [EXTN, ATTR_MOD]:
+			if type(self.extns[attr]) not in [EXTN, ATTR]:
 				logger.error(
 					f'Invalid extns attr \'{attr}\' of module \'{self.module_name}\'. Exiting.'
 				)
 				exit(1)
+			if type(self.extns[attr]) == ATTR:
+				self.extns[attr] = cast(ATTR, self.extns[attr])
+				if self.extns[attr]._type != 'TYPE':
+					logger.error(
+						f'Invalid Attr Type for extn \'{attr}\' of module \'{self.module_name}\'. Only Attr Type TYPE is allowed. Exiting.'
+					)
+					exit(1)
+				logger.debug(
+					f'Attempting to validate Attr Type of extn \'{attr}\' of module \'{self.module_name}\'.'
+				)
+				try:
+					ATTR.validate_type(attr_type=self.extns[attr])
+				except InvalidAttrTypeException as e:
+					logger.error(
+						f'Invalid Attr Type for extn \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+					)
+					exit(1)
+				except InvalidAttrTypeArgException as e:
+					logger.error(
+						f'Invalid Attr Type Arg for extn \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+					)
+					exit(1)
+
+		# [DOC] Check valid type, value for diff
+		if type(self.diff) not in [bool, ATTR]:
+			logger.error(f'Invalid diff for module \'{self.module_name}\'. Exiting.')
+			exit(1)
+		if type(self.diff) == ATTR:
+			self.diff = cast(ATTR, self.diff)
+			if self.diff._type != 'TYPE':
+				logger.error(
+					f'Invalid Attr Type for diff of module \'{self.module_name}\'. Only Attr Type TYPE is allowed. Exiting.'
+				)
+				exit(1)
+			logger.debug(
+				f'Attempting to validate Attr Type diff of module \'{self.module_name}\'.'
+			)
+			try:
+				ATTR.validate_type(attr_type=self.diff)
+			except InvalidAttrTypeException as e:
+				logger.error(
+					f'Invalid Attr Type for diff of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+				)
+				exit(1)
+			except InvalidAttrTypeArgException as e:
+				logger.error(
+					f'Invalid Attr Type Arg for diff of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+				)
+				exit(1)
+
+		# [DOC] Check valid types, values for create_draft, update_draft
+		for attr in ['create_draft', 'update_draft']:
+			if type(getattr(self, attr)) not in [bool, ATTR]:
+				logger.error(f'Invalid {attr} for module \'{self.module_name}\'. Exiting.')
+				exit(1)
+			if type(getattr(self, attr)) == ATTR:
+				if getattr(self, attr)._type != 'TYPE':
+					logger.error(
+						f'Invalid Attr Type for {attr} of module \'{self.module_name}\'. Only Attr Type TYPE is allowed. Exiting.'
+					)
+					exit(1)
+				logger.debug(
+					f'Attempting to validate Attr Type {attr} of module \'{self.module_name}\'.'
+				)
+				try:
+					ATTR.validate_type(attr_type=getattr(self, attr))
+				except InvalidAttrTypeException as e:
+					logger.error(
+						f'Invalid Attr Type for {attr} of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+					)
+					exit(1)
+				except InvalidAttrTypeArgException as e:
+					logger.error(
+						f'Invalid Attr Type Arg for {attr} of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
+					)
+					exit(1)
+
 		logger.debug(f'Initialised module {self.module_name}')
 
 	def status(
@@ -750,16 +872,28 @@ class BaseModule:
 						msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' doesn\'t support \'create_draft\'',
 						args={'code': 'NO_CREATE_DRAFT'},
 					)
-				if type(self.create_draft) == ATTR_MOD:
-					self.create_draft = cast(ATTR_MOD, self.create_draft)
-					if not self.create_draft.condition(
-						skip_events=skip_events, env=env, query=query, doc=doc, scope=None
-					):
+				if type(self.create_draft) == ATTR:
+					self.create_draft = cast(ATTR, self.create_draft)
+					# [DOC] Attr Type TYPE create_draft, call the funcion and catch InvalidAttrException
+					try:
+						await self.create_draft._args['func'](
+							mode='create',
+							attr_name='create_draft',
+							attr_type=self.create_draft,
+							attr_val=None,
+							skip_events=skip_events,
+							env=env,
+							query=query,
+							doc=doc,
+							scope=doc,
+						)
+					except:
 						raise self.exception(
 							status=400,
 							msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' \'create_draft\' failed.',
 							args={'code': 'NO_CREATE_DRAFT_CONDITION'},
 						)
+
 				mode = 'create_draft'
 
 			elif '__update_draft' in doc.keys() and (
@@ -776,16 +910,28 @@ class BaseModule:
 						msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' doesn\'t support \'update_draft\'',
 						args={'code': 'NO_UPDATE_DRAFT'},
 					)
-				if type(self.update_draft) == ATTR_MOD:
-					self.update_draft = cast(ATTR_MOD, self.update_draft)
-					if not self.update_draft.condition(
-						skip_events=skip_events, env=env, query=query, doc=doc, scope=None
-					):
+				if type(self.update_draft) == ATTR:
+					self.update_draft = cast(ATTR, self.update_draft)
+					# [DOC] Attr Type TYPE update_draft, call the funcion and catch InvalidAttrException
+					try:
+						await self.update_draft._args['func'](
+							mode='create',
+							attr_name='update_draft',
+							attr_type=self.update_draft,
+							attr_val=None,
+							skip_events=skip_events,
+							env=env,
+							query=query,
+							doc=doc,
+							scope=doc,
+						)
+					except:
 						raise self.exception(
 							status=400,
 							msg=f'Module \'{self.package_name.upper()}_{self.module_name.upper()}\' \'update_draft\' failed.',
 							args={'code': 'NO_UPDATE_DRAFT_CONDITION'},
 						)
+
 				mode = 'create_draft'
 			# [DOC] Check presence and validate all attrs in doc args
 			try:
@@ -1155,18 +1301,24 @@ class BaseModule:
 
 		# [DOC] If at least one doc updated, and module has diff enabled, and __DIFF__ not skipped:
 		if results['count'] and self.diff and Event.DIFF not in skip_events:
-			# [DOC] If diff is a ATTR_MOD, Check condition for valid diff case
-			if type(self.diff) == ATTR_MOD:
-				self.diff = cast(ATTR_MOD, self.diff)
-				if self.diff.condition(
-					skip_events=skip_events, env=env, query=query, doc=doc, scope=None
-				):
-					# [DOC] if condition passed, create Diff doc with default callable
+			if type(self.diff) == ATTR:
+				# [DOC] # [DOC] Attr Type TYPE diff, call the funcion and catch InvalidAttrException
+				self.diff = cast(ATTR, self.diff)
+				try:
+					await self.diff._args['func'](
+						mode='create',
+						attr_name='diff',
+						attr_type=self.diff,
+						attr_val=None,
+						skip_events=skip_events,
+						env=env,
+						query=query,
+						doc=doc,
+						scope=doc,
+					)
+
+					# [DOC] if function passes, create Diff doc with default callable
 					diff_vars = doc
-					if self.diff.default and callable(self.diff.default):
-						diff_vars = self.diff.default(
-							skip_events=skip_events, env=env, query=query, doc=doc, scope=None
-						)
 					diff_results = await Config.modules['diff'].create(
 						skip_events=[Event.PERM],
 						env=env,
@@ -1175,7 +1327,7 @@ class BaseModule:
 					)
 					if diff_results.status != 200:
 						logger.error(f'Failed to create Diff doc, results: {diff_results}')
-				else:
+				except:
 					logger.debug(f'Skipped Diff Workflow due to failed condition.')
 			else:
 				diff_results = await Config.modules['diff'].create(

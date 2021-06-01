@@ -8,8 +8,6 @@ from nawah.classes import (
 	EXTN,
 	METHOD,
 	Query,
-	ATTR_MOD,
-	Query,
 	NAWAH_DOC,
 	NAWAH_QUERY,
 	ANALYTIC,

@@ -1,6 +1,5 @@
 from typing import Dict, Any, Union, List, cast
 
-
 async def run_app():
 	from nawah.utils import (
 		import_modules,

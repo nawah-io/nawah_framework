@@ -183,7 +183,7 @@ def _compile_query_step(
 					and attr.split('.')[0] in attrs.keys()
 					and attrs[attr.split('.')[0]]._extn
 				):
-					# [TODO] Check if this works with EXTN as ATTR_MOD
+					# [TODO] Check if this works with EXTN as Attr Type TYPE
 					step_attr = attr.split('.')[1]
 					step_attrs: Dict[str, ATTR] = Config.modules[
 						attrs[attr.split('.')[0]]._extn.module

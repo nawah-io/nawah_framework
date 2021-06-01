@@ -7,7 +7,6 @@ from nawah.classes import (
 	NAWAH_QUERY,
 	Query,
 	NAWAH_DOC,
-	ATTR_MOD,
 	BaseModel,
 	DictObj,
 	ATTRS_TYPES_ARGS,
@@ -81,7 +80,7 @@ class InvalidAttrException(Exception):
 		logger.debug(f'InvalidAttrException: {str(self)}')
 
 	def __str__(self):
-		return f'Invalid attr \'{self.attr_name}\' of type \'{self.val_type}\' with required type \'{self.attr_type._type}\''
+		return f'Invalid attr \'{self.attr_name}\' of type \'{self.val_type}\' with required type \'{self.attr_type}\''
 
 
 class ConvertAttrException(Exception):
@@ -226,6 +225,7 @@ async def validate_dot_notated(
 async def validate_default(
 	*,
 	mode: Literal['create', 'create_draft', 'update'],
+	attr_name: str,
 	attr_type: ATTR,
 	attr_val: Any,
 	skip_events: NAWAH_EVENTS,
@@ -234,18 +234,23 @@ async def validate_default(
 	doc: NAWAH_DOC,
 	scope: NAWAH_DOC,
 ):
-	if mode == 'create' and type(attr_type._default) == ATTR_MOD:
-		attr_type._default = cast(ATTR_MOD, attr_type._default)
-		if attr_type._default.condition(
-			skip_events=skip_events, env=env, query=query, doc=doc, scope=scope
-		):
-			if callable(attr_type._default.default):
-				attr_val = attr_type._default.default(
-					skip_events=skip_events, env=env, query=query, doc=doc, scope=scope
-				)
-			else:
-				attr_val = attr_type._default.default
-			return copy.deepcopy(attr_val)
+	if (
+		mode == 'create'
+		and type(attr_type._default) == ATTR
+		and attr_type._default._type == 'TYPE'
+	):
+		attr_val = await attr_type._default._args['func'](
+			mode=mode,
+			attr_name=attr_name,
+			attr_type=attr_type,
+			attr_val=attr_val,
+			skip_events=skip_events,
+			env=env,
+			query=query,
+			doc=doc,
+			scope=scope,
+		)
+		return copy.deepcopy(attr_val)
 
 	elif attr_type._type == 'COUNTER':
 		counter_groups = re.findall(
@@ -317,6 +322,7 @@ async def validate_attr(
 	doc: NAWAH_DOC = None,
 	scope: NAWAH_DOC = None,
 ):
+	# [TODO] Test setting attr_name to reflect a path for nested attrs
 	try:
 		skip_events = cast(NAWAH_EVENTS, skip_events)
 		env = cast(NAWAH_ENV, env)
@@ -324,6 +330,7 @@ async def validate_attr(
 		doc = cast(NAWAH_DOC, doc)
 		return await validate_default(
 			mode=mode,
+			attr_name=attr_name,
 			attr_type=attr_type,
 			attr_val=attr_val,
 			skip_events=skip_events,
@@ -978,15 +985,35 @@ async def validate_attr(
 				)
 
 		elif attr_type._type == 'TYPE':
+			try:
+				attr_val = await attr_type._args['func'](
+					mode=mode,
+					attr_name=attr_name,
+					attr_type=attr_type,
+					attr_val=attr_val,
+					skip_events=skip_events,
+					env=env,
+					query=query,
+					doc=doc,
+					scope=attr_val,
+				)
+			except InvalidAttrException as e:
+				raise e
+			except:
+				raise InvalidAttrException(
+					attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val)
+				)
 			return return_valid_attr(
-				attr_val=Config.types[attr_type._args['type']](
-					attr_name=attr_name, attr_type=attr_type, attr_val=attr_val
-				),
+				attr_val=attr_val,
 				attr_oper=attr_oper,
 				attr_oper_args=attr_oper_args,
 			)
 
+	except InvalidAttrException as e:
+		# [DOC] Assign exception to a variable for later processing
+		validate_exception = e
 	except:
+		# [DOC] For any other exception, skip for now to raise
 		pass
 
 	if mode != 'create':
@@ -994,9 +1021,13 @@ async def validate_attr(
 	elif attr_type._default != NAWAH_VALUES.NONE_VALUE:
 		return attr_type._default
 	else:
-		raise InvalidAttrException(
-			attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val)
-		)
+		try:
+			# [DOC] Attempt to raise InvalidAttrException raised during validation
+			raise validate_exception
+		except:
+			raise InvalidAttrException(
+				attr_name=attr_name, attr_type=attr_type, val_type=type(attr_val)
+			)
 
 
 def return_valid_attr(
