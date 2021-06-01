@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union, List, cast
 
 
 async def run_app():
@@ -9,16 +9,17 @@ async def run_app():
 		InvalidAttrException,
 		ConvertAttrException,
 	)
-	from nawah.classes import JSONEncoder, DictObj, NAWAH_ENV
+	from nawah.classes import JSONEncoder, DictObj, NAWAH_ENV, BaseModel, IP_QUOTA, ATTR
 	from nawah.base_module import BaseModule
 	from nawah.enums import Event
 	from nawah.config import Config
-	from nawah.data import Data
+	from nawah import data as Data
 	from nawah.test import Test
 
 	from bson import ObjectId
 	from passlib.hash import pbkdf2_sha512
 	from requests_toolbelt.multipart import decoder
+	from multidict import MultiDict
 
 	import aiohttp.web, asyncio, nest_asyncio, traceback, jwt, argparse, json, re, urllib.parse, os, datetime, time, logging
 
@@ -45,9 +46,11 @@ async def run_app():
 						get_args = ''
 					if Config.realm:
 						get_args = get_args.replace('/{realm}', '')
-						get_routes.append(f'/{{realm}}/{module.module_name}/{method.method}{get_args}')
+						get_routes.append(
+							f'/{{realm}}/{module.module_name}/{method._callable.method}{get_args}'
+						)
 					else:
-						get_routes.append(f'/{module.module_name}/{method.method}{get_args}')
+						get_routes.append(f'/{module.module_name}/{method._callable.method}{get_args}')
 			elif method.post_method:
 				for post_args_set in method.query_args:
 					if post_args_set:
@@ -56,9 +59,11 @@ async def run_app():
 						post_args = ''
 					if Config.realm:
 						post_args = post_args.replace('/{realm}', '')
-						post_routes.append(f'/{{realm}}/{module.module_name}/{method.method}{post_args}')
+						post_routes.append(
+							f'/{{realm}}/{module.module_name}/{method._callable.method}{post_args}'
+						)
 					else:
-						post_routes.append(f'/{module.module_name}/{method.method}{post_args}')
+						post_routes.append(f'/{module.module_name}/{method._callable.method}{post_args}')
 
 	logger.debug(
 		'Loaded modules: %s',
@@ -75,18 +80,20 @@ async def run_app():
 	logger.debug(f'Generated get_routes: {get_routes}')
 	logger.debug(f'Generated post_routes: {post_routes}')
 
-	sessions: List[Dict[int, Any]] = []
-	ip_quota: Dict[str, Dict[str, Union[int, datetime.datetime]]] = {}
+	sessions: List[NAWAH_ENV] = []
+	ip_quota: Dict[str, IP_QUOTA] = {}
 
 	async def not_found_handler(request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', 'GET,POST'),
-			('Access-Control-Allow-Headers', 'Content-Type'),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', 'GET,POST'),
+				('Access-Control-Allow-Headers', 'Content-Type'),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 		return aiohttp.web.Response(
 			status=404,
 			headers=headers,
@@ -94,14 +101,16 @@ async def run_app():
 		)
 
 	async def not_allowed_handler(request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', '*'),
-			('Access-Control-Allow-Headers', 'Content-Type'),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', '*'),
+				('Access-Control-Allow-Headers', 'Content-Type'),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 		return aiohttp.web.Response(
 			status=405,
 			headers=headers,
@@ -109,14 +118,16 @@ async def run_app():
 		)
 
 	async def root_handler(request: aiohttp.web.Request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', 'GET'),
-			('Access-Control-Allow-Headers', 'Content-Type'),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', 'GET'),
+				('Access-Control-Allow-Headers', 'Content-Type'),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 		return aiohttp.web.Response(
 			status=200,
 			headers=headers,
@@ -130,17 +141,19 @@ async def run_app():
 		)
 
 	async def http_handler(request: aiohttp.web.Request):
-		headers = [
-			('Server', 'Nawah'),
-			('Powered-By', 'Nawah, https://nawah.masaar.com'),
-			('Access-Control-Allow-Origin', '*'),
-			('Access-Control-Allow-Methods', 'GET,POST,OPTIONS'),
-			(
-				'Access-Control-Allow-Headers',
-				'Content-Type,X-Auth-Bearer,X-Auth-Token,X-Auth-App',
-			),
-			('Access-Control-Expose-Headers', 'Content-Disposition'),
-		]
+		headers = MultiDict(
+			[
+				('Server', 'Nawah'),
+				('Powered-By', 'Nawah, https://nawah.masaar.com'),
+				('Access-Control-Allow-Origin', '*'),
+				('Access-Control-Allow-Methods', 'GET,POST,OPTIONS'),
+				(
+					'Access-Control-Allow-Headers',
+					'Content-Type,X-Auth-Bearer,X-Auth-Token,X-Auth-App',
+				),
+				('Access-Control-Expose-Headers', 'Content-Disposition'),
+			]
+		)
 
 		logger.debug(f'Received new {request.method} request: {request.match_info}')
 
@@ -173,7 +186,7 @@ async def run_app():
 					logger.warning(
 						f'Denying \'{request.method}\' request from \'{request.remote}\' for hitting IP quota.'
 					)
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=429,
 						headers=headers,
@@ -198,6 +211,7 @@ async def run_app():
 
 		# [DOC] Extract Args Sets based on request.method
 		args_sets = Config.modules[module].methods[method].query_args
+		args_sets = cast(List[Dict[str, ATTR]], args_sets)
 
 		# [DOC] Attempt to validate query as doc
 		for args_set in args_sets:
@@ -206,9 +220,11 @@ async def run_app():
 			) == len(args_set.keys()):
 				# [DOC] Check presence and validate all attrs in doc args
 				try:
-					await validate_doc(doc=request_args, attrs=args_set)
+					exception: Exception
+					await validate_doc(mode='create', doc=request_args, attrs=args_set)  # type: ignore
 				except InvalidAttrException as e:
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					exception = e
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=400,
 						headers=headers,
@@ -225,7 +241,8 @@ async def run_app():
 						.encode('utf-8'),
 					)
 				except ConvertAttrException as e:
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					exception = e
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=400,
 						headers=headers,
@@ -244,10 +261,9 @@ async def run_app():
 				break
 
 		conn = Data.create_conn()
-		env = {
+		env: NAWAH_ENV = {
 			'conn': conn,
 			'REMOTE_ADDR': request.remote,
-			'ws': None,
 			'client_app': '__public',
 		}
 
@@ -256,6 +272,7 @@ async def run_app():
 			env['HTTP_ORIGIN'] = request.headers['origin']
 		except:
 			env['HTTP_USER_AGENT'] = ''
+			env['HTTP_ORIGIN'] = ''
 		if Config.realm:
 			env['realm'] = request.url.parts[1].lower()
 
@@ -267,7 +284,7 @@ async def run_app():
 				or 'X-Auth-App' not in request.headers
 			):
 				logger.debug('Denying request due to missing \'X-Auth\' header.')
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				return aiohttp.web.Response(
 					status=400,
 					headers=headers,
@@ -285,11 +302,11 @@ async def run_app():
 				or (
 					Config.client_apps[request.headers['X-Auth-App']]['type'] == 'web'
 					and env['HTTP_ORIGIN']
-					not in Config.client_apps[request.headers['X-Auth-App']]['hosts']
+					not in Config.client_apps[request.headers['X-Auth-App']]['origin']
 				)
 			):
 				logger.debug('Denying request due to unauthorised client_app.')
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				return aiohttp.web.Response(
 					status=403,
 					headers=headers,
@@ -314,7 +331,7 @@ async def run_app():
 					],
 				)
 			except:
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				if Config.debug:
 					return aiohttp.web.Response(
 						status=500,
@@ -323,8 +340,8 @@ async def run_app():
 						.encode(
 							{
 								'status': 500,
-								'msg': f'Unexpected error has occurred [{str(e)}].',
-								'args': {'code': 'CORE_SERVER_ERROR', 'err': str(e)},
+								'msg': f'Unexpected error has occurred [{str(exception)}].',
+								'args': {'code': 'CORE_SERVER_ERROR', 'err': str(exception)},
 							}
 						)
 						.encode('utf-8'),
@@ -345,10 +362,11 @@ async def run_app():
 					)
 
 			if not session_results.args.count or not pbkdf2_sha512.verify(
-				request.headers['X-Auth-Token'], session_results.args.docs[0].token_hash
+				request.headers['X-Auth-Token'],
+				session_results.args.docs[0].token_hash,
 			):
 				logger.debug('Denying request due to missing failed Call Authorisation.')
-				headers.append(('Content-Type', 'application/json; charset=utf-8'))
+				headers['Content-Type'] = 'application/json; charset=utf-8'
 				return aiohttp.web.Response(
 					status=403,
 					headers=headers,
@@ -376,7 +394,7 @@ async def run_app():
 				)
 				logger.debug('Denying request due to fail to reauth.')
 				if session_results.status != 200:
-					headers.append(('Content-Type', 'application/json; charset=utf-8'))
+					headers['Content-Type'] = 'application/json; charset=utf-8'
 					return aiohttp.web.Response(
 						status=403,
 						headers=headers,
@@ -392,15 +410,19 @@ async def run_app():
 
 		env['session'] = session
 
-		doc = await request.content.read()
+		doc_content = await request.content.read()
 		try:
-			doc = json.loads(doc)
+			doc = json.loads(doc_content)
 		except:
 			try:
 				multipart_content_type = request.headers['Content-Type']
 				doc = {
-					part.headers[b'Content-Disposition'].decode('utf-8').replace('form-data; name=', '').replace('"', '').split(';')[0]: part.content
-					for part in decoder.MultipartDecoder(doc, multipart_content_type).parts
+					part.headers[b'Content-Disposition']
+					.decode('utf-8')
+					.replace('form-data; name=', '')
+					.replace('"', '')
+					.split(';')[0]: part.content
+					for part in decoder.MultipartDecoder(doc_content, multipart_content_type).parts
 				}
 			except Exception as e:
 				doc = {}
@@ -415,7 +437,7 @@ async def run_app():
 		if 'return' not in results.args or results.args['return'] == 'json':
 			if 'return' in results.args:
 				del results.args['return']
-			headers.append(('Content-Type', 'application/json; charset=utf-8'))
+			headers['Content-Type'] = 'application/json; charset=utf-8'
 			if results.status == 404:
 				return aiohttp.web.Response(
 					status=results.status,
@@ -433,10 +455,10 @@ async def run_app():
 		elif results.args['return'] == 'file':
 			del results.args['return']
 			expiry_time = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-			headers.append(('lastModified', str(results.args.docs[0].lastModified)))
-			headers.append(('Content-Type', results.args.docs[0].type))
-			headers.append(('Cache-Control', 'public, max-age=31536000'))
-			headers.append(('Expires', expiry_time.strftime('%a, %d %b %Y %H:%M:%S GMT')))
+			headers['lastModified'] = str(results.args.docs[0].lastModified)
+			headers['Content-Type'] = results.args.docs[0].type
+			headers['Cache-Control'] = 'public, max-age=31536000'
+			headers['Expires'] = expiry_time.strftime('%a, %d %b %Y %H:%M:%S GMT')
 			return aiohttp.web.Response(
 				status=results.status,
 				headers=headers,
@@ -444,10 +466,10 @@ async def run_app():
 			)
 		elif results.args['return'] == 'msg':
 			del results.args['return']
-			headers.append(('Content-Type', 'application/json; charset=utf-8'))
+			headers['Content-Type'] = 'application/json; charset=utf-8'
 			return aiohttp.web.Response(status=results.status, headers=headers, body=results.msg)
 
-		headers.append(('Content-Type', 'application/json; charset=utf-8'))
+		headers['Content-Type'] = 'application/json; charset=utf-8'
 		return aiohttp.web.Response(
 			status=405,
 			headers=headers,
@@ -460,16 +482,14 @@ async def run_app():
 		ws = aiohttp.web.WebSocketResponse()
 		await ws.prepare(request)
 
-		env = {
+		env: NAWAH_ENV = {
 			'id': len(sessions),
 			'conn': conn,
 			'REMOTE_ADDR': request.remote,
 			'ws': ws,
-			'session': None,
 			'watch_tasks': {},
 			'init': False,
 			'last_call': datetime.datetime.utcnow(),
-			'files': {},
 			'quota': {
 				'counter': Config.quota_anon_min,
 				'last_check': datetime.datetime.utcnow(),
@@ -593,7 +613,7 @@ async def run_app():
 				anon_user = Config.compile_anon_user()
 				anon_session = Config.compile_anon_session()
 				anon_session['user'] = DictObj(anon_user)
-				env['session'] = DictObj(anon_session)
+				env['session'] = BaseModel(anon_session)
 			res = json.loads(msg.data)
 			try:
 				res = jwt.decode(res['token'], env['session'].token, algorithms=['HS256'])
@@ -686,7 +706,7 @@ async def run_app():
 						or res['doc']['app'] not in Config.client_apps.keys()
 						or (
 							Config.client_apps[res['doc']['app']]['type'] == 'web'
-							and env['HTTP_ORIGIN'] not in Config.client_apps[res['doc']['app']]['hosts']
+							and env['HTTP_ORIGIN'] not in Config.client_apps[res['doc']['app']]['origin']
 						)
 					):
 						await env['ws'].send_str(
@@ -1036,63 +1056,30 @@ async def run_app():
 				# [DOC] Jobs Workflow
 				current_time = datetime.datetime.utcnow().isoformat()[:16]
 				logger.debug('Time to check for jobs!')
-				for job in Config.jobs:
-					logger.debug(f'Checking: {job}')
-					if 'disabled' in job.keys() and job['disabled']:
+				for job_name in Config.jobs:
+					job = Config.jobs[job_name]
+					logger.debug(f'Checking: {job_name}')
+					if job._disabled:
 						logger.debug('-Job is disabled. Skipping..')
 						continue
 					# [DOC] Check if job is scheduled for current_time
-					if current_time == job['next_time']:
+					if current_time == job._next_time:
 						logger.debug('-Job is due, running!')
 						# [DOC] Update job next_time
-						job['next_time'] = datetime.datetime.fromtimestamp(
-							job['schedule'].get_next(), datetime.timezone.utc
+						job._next_time = datetime.datetime.fromtimestamp(
+							job._cron_schedule.get_next(), datetime.timezone.utc
 						).isoformat()[:16]
-						if job['type'] == 'job':
-							logger.debug('-Type of job: job.')
-							job['job'](
-								env=Config._sys_env,
-								session=Config._sys_env,
-							)
-						elif job['type'] == 'call':
-							logger.debug('-Type of job: call.')
-							if 'auth' in job.keys():
-								logger.debug(f'-Detected job auth: {job["auth"]}')
-								session_results = Config.modules['session'].auth(
-									env=Config._sys_env,
-									query=[
-										{
-											job['auth']['var']: job['auth']['val'],
-											'hash': job['auth']['hash'],
-										}
-									],
-								)
-								if session_results.status != 200:
-									logger.warning('-Job auth failed. Skipping..')
-									continue
-								session = session_results.args.docs[0]
+						try:
+							job.job(env=Config._sys_env)
+						except Exception as e:
+							logger.error('Job \'{job_name}\' has failed with exception.')
+							logger.error('Exception details:')
+							logger.error(traceback.format_exc())
+							if job.prevent_disable:
+								logger.warning('-Detected job prevent_disable. Skipping disabling job..')
 							else:
-								session = Config._sys_env
-							job_results = Config.modules[job['module']].methods[job['method']](
-								skip_events=job['skip_events'],
-								env=Config._sys_env,
-								query=job['query'],
-								doc=job['doc'],
-							)
-							results_accepted = True
-							for measure in job['acceptance'].keys():
-								if job_results[measure] != job['acceptance'][measure]:
-									# [DOC] Job results are not accepted
-									results_accepted = False
-									break
-							if not results_accepted:
-								logger.warning(f'Job has failed: {job}.')
-								logger.warning(f'-Job results: {job_results}.')
-								if 'prevent_disable' not in job.keys() or job['prevent_disable'] != True:
-									logger.warning('-Disabling job.')
-									job['disabled'] = True
-								else:
-									logger.warning('-Detected job prevent_disable. Skipping disabling job..')
+								logger.warning('-Disabling job.')
+								job._disabled = True
 					else:
 						logger.debug('-Not yet due.')
 			except Exception:

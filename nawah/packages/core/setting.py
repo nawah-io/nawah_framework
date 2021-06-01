@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
+from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD, METHOD
 from nawah.utils import InvalidAttrException, validate_doc, generate_dynamic_attr
 from nawah.config import Config
 
@@ -38,17 +38,17 @@ class Setting(BaseModule):
 		)
 	}
 	methods = {
-		'read': {
-			'permissions': [
+		'read': METHOD(
+			permissions=[
 				PERM(privilege='admin', query_mod={'$limit': 1}),
 				PERM(
 					privilege='read',
 					query_mod={
 						'user': '$__user',
 						'type': ATTR_MOD(
-							condition=lambda skip_events, env, query, doc: 'type' not in query
+							condition=lambda skip_events, env, query, doc, scope: 'type' not in query
 							or query['type'][0] == 'user_sys',
-							default=lambda skip_events, env, query, doc: InvalidAttrException(
+							default=lambda skip_events, env, query, doc, scope: InvalidAttrException(
 								attr_name='type',
 								attr_type=ATTR.LITERAL(literal=['global', 'user']),
 								val_type=str,
@@ -58,7 +58,7 @@ class Setting(BaseModule):
 					},
 				),
 			],
-			'query_args': [
+			query_args=[
 				{
 					'_id': ATTR.ID(),
 					'type': ATTR.LITERAL(literal=['global', 'user', 'user_sys']),
@@ -73,15 +73,15 @@ class Setting(BaseModule):
 					'type': ATTR.LITERAL(literal=['user', 'user_sys']),
 				},
 			],
-		},
-		'create': {
-			'permissions': [
+		),
+		'create': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='create', doc_mod={'type': 'user'}),
 			]
-		},
-		'update': {
-			'permissions': [
+		),
+		'update': METHOD(
+			permissions=[
 				PERM(privilege='admin', query_mod={'$limit': 1}),
 				PERM(
 					privilege='update',
@@ -89,7 +89,7 @@ class Setting(BaseModule):
 					doc_mod={'var': None, 'val_type': None, 'type': None},
 				),
 			],
-			'query_args': [
+			query_args=[
 				{
 					'_id': ATTR.ID(),
 					'type': ATTR.LITERAL(literal=['global', 'user', 'user_sys']),
@@ -104,15 +104,15 @@ class Setting(BaseModule):
 					'type': ATTR.LITERAL(literal=['user', 'user_sys']),
 				},
 			],
-		},
-		'delete': {
-			'permissions': [PERM(privilege='admin', query_mod={'$limit': 1})],
-			'query_args': [{'_id': ATTR.ID()}, {'var': ATTR.STR()}],
-		},
-		'retrieve_file': {
-			'permissions': [PERM(privilege='*', query_mod={'type': 'global'})],
-			'get_method': True,
-		},
+		),
+		'delete': METHOD(
+			permissions=[PERM(privilege='admin', query_mod={'$limit': 1})],
+			query_args=[{'_id': ATTR.ID()}, {'var': ATTR.STR()}],
+		),
+		'retrieve_file': METHOD(
+			permissions=[PERM(privilege='*', query_mod={'type': 'global'})],
+			get_method=True,
+		),
 	}
 
 	async def on_create(self, results, skip_events, env, query, doc, payload):
@@ -127,7 +127,7 @@ class Setting(BaseModule):
 				val_attr = attr
 				break
 		else:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='Could not match doc with any of the required doc_args. Failed sets:[\'val\': Missing]',
 				args={'code': 'INVALID_DOC'},
@@ -135,18 +135,19 @@ class Setting(BaseModule):
 
 		setting_results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 		if not setting_results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400, msg='Invalid Setting doc', args={'code': 'INVALID_SETTING'}
 			)
+
 		setting = setting_results.args.docs[0]
 		# [DOC] Attempt to validate val against Setting val_type
 		try:
 			exception_raised: Exception = None
 			setting_val_type, _ = generate_dynamic_attr(dynamic_attr=setting.val_type)
 			await validate_doc(
+				mode='update',
 				doc=doc,
 				attrs={'val': setting_val_type},
-				allow_update=True,
 				skip_events=skip_events,
 				env=env,
 				query=query,
@@ -155,7 +156,7 @@ class Setting(BaseModule):
 			exception_raised = e
 
 		if exception_raised or doc[val_attr] == None:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'Invalid value for for Setting doc of type \'{type(doc[val_attr])}\' with required type \'{setting.val_type}\'',
 				args={'code': 'INVALID_ATTR'},
@@ -164,6 +165,7 @@ class Setting(BaseModule):
 		return (skip_events, env, query, doc, payload)
 
 	async def on_update(self, results, skip_events, env, query, doc, payload):
+		# [TODO] Update according to the changes of Doc Opers
 		try:
 			if (
 				query['type'][0] in ['user', 'user_sys']

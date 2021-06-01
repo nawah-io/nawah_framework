@@ -27,3 +27,4 @@ class LOCALE_STRATEGY(Enum):
 
 class NAWAH_VALUES(Enum):
 	NONE_VALUE = auto()
+	ALLOW_MOD = auto()

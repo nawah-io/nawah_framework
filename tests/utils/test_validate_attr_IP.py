@@ -11,7 +11,7 @@ async def test_validate_attr_IP_None():
 			attr_name='test_validate_attr_IP',
 			attr_type=ATTR.IP(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_IP_int():
 			attr_name='test_validate_attr_IP',
 			attr_type=ATTR.IP(),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -33,7 +33,7 @@ async def test_validate_attr_IP_str_invalid():
 			attr_name='test_validate_attr_IP',
 			attr_type=ATTR.IP(),
 			attr_val='str',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -43,7 +43,7 @@ async def test_validate_attr_IP_ip():
 		attr_name='test_validate_attr_IP',
 		attr_type=ATTR.IP(),
 		attr_val='127.0.0.1',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == '127.0.0.1'
 
@@ -54,7 +54,7 @@ async def test_validate_attr_IP_None_allow_none():
 		attr_name='test_validate_attr_IP',
 		attr_type=ATTR.IP(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -67,7 +67,7 @@ async def test_validate_attr_IP_default_None():
 		attr_name='test_validate_attr_IP',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_IP'
 
@@ -80,7 +80,7 @@ async def test_validate_attr_IP_default_int():
 		attr_name='test_validate_attr_IP',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_IP'
 
@@ -93,6 +93,6 @@ async def test_validate_attr_IP_default_int_allow_none():
 		attr_name='test_validate_attr_IP',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

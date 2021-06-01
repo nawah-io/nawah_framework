@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM
+from nawah.classes import ATTR, PERM, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.utils import extract_attr, validate_attr
@@ -22,12 +22,12 @@ class File(BaseModule):
 		),
 	}
 	methods = {
-		'read': {'permissions': [PERM(privilege='__sys')]},
-		'create': {
-			'permissions': [PERM(privilege='create')],
-			'post_method': True,
-		},
-		'delete': {'permissions': [PERM(privilege='__sys')]},
+		'read': METHOD(permissions=[PERM(privilege='__sys')]),
+		'create': METHOD(
+			permissions=[PERM(privilege='create')],
+			post_method=True,
+		),
+		'delete': METHOD(permissions=[PERM(privilege='__sys')]),
 	}
 
 	async def on_read(self, results, skip_events, env, query, doc, payload):
@@ -39,7 +39,7 @@ class File(BaseModule):
 
 	async def pre_create(self, skip_events, env, query, doc, payload):
 		if Config.file_upload_limit != -1 and len(doc['file']) > Config.file_upload_limit:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'File size is beyond allowed limit.',
 				args={
@@ -49,11 +49,12 @@ class File(BaseModule):
 				},
 			)
 		if (module := doc['__module'].decode('utf-8')) not in Config.modules.keys():
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'Invalid module \'{module}\'',
 				args={'code': 'INVALID_MODULE'},
 			)
+
 		try:
 			attr_type = extract_attr(
 				scope=Registry.module(module).attrs,
@@ -72,19 +73,21 @@ class File(BaseModule):
 				attr_val = doc['file']
 				if attr_type._type == 'LIST':
 					attr_val = [doc['file']]
-				await validate_attr(attr_name=attr, attr_type=attr_type, attr_val=attr_val)
+				await validate_attr(
+					mode='create', attr_name=attr, attr_type=attr_type, attr_val=attr_val
+				)
 			except:
-				return self.status(
+				raise self.exception(
 					status=400,
 					msg=f'Invalid file for \'{attr}\' of module \'{module}\'',
 					args={'code': 'INVALID_FILE'},
 				)
+
 		except:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg=f'Invalid attr \'{attr}\' of module \'{module}\'',
 				args={'code': 'INVALID_ATTR'},
 			)
 
 		return (skip_events, env, query, doc, payload)
-

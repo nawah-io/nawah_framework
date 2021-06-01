@@ -11,7 +11,7 @@ async def test_validate_attr_STR_None():
 			attr_name='test_validate_attr_STR',
 			attr_type=ATTR.STR(),
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -22,7 +22,7 @@ async def test_validate_attr_STR_int():
 			attr_name='test_validate_attr_STR',
 			attr_type=ATTR.STR(),
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -32,7 +32,7 @@ async def test_validate_attr_STR_str():
 		attr_name='test_validate_attr_STR',
 		attr_type=ATTR.STR(),
 		attr_val='test_validate_attr_STR',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_STR'
 
@@ -44,7 +44,7 @@ async def test_validate_attr_STR_pattern_str_invalid():
 			attr_name='test_validate_attr_STR',
 			attr_type=ATTR.STR(pattern=r'[a-z_]+'),
 			attr_val='test_validate_attr_STR',
-			allow_update=False,
+			mode='create',
 		)
 
 
@@ -54,7 +54,7 @@ async def test_validate_attr_STR_pattern_str():
 		attr_name='test_validate_attr_STR',
 		attr_type=ATTR.STR(pattern=r'[a-zA-Z_]+'),
 		attr_val='test_validate_attr_STR',
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_STR'
 
@@ -65,7 +65,7 @@ async def test_validate_attr_STR_None_allow_none():
 		attr_name='test_validate_attr_STR',
 		attr_type=ATTR.STR(),
 		attr_val=None,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None
 
@@ -78,7 +78,7 @@ async def test_validate_attr_STR_default_None():
 		attr_name='test_validate_attr_STR',
 		attr_type=attr_type,
 		attr_val=None,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_STR'
 
@@ -91,7 +91,7 @@ async def test_validate_attr_STR_default_int():
 		attr_name='test_validate_attr_STR',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=False,
+		mode='create',
 	)
 	assert attr_val == 'test_validate_attr_STR'
 
@@ -104,6 +104,6 @@ async def test_validate_attr_STR_default_int_allow_none():
 		attr_name='test_validate_attr_STR',
 		attr_type=attr_type,
 		attr_val=1,
-		allow_update=True,
+		mode='update',
 	)
 	assert attr_val == None

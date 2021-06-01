@@ -14,7 +14,7 @@ async def test_validate_attr_LOCALES_None(preserve_state):
 				attr_name='test_validate_attr_LOCALES',
 				attr_type=ATTR.LOCALES(),
 				attr_val=None,
-				allow_update=False,
+				mode='create',
 			)
 
 
@@ -28,7 +28,7 @@ async def test_validate_attr_LOCALES_str_invalid(preserve_state):
 				attr_name='test_validate_attr_LOCALES',
 				attr_type=ATTR.LOCALES(),
 				attr_val='ar',
-				allow_update=False,
+				mode='create',
 			)
 
 
@@ -41,7 +41,7 @@ async def test_validate_attr_LOCALES_locale(preserve_state):
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=ATTR.LOCALES(),
 			attr_val='en_AE',
-			allow_update=False,
+			mode='create',
 		)
 		assert attr_val == 'en_AE'
 
@@ -55,7 +55,7 @@ async def test_validate_attr_LOCALES_None_allow_none(preserve_state):
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=ATTR.LOCALES(),
 			attr_val=None,
-			allow_update=True,
+			mode='update',
 		)
 		assert attr_val == None
 
@@ -71,7 +71,7 @@ async def test_validate_attr_LOCALES_default_None(preserve_state):
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=attr_type,
 			attr_val=None,
-			allow_update=False,
+			mode='create',
 		)
 		assert attr_val == 'test_validate_attr_LOCALES'
 
@@ -87,7 +87,7 @@ async def test_validate_attr_LOCALES_default_int(preserve_state):
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=attr_type,
 			attr_val=1,
-			allow_update=False,
+			mode='create',
 		)
 		assert attr_val == 'test_validate_attr_LOCALES'
 
@@ -103,6 +103,6 @@ async def test_validate_attr_LOCALES_default_int_allow_none(preserve_state):
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=attr_type,
 			attr_val=1,
-			allow_update=True,
+			mode='update',
 		)
 		assert attr_val == None

@@ -1,9 +1,12 @@
 from nawah.config import Config
-from nawah.classes import NAWAH_MODULE
+from nawah.classes import SYS_DOC
 
-from typing import Dict, List, Any
+from typing import Dict, List, Any, TYPE_CHECKING
 
 import logging
+
+if TYPE_CHECKING:
+	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
 
@@ -46,11 +49,11 @@ class InvalidVarException(Exception):
 
 
 class Registry:
-	docs: List[Dict[str, Any]] = Config.docs
+	docs: List[SYS_DOC] = Config.docs
 	jobs: List[Dict[str, Any]] = Config.jobs
 
 	@staticmethod
-	def module(module: str) -> NAWAH_MODULE:
+	def module(module: str) -> 'BaseModule':
 		try:
 			return Config.modules[module]
 		except KeyError:

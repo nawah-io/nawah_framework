@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM, EXTN
+from nawah.classes import ATTR, PERM, EXTN, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 
@@ -26,18 +26,18 @@ class Realm(BaseModule):
 		),
 	}
 	methods = {
-		'read': {'permissions': [PERM(privilege='read')]},
-		'create': {'permissions': [PERM(privilege='create')]},
-		'update': {
-			'permissions': [
+		'read': METHOD(permissions=[PERM(privilege='read')]),
+		'create': METHOD(permissions=[PERM(privilege='create')]),
+		'update': METHOD(
+			permissions=[
 				PERM(privilege='update', doc_mod={'user': None, 'create_time': None})
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'delete': {
-			'permissions': [PERM(privilege='delete')],
-			'query_args': {'_id': ATTR.ID()},
-		},
+			query_args={'_id': ATTR.ID()},
+		),
+		'delete': METHOD(
+			permissions=[PERM(privilege='delete')],
+			query_args={'_id': ATTR.ID()},
+		),
 	}
 
 	async def pre_create(self, skip_events, env, query, doc, payload):

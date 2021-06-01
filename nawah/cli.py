@@ -1,16 +1,19 @@
 from nawah import __version__
 
-from typing import Literal, Any
+from typing import Dict, Literal, Any, Optional
 
-import argparse, os, logging, datetime, sys, subprocess, asyncio, traceback, shutil, urllib.request, re, tarfile, string, random, tempfile, pkgutil
+import argparse, os, logging, datetime, sys, subprocess, asyncio, traceback, shutil, urllib.request, re, tarfile, string, random, tempfile, pkgutil, glob
 
 logger = logging.getLogger('nawah')
 handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s  [%(levelname)s]  %(message)s')
+formatter = logging.Formatter('%(asctime)s [%(levelname)s]  %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 logger.setLevel(logging.INFO)
+
+# [DOC] Constatnt TESTING_COMPATIBILITY indicates whether package is loaded in testing compatibility mode
+TESTING_COMPATIBILITY = False
 
 
 def nawah_cli():
@@ -31,11 +34,6 @@ def nawah_cli():
 	subparsers = parser.add_subparsers(
 		title='Command', description='Nawah framework CLI command to run', dest='command'
 	)
-
-	parser_install = subparsers.add_parser(
-		'install_deps', help='Install dependencies of Nawah app'
-	)
-	parser_install.set_defaults(func=install_deps)
 
 	parser_launch = subparsers.add_parser('launch', help='Launch Nawah app')
 	parser_launch.set_defaults(func=launch)
@@ -90,27 +88,50 @@ def nawah_cli():
 		dest='packages_command',
 	)
 
+	parser_packages_install = packages_subparser.add_parser(
+		'install', help='Install Nawah app packages'
+	)
+	parser_packages_install.set_defaults(func=packages_install)
+
 	parser_packages_add = packages_subparser.add_parser(
 		'add', help='Add package to Nawah app'
 	)
-	parser_packages_add.set_defaults(func=packages_add)
+	parser_packages_add.set_defaults(
+		func=lambda args: _packages_add(
+			package_name=args.package_name,
+			source=args.source,
+			version=args.version,
+			auth=args.auth,
+		)
+	)
 	parser_packages_add.add_argument(
-		'package', help='Package identifier/URI/path to add to Nawah app'
+		'package_name', help='Package name to add to Nawah app'
 	)
 	parser_packages_add.add_argument(
 		'--source',
-		help='Package source [default nawah]',
-		choices=['nawah', 'local'],
-		default='nawah',
+		help='Package source [default https://gitlab.com/api/v4/projects/24381550/packages/pypi/simple]',
+		default='https://gitlab.com/api/v4/projects/24381550/packages/pypi/simple',
+	)
+	parser_packages_add.add_argument(
+		'--version',
+		help='Package version (repo tag name) to install [default latest]',
+		default='latest',
+	)
+	parser_packages_add.add_argument(
+		'--auth',
+		help='String representing colon-separated username and password combination to authorise the source',
 	)
 
 	parser_packages_rm = packages_subparser.add_parser(
 		'rm', help='Remove package from Nawah app'
 	)
-	parser_packages_rm.set_defaults(func=packages_rm)
+	parser_packages_rm.set_defaults(
+		func=lambda args: _packages_rm(package_name=args.package_name, confirm=not args.y)
+	)
 	parser_packages_rm.add_argument(
 		'package_name', help='Package name to remove from Nawah app'
 	)
+	parser_packages_rm.add_argument('-y', help='Skip confirmation', action='store_true')
 
 	parser_packages_audit = packages_subparser.add_parser(
 		'audit', help='Audit packages in Nawah app'
@@ -135,34 +156,6 @@ def nawah_cli():
 			args.func(args)
 	else:
 		parser.print_help()
-
-
-def install_deps(args: argparse.Namespace):
-	global sys, os, subprocess
-	# [DOC] Change logging level to debug
-	logger.setLevel(logging.DEBUG)
-	logger.debug('Beginning to install dependencies')
-	# [DOC] Create standard call command list
-	pip_command = [sys.executable, '-m', 'pip', 'install', '--user', '-r']
-
-	dirs = [
-		d
-		for d in os.listdir(os.path.join('.', 'packages'))
-		if os.path.isdir(os.path.join('.', 'packages', d))
-	]
-	# [DOC] Iterate over packages to find requirements.txt files
-	for package in dirs:
-		logger.debug(f'Checking package \'{package}\' for \'requirements.txt\' file.')
-		if os.path.exists(os.path.join('.', 'packages', package, 'requirements.txt')):
-			logger.debug(
-				'File \'requirements.txt\' found! Attempting to install package dependencies.'
-			)
-			pip_call = subprocess.call(
-				pip_command + [os.path.join('.', 'packages', package, 'requirements.txt')]
-			)
-			if pip_call != 0:
-				logger.error('Last \'pip\' call failed. Check console for more details. Exiting.')
-				exit(1)
 
 
 def launch(
@@ -203,13 +196,18 @@ def launch(
 		logger.setLevel(logging.DEBUG)
 
 	from nawah.app import run_app
+	import json
 
 	try:
 		try:
 			sys.path.append('.')
 			nawah_app = __import__('nawah_app')
 			app_config = nawah_app.config
-			Config._app_packages = nawah_app.packages
+
+			with open('packages.json') as f:
+				packages = json.loads(f.read())
+
+			Config._app_packages = {k: v['version'] for k, v in packages.items()}
 		except ModuleNotFoundError:
 			logger.error(f'No \'nawah_app.py\' file found in CWD. Exiting.')
 			exit(1)
@@ -320,7 +318,13 @@ def launch(
 						logger.info(
 							f'Setting \'port\' Config Attr to Env Variable \'{port_env_var}\' value \'{port}\'.'
 						)
-						Config.port = port
+						try:
+							Config.port = int(port)
+						except:
+							logger.error(
+								f'Env Variable \'{port_env_var}\' value \'{port}\' can\'t be converted to integer. Exiting.'
+							)
+							exit(1)
 					else:
 						logger.error(f'No value found for Env Variable \'{port_env_var}\'. Exiting.')
 						exit(1)
@@ -406,7 +410,7 @@ def launch(
 		# [TODO] Implement realm APP Config Attr checks
 		# [DOC] Process other app config attrs as PACKAGE_CONFIG
 		process_config(config=app_config)
-	except Exception:
+	except:
 		logger.error(
 			'An unexpected exception happened while attempting to process Nawah app. Exception details:'
 		)
@@ -421,7 +425,8 @@ def test(args: argparse.Namespace):
 	# [DOC] Update Config with Nawah framework CLI args
 	from nawah.config import Config
 
-	Config.test = args.test_name
+	Config.test = True
+	Config.test_name = args.test_name
 	Config.test_skip_flush = args.skip_flush
 	Config.test_force = args.force
 	Config.test_env = args.use_env
@@ -429,104 +434,232 @@ def test(args: argparse.Namespace):
 	launch(args=args, custom_launch='test')
 
 
-def packages_add(args: argparse.Namespace):
+def packages_install(args: argparse.Namespace):
+	import json
+
+	app_path = os.path.realpath('.')
+	sys.path.insert(0, app_path)
+
+	with open(os.path.join(app_path, 'packages.json')) as f:
+		packages = json.loads(f.read())
+
+	for package_name in packages:
+		logger.info(f'Attempting to install package \'{package_name}\'')
+		_packages_add(
+			package_name=package_name,
+			source=packages[package_name]['source'],
+			version=packages[package_name]['version'],
+			auth=packages[package_name]['auth']
+			if 'auth' in packages[package_name].keys()
+			else None,
+		)
+
+	logger.info('Done installing all packages!')
+
+
+# [DOC] The single underscore to indicate this is not being called directly by argsparser but through a proxy callable
+def _packages_add(*, package_name: str, source: str, version: str, auth: Optional[str]):
+	import json
+
+	global TESTING_COMPATIBILITY
+	TESTING_COMPATIBILITY = True
 	logger.info('Checking packages conflicts.')
-	package_name = args.package
+	app_path = os.path.realpath(os.path.join('.'))
+	packages_path = os.path.realpath(os.path.join('.', 'packages'))
 	package_path = os.path.realpath(os.path.join('.', 'packages', package_name))
 
-	if os.path.exists(package_path):
-		logger.error(f'Package \'{package_name}\' already exists in app. Exiting.')
-		exit(1)
+	with open(os.path.join(app_path, 'packages.json')) as f:
+		packages = json.loads(f.read())
 
 	api_level = '.'.join(__version__.split('.')[:2])
 
-	if args.source == 'nawah':
-		logger.info(f'Attempting to add package from Nawah source.')
-		package_root = f'{package_name}-APIv{api_level}'
-		package_url = (
-			f'https://github.com/nawah-io/{package_name}/archive/APIv{api_level}.tar.gz'
+	if os.path.exists(package_path):
+		logger.info(
+			f'Package \'{package_name}\' already exists in app. Attempting to test compatibility with API Level and version.'
 		)
-		logger.info(f'Attempting to download package from: {package_url}')
-		# [REF] https://stackoverflow.com/a/7244263/2393762
-		package_archive, _ = urllib.request.urlretrieve(package_url)
-		logger.info('Package archive downloaded successfully!')
-
-	elif args.source == 'local':
-		logger.info(f'Attempting to add package from local source: \'{args.package}\'.')
 		try:
-			source_path = os.path.realpath(args.package)
-			package_name = package_root = os.path.basename(source_path)
-			sys.path.insert(0, source_path)
-			package = __import__('__init__')
+			sys.path.insert(0, os.path.realpath('.'))
+			sys.path.insert(0, packages_path)
+			package = __import__(package_name)
 		except:
-			logger.error('Failed to load package. Exiting.')
+			logger.error('Failed to load package to test compatibility and version. Exiting.')
 			exit(1)
 
-		logger.info(f'Attempting to check package API Level matching \'{api_level}\'.')
 		if package.config.api_level != api_level:
 			logger.error(
-				f'Package is using incompatible API Level \'{package.config.api_level}\'. Exiting.'
+				f'App is using API Level {api_level}, but package is on API Level {package.config.api_level}. Exiting.'
 			)
 			exit(1)
 
-		logger.info('Attempting to archive package from local source.')
-		temp_package_archive = tempfile.NamedTemporaryFile(mode='w')
-		# [REF] https://stackoverflow.com/a/17081026
-		# [REF] https://stackoverflow.com/a/16000963
-		with tarfile.open(temp_package_archive.name, 'w:gz') as archive:
-			archive.add(
-				source_path,
-				arcname=package_name,
-				filter=lambda member: None if '.git/' in member.name else member,
+		logger.info(f'Package is compatible with app API Level. Attempting to check version.')
+
+		if package.config.version != (package_version := packages[package_name]['version']):
+			logger.error(
+				f'Package is on version {package.config.version}, but app requires version {package_version}. Exiting.'
 			)
-		logger.info('Package archive created successfully!')
-		package_archive = temp_package_archive.name
+			exit(1)
 
-	def archive_members(
-		*, archive: tarfile.TarFile, root_path: str, search_path: str = None
-	):
-		l = len(f'{root_path}/')
-		for member in archive.getmembers():
-			if member.path.startswith(f'{root_path}/{search_path or ""}'):
-				member.path = member.path[l:]
-				yield member
+		logger.info(f'Package is already installed with correct version.')
 
-	logger.info('Attempting to extract package archive to Nawah app \'packages\'.')
-	with tarfile.open(name=package_archive, mode='r:gz') as archive:
-		archive.extractall(
-			path=package_path,
-			members=archive_members(archive=archive, root_path=package_root),
+		TESTING_COMPATIBILITY = False
+
+		return
+
+	authed_source = source
+	try:
+		if auth:
+			logger.info(
+				f'Detected \'auth\' configuration for source. Attempting to authorise source.'
+			)
+			auth_username, auth_password = auth.split(':')
+			if auth_username.startswith('__env.'):
+				logger.info(
+					f'Detected environement variable for \'auth_username\' configuration. Setting it.'
+				)
+				auth_username = os.environ[auth_username.replace('__env.', '')]
+			if auth_password.startswith('__env.'):
+				logger.info(
+					f'Detected environement variable for \'auth_password\' configuration. Setting it.'
+				)
+				auth_password = os.environ[auth_password.replace('__env.', '')]
+			authed_source = (
+				authed_source.split('://', 1)[0]
+				+ '://'
+				+ auth_username
+				+ ':'
+				+ auth_password
+				+ '@'
+				+ authed_source.split('://', 1)[1]
+			)
+			logger.info(f'Processed \'auth\' configuration successfully.')
+	except:
+		logger.error(f'Failed to process \'auth\' configuration. Exiting.')
+		exit(1)
+
+	logger.info(f'Attempting to add package \'{package_name}\' from source \'{source}\'.')
+
+	pip_command = [
+		sys.executable,
+		'-m',
+		'pip',
+		'install',
+		'--no-deps',
+		'--target',
+		packages_path,
+		'--extra-index-url',
+		authed_source,
+		package_name if version == 'latest' else f'{package_name}=={version}',
+	]
+
+	pip_call = subprocess.call(pip_command)
+
+	if pip_call != 0:
+		logger.error('Last \'pip\' call failed. Check console for more details. Exiting.')
+		exit(1)
+
+	logger.info(
+		f'Package installed. Attempting to test compatibility with API Level {api_level}.'
+	)
+
+	try:
+		sys.path.insert(0, os.path.realpath('.'))
+		sys.path.insert(0, packages_path)
+		package = __import__(package_name)
+	except:
+		logger.error('Failed to load package to test compatibility. Exiting.')
+		exit(1)
+
+	if package.config.api_level != api_level:
+		logger.error(
+			f'App is using API Level {api_level}, but package is on API Level {package.config.api_level}.'
 		)
-	logger.info('Package archive extracted successfully!')
+		_packages_rm(package_name=package_name, confirm=False)
 
-	logger.info('Attempting to update \'nawah_packages.py\'.')
+	logger.info(
+		f'Package is compatible with app API Level. Attempting to install package requirements.'
+	)
 
-	sys.path.insert(0, os.path.realpath('.'))
-	sys.path.insert(0, package_path)
-	package = __import__('__init__')
-	import nawah_packages
+	requirements_path = os.path.join(package_path, 'requirements.txt')
 
-	packages = nawah_packages.packages
-	packages[package_name] = package.config.version
-	with open(os.path.realpath(os.path.join('.', 'nawah_packages.py')), 'w') as f:
-		packages_string = ''
-		for package in packages.keys():
-			packages_string += f'    \'{package}\': \'{packages[package]}\',\n'
-		f.write(f'packages = {{\n{packages_string}}}\n')
-	logger.info('Successfully updated \'nawah_packages.py\'.')
+	pip_command = [
+		sys.executable,
+		'-m',
+		'pip',
+		'install',
+		'--user',
+		'-r',
+		requirements_path,
+	]
+
+	pip_call = subprocess.call(pip_command)
+
+	if pip_call != 0:
+		logger.error('Last \'pip\' call failed. Check console for more details.')
+
+	logger.info('Attempting to update \'packages.json\'.')
+
+	with open(os.path.realpath(os.path.join('.', 'packages.json')), 'r') as f:
+		packages = json.loads(f.read())
+		packages[package_name] = {'version': package.config.version, 'source': source}
+		if auth:
+			packages[package_name]['auth'] = auth
+
+	with open(os.path.realpath(os.path.join('.', 'packages.json')), 'w') as f:
+		f.write(json.dumps(packages))
+
+	logger.info('Successfully updated \'packages.json\'.')
 	logger.info(
 		'Remember to check package docs for any \'vars\' you are required to add to your app.'
 	)
 
+	TESTING_COMPATIBILITY = False
 
-def packages_rm(args: argparse.Namespace):
-	logger.warning(
-		'Due to compatibility issues you will be required to manually remove the package from \'packages\' and \'nawah_packages.py\'. Exiting.'
+
+def _packages_rm(*, package_name: str, confirm: bool = True):
+	if confirm:
+		confirmation = input(
+			f'Are you sure you want to remove package \'{package_name}\'? [yN] '
+		)
+		if not len(confirmation) or confirmation.lower()[0] != 'y':
+			logger.info(f'Cancelled removing package \'{package_name}\'. Exiting.')
+			exit(0)
+
+	global TESTING_COMPATIBILITY
+	TESTING_COMPATIBILITY = True
+
+	try:
+		packages_path = os.path.realpath(os.path.join('.', 'packages'))
+		package_path = os.path.realpath(os.path.join('.', 'packages', package_name))
+		sys.path.insert(0, packages_path)
+		package = __import__(package_name)
+	except:
+		logger.error(
+			'Failed to load package to remove it Confirm package name is correct. Exiting.'
+		)
+		exit(1)
+
+	logger.warning(f'Removing package \'{package_name}\'...')
+	# [DOC] Handle removing files for Windows/NT when shutil.rmtree fails
+	# [REF] https://stackoverflow.com/a/28476782/2393762
+	def errorRemoveReadonly(func, path, exc):
+		excvalue = exc[1]
+		if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+			os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+			func(path)
+
+	shutil.rmtree(package_path, ignore_errors=False, onerror=errorRemoveReadonly)
+	shutil.rmtree(
+		os.path.join(packages_path, f'{package_name}-{package.config.version}.dist-info'),
+		ignore_errors=False,
+		onerror=errorRemoveReadonly,
 	)
+	logger.info(f'Package \'{package_name}\' removed. Exiting.')
 	exit(1)
 
 
 def packages_audit(args: argparse.Namespace):
+	import json
+
 	logger.info(
 		'Attempting to audit packages in \'nawah_pacakges.py\' against packages added to \'packages\' folder.'
 	)
@@ -535,12 +668,14 @@ def packages_audit(args: argparse.Namespace):
 	packages_path = os.path.realpath(os.path.join('.', 'packages'))
 	sys.path.insert(0, app_path)
 	sys.path.append(packages_path)
-	import nawah_app, nawah_packages
+	import nawah_app
 
-	req_packages = nawah_packages.packages
+	with open(os.path.join(app_path, 'packages.json')) as f:
+		req_packages: Dict[str, Any] = json.loads(f.read())
+
 	logger.info('Packages in \'nawah_pacakges.py\' are:')
-	for package in req_packages.keys():
-		logger.info(f'- {package}: {req_packages[package]}')
+	for package_name in req_packages.keys():
+		logger.info(f'- {package_name}: {req_packages[package_name]}')
 
 	logger.info('Attempting to check packages added in \'packages\'.')
 	added_packages = {}
@@ -584,7 +719,7 @@ def packages_audit(args: argparse.Namespace):
 		package
 		for package in req_packages
 		if package in added_packages.keys()
-		and added_packages[package] != req_packages[package]
+		and added_packages[package] != req_packages[package]['version']
 	]
 	if mismatch_packages:
 		logger.warning(
@@ -595,7 +730,7 @@ def packages_audit(args: argparse.Namespace):
 				f'- {package} requires version \'{req_packages[package]}\' but \'{added_packages[package]}\' is added'
 			)
 	else:
-		logger.info('Great! Your app is not having any extra package.')
+		logger.info('Great! Your app is not having any version-mismatching package.')
 
 
 def generate_ref(args: argparse.Namespace):

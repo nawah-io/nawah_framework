@@ -1,6 +1,6 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event, NAWAH_VALUES
-from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD
+from nawah.classes import ATTR, PERM, EXTN, ATTR_MOD, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.utils import validate_attr, encode_attr_type
@@ -38,15 +38,15 @@ class User(BaseModule):
 	defaults = {'login_time': None, 'status': 'active', 'groups': [], 'privileges': {}}
 	unique_attrs = []
 	methods = {
-		'read': {
-			'permissions': [
+		'read': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='read', query_mod={'_id': '$__user'}),
 			]
-		},
-		'create': {'permissions': [PERM(privilege='admin')]},
-		'update': {
-			'permissions': [
+		),
+		'create': METHOD(permissions=[PERM(privilege='admin')]),
+		'update': METHOD(
+			permissions=[
 				PERM(privilege='admin', doc_mod={'groups': None}),
 				PERM(
 					privilege='update',
@@ -54,34 +54,34 @@ class User(BaseModule):
 					doc_mod={'groups': None, 'privileges': None},
 				),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'delete': {
-			'permissions': [
+			query_args={'_id': ATTR.ID()},
+		),
+		'delete': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='delete', query_mod={'_id': '$__user'}),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'read_privileges': {
-			'permissions': [
+			query_args={'_id': ATTR.ID()},
+		),
+		'read_privileges': METHOD(
+			permissions=[
 				PERM(privilege='admin'),
 				PERM(privilege='read', query_mod={'_id': '$__user'}),
 			],
-			'query_args': {'_id': ATTR.ID()},
-		},
-		'add_group': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'_id': ATTR.ID()},
-			'doc_args': [{'group': ATTR.ID()}, {'group': ATTR.LIST(list=[ATTR.ID()])}],
-		},
-		'delete_group': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'_id': ATTR.ID(), 'group': ATTR.ID()},
-		},
-		'retrieve_file': {'permissions': [PERM(privilege='__sys')], 'get_method': True},
-		'create_file': {'permissions': [PERM(privilege='__sys')]},
-		'delete_file': {'permissions': [PERM(privilege='__sys')]},
+			query_args={'_id': ATTR.ID()},
+		),
+		'add_group': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'_id': ATTR.ID()},
+			doc_args=[{'group': ATTR.ID()}, {'group': ATTR.LIST(list=[ATTR.ID()])}],
+		),
+		'delete_group': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'_id': ATTR.ID(), 'group': ATTR.ID()},
+		),
+		'retrieve_file': METHOD(permissions=[PERM(privilege='__sys')], get_method=True),
+		'create_file': METHOD(permissions=[PERM(privilege='__sys')]),
+		'delete_file': METHOD(permissions=[PERM(privilege='__sys')]),
 	}
 
 	async def on_read(self, results, skip_events, env, query, doc, payload):
@@ -126,24 +126,27 @@ class User(BaseModule):
 				if attr in doc.keys():
 					try:
 						await validate_attr(
+							mode='create',
 							attr_name=attr,
 							attr_type=Config.user_settings[attr]['val_type'],
 							attr_val=doc[attr],
 						)
 						user_settings[attr] = doc[attr]
 					except:
-						return self.status(
+						raise self.exception(
 							status=400,
 							msg=f'Invalid settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
 							args={'code': 'INVALID_ATTR'},
 						)
+
 				else:
 					if Config.user_settings[attr]['default'] == NAWAH_VALUES.NONE_VALUE:
-						return self.status(
+						raise self.exception(
 							status=400,
 							msg=f'Missing settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
 							args={'code': 'MISSING_ATTR'},
 						)
+
 					else:
 						user_settings[attr] = copy.deepcopy(Config.user_settings[attr]['default'])
 		payload['user_settings'] = user_settings
@@ -173,7 +176,9 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
+			raise self.exception(
+				status=400, msg='User is invalid.', args={'code': 'INVALID_USER'}
+			)
 		user = results.args.docs[0]
 		for group in user.groups:
 			group_results = await Registry.module('group').read(
@@ -206,17 +211,19 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': doc['group']}]
 		)
 		if not results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400, msg='Group is invalid.', args={'code': 'INVALID_GROUP'}
 			)
 		# [DOC] Get user details
 		results = await self.read(skip_events=[Event.PERM], env=env, query=query)
 		if not results.args.count:
-			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
+			raise self.exception(
+				status=400, msg='User is invalid.', args={'code': 'INVALID_USER'}
+			)
 		user = results.args.docs[0]
 		# [DOC] Confirm group was not added before
 		if doc['group'] in user.groups:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='User is already a member of the group.',
 				args={'code': 'GROUP_ADDED'},
@@ -226,6 +233,16 @@ class User(BaseModule):
 		results = await self.update(
 			skip_events=[Event.PERM], env=env, query=query, doc={'groups': user.groups}
 		)
+		# [DOC] if update fails, return update results
+		if results.status != 200:
+			return results
+		# [DOC] Check if the updated User doc belongs to current session and update it
+		if env['session'].user._id == user._id:
+			user_results = await self.read_privileges(
+				skip_events=[Event.PERM], env=env, query=[{'_id': user._id}]
+			)
+			env['session']['user'] = user_results.args.docs[0]
+
 		return results
 
 	async def delete_group(self, skip_events=[], env={}, query=[], doc={}):
@@ -234,7 +251,7 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['group'][0]}]
 		)
 		if not results.args.count:
-			return self.status(
+			raise self.exception(
 				status=400, msg='Group is invalid.', args={'code': 'INVALID_GROUP'}
 			)
 		# [DOC] Get user details
@@ -242,11 +259,13 @@ class User(BaseModule):
 			skip_events=[Event.PERM], env=env, query=[{'_id': query['_id'][0]}]
 		)
 		if not results.args.count:
-			return self.status(status=400, msg='User is invalid.', args={'code': 'INVALID_USER'})
+			raise self.exception(
+				status=400, msg='User is invalid.', args={'code': 'INVALID_USER'}
+			)
 		user = results.args.docs[0]
 		# [DOC] Confirm group was not added before
 		if query['group'][0] not in user.groups:
-			return self.status(
+			raise self.exception(
 				status=400,
 				msg='User is not a member of the group.',
 				args={'code': 'GROUP_NOT_ADDED'},
@@ -258,4 +277,14 @@ class User(BaseModule):
 			query=[{'_id': query['_id'][0]}],
 			doc={'groups': {'$del_val': [query['group'][0]]}},
 		)
+		# [DOC] if update fails, return update results
+		if results.status != 200:
+			return results
+		# [DOC] Check if the updated User doc belongs to current session and update it
+		if env['session'].user._id == user._id:
+			user_results = await self.read_privileges(
+				skip_events=[Event.PERM], env=env, query=[{'_id': user._id}]
+			)
+			env['session']['user'] = user_results.args.docs[0]
+
 		return results

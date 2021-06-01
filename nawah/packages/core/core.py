@@ -1,5 +1,5 @@
 from nawah.base_module import BaseModule
-from nawah.classes import ATTR, PERM
+from nawah.classes import ATTR, PERM, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
 from nawah.utils import extract_lambda_body
@@ -9,26 +9,26 @@ class Core(BaseModule):
 	'''`Core` module provides access to ADMIN user to fetch `Nawah` instance.'''
 
 	methods = {
-		'retrieve_config': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'config_attr': ATTR.STR()},
-		},
-		'retrieve_cache_sets': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'module': ATTR.STR()},
-		},
-		'retrieve_cache_queries': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {'module': ATTR.STR(), 'cache_set': ATTR.INT()},
-		},
-		'retrieve_cache_results': {
-			'permissions': [PERM(privilege='admin')],
-			'query_args': {
+		'retrieve_config': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'config_attr': ATTR.STR()},
+		),
+		'retrieve_cache_sets': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'module': ATTR.STR()},
+		),
+		'retrieve_cache_queries': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={'module': ATTR.STR(), 'cache_set': ATTR.INT()},
+		),
+		'retrieve_cache_results': METHOD(
+			permissions=[PERM(privilege='admin')],
+			query_args={
 				'module': ATTR.STR(),
 				'cache_set': ATTR.INT(),
 				'query': ATTR.INT(),
 			},
-		},
+		),
 	}
 
 	async def retrieve_config(self, skip_events=[], env={}, query=[], doc={}):
