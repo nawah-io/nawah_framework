@@ -141,7 +141,7 @@ class ATTR:
 	_desc: Optional[str]
 	_args: Dict[str, Any]
 	_valid: bool = False
-	_extn: Optional[Union['EXTN', 'ATTR_MOD']] = None
+	_extn: Optional[Union['EXTN', 'ATTR']] = None
 
 	__default = NAWAH_VALUES.NONE_VALUE
 
@@ -337,23 +337,35 @@ class ATTR:
 		return ATTR(attr_type='UNION', desc=desc, union=union)
 
 	@classmethod
-	def TYPE(cls, *, desc: str = None, type: str):
+	def TYPE(cls, *, desc: str = None, type: Union[str, ATTR_TYPE_CALLABLE_TYPE]):
 		return ATTR(attr_type='TYPE', desc=desc, type=type)
 
 	@classmethod
 	def validate_type(cls, *, attr_type: 'ATTR', skip_type: bool = False):
 		from nawah.config import Config
 
-		if attr_type._valid:
+		# [DOC] Skip validating Attr Type if it is already validated, unless we want to validate TYPE, which could require deep (nested) validation
+		if skip_type and attr_type._valid:
 			return
 
 		if attr_type._type not in ATTRS_TYPES_ARGS.keys():
 			raise InvalidAttrTypeException(attr_type=attr_type)
-		elif (
-			not skip_type
-			and attr_type._type == 'TYPE'
-			and attr_type._args['type'] not in Config.types.keys()
-		):
+		elif not skip_type and attr_type._type == 'TYPE':
+			# [DOC] Complex condition is unreadblae in single condition set, break into multiple conditions as try..except block
+			try:
+				if type(attr_type._args['type']) == str:
+					if attr_type._args['type'] not in Config.types.keys():
+						raise Exception()
+					if not inspect.iscoroutinefunction(Config.types[attr_type._args['type']]):
+						raise Exception()
+					# [DOC] Assign new Attr Type Arg for shorthand calling the TYPE function
+					attr_type._args['func'] = Config.types[attr_type._args['type']]
+				else:
+					if not inspect.iscoroutinefunction(attr_type._args['type']):
+						raise Exception()
+					# [DOC] Assign new Attr Type Arg for shorthand calling the TYPE function
+					attr_type._args['func'] = attr_type._args['type']
+			except:
 			raise InvalidAttrTypeException(attr_type=attr_type)
 		elif attr_type._type != 'TYPE':
 			for arg in ATTRS_TYPES_ARGS[attr_type._type].keys():
@@ -371,6 +383,7 @@ class ATTR:
 						arg_name=arg,
 						arg_type=ATTRS_TYPES_ARGS[attr_type._type][arg],
 						arg_val=attr_type._args[arg],
+						skip_type=skip_type,
 					)
 				else:
 					attr_type._args[arg] = None
@@ -412,7 +425,7 @@ class ATTR:
 			attr_type._valid = True
 
 	@classmethod
-	def validate_arg(cls, *, arg_name: str, arg_type: Any, arg_val: Any):
+	def validate_arg(cls, *, arg_name: str, arg_type: Any, arg_val: Any, skip_type: bool):
 		if arg_type == str:
 			if type(arg_val) != str:
 				raise InvalidAttrTypeArgException(
@@ -469,6 +482,7 @@ class ATTR:
 					raise InvalidAttrTypeArgException(
 						arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
 					)
+				ATTR.validate_type(attr_type=arg_val_child, skip_type=skip_type)
 			return
 		elif arg_type == datetime.date:
 			if not re.match(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', arg_val) and not re.match(
@@ -504,10 +518,12 @@ class ATTR:
 					arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
 				)
 			for arg_val_child in arg_val:
+				# [DOC] Assert this is validating list items as Attr Type TYPE
 				cls.validate_arg(
 					arg_name=arg_name,
 					arg_type=arg_type.__args__[0],
 					arg_val=arg_val_child,
+					skip_type=skip_type,
 				)
 			return
 		elif arg_type._name == 'Dict':
@@ -515,6 +531,12 @@ class ATTR:
 				raise InvalidAttrTypeArgException(
 					arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
 				)
+			for arg_val_child in arg_val.keys():
+				if type(arg_val[arg_val_child]) != ATTR:
+					raise InvalidAttrTypeArgException(
+						arg_name=arg_name, arg_type=arg_type, arg_val=arg_val[arg_val_child]
+					)
+				ATTR.validate_type(attr_type=arg_val[arg_val_child], skip_type=skip_type)
 			return
 
 		raise InvalidAttrTypeArgException(
