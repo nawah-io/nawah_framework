@@ -13,12 +13,17 @@ from typing import (
 	Optional,
 	ForwardRef,
 	TYPE_CHECKING,
+	Protocol,
 )
 
-import datetime, logging, re
+import datetime, logging, re, inspect
 
-from ._module import ATTR_MOD, EXTN
 from ._package import SYS_DOC
+
+if TYPE_CHECKING:
+	from ._module import EXTN
+	from ._types import NAWAH_EVENTS, NAWAH_ENV, NAWAH_QUERY, NAWAH_DOC, NAWAH_DOC
+	from ._query import Query
 
 logger = logging.getLogger('nawah')
 
@@ -76,6 +81,23 @@ ATTRS_TYPES_ARGS: Dict[str, Dict[str, Union[Type, str]]] = {
 SPECIAL_ATTRS = Literal[
 	'$search', '$sort', '$skip', '$limit', '$extn', '$attrs', '$group', '$geo_near'
 ]
+
+
+class ATTR_TYPE_CALLABLE_TYPE(Protocol):
+	def __call__(
+		*,
+		self,
+		mode: Literal['create', 'create_draft', 'update'],
+		attr_name: str,
+		attr_type: 'ATTR',
+		attr_val: Any,
+		skip_events: 'NAWAH_EVENTS',
+		env: 'NAWAH_ENV',
+		query: Union['NAWAH_QUERY', 'Query'],
+		doc: 'NAWAH_DOC',
+		scope: Optional['NAWAH_DOC'],
+	) -> Any:
+		...
 
 
 class InvalidAttrTypeException(Exception):
@@ -366,7 +388,7 @@ class ATTR:
 					# [DOC] Assign new Attr Type Arg for shorthand calling the TYPE function
 					attr_type._args['func'] = attr_type._args['type']
 			except:
-			raise InvalidAttrTypeException(attr_type=attr_type)
+				raise InvalidAttrTypeException(attr_type=attr_type)
 		elif attr_type._type != 'TYPE':
 			for arg in ATTRS_TYPES_ARGS[attr_type._type].keys():
 				if (

@@ -32,56 +32,15 @@ ON_HANDLER_RETURN = Tuple[
 	Dict[str, Any], 'NAWAH_EVENTS', 'NAWAH_ENV', 'Query', 'NAWAH_DOC', Dict[str, Any]
 ]
 
-PERM_QUERY_MOD_UNIT = Dict[str, Union['ATTR_MOD', Literal['$__date', '$__user'], Any]]
+PERM_QUERY_MOD_UNIT = Dict[str, Union['ATTR', Literal['$__date', '$__user'], Any]]
 PERM_QUERY_MOD = Union[PERM_QUERY_MOD_UNIT, 'NAWAH_QUERY', List['PERM_QUERY_MOD']]  # type: ignore
 
-PERM_DOC_MOD_UNIT = Dict[str, Union['ATTR_MOD', Literal['$__date', '$__user'], Any]]
+PERM_DOC_MOD_UNIT = Dict[str, Union['ATTR', Literal['$__date', '$__user'], Any]]
 PERM_DOC_MOD = Union[PERM_DOC_MOD_UNIT, 'NAWAH_DOC']
 
 
 class MethodException(Exception):
 	pass
-
-
-class ATTR_MOD_CONDITION(Protocol):
-	def __call__(
-		self,
-		skip_events: 'NAWAH_EVENTS',
-		env: 'NAWAH_ENV',
-		query: Union['Query', 'NAWAH_QUERY'],
-		doc: 'NAWAH_DOC',
-		scope: Optional['NAWAH_DOC'],
-	) -> bool:
-		...
-
-
-class ATTR_MOD_DEFAULT(Protocol):
-	def __call__(
-		self,
-		skip_events: 'NAWAH_EVENTS',
-		env: 'NAWAH_ENV',
-		query: Union['Query', 'NAWAH_QUERY'],
-		doc: 'NAWAH_DOC',
-		scope: Optional['NAWAH_DOC'],
-	) -> Any:
-		...
-
-
-class ATTR_MOD:
-	condition: ATTR_MOD_CONDITION
-	default: Union[ATTR_MOD_DEFAULT, Any]
-
-	def __repr__(self):
-		return f'<ATTR_MOD:{self.condition},{self.default}>'
-
-	def __init__(
-		self,
-		*,
-		condition: ATTR_MOD_CONDITION,
-		default: Union[ATTR_MOD_DEFAULT, Any],
-	):
-		setattr(self, 'condition', condition)
-		self.default = default
 
 
 class PERM:
