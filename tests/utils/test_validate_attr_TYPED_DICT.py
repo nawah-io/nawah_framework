@@ -56,6 +56,37 @@ async def test_validate_attr_DICT_simple_dict():
 
 
 @pytest.mark.asyncio
+async def test_validate_attr_DICT_simple_dict_Any_None_value():
+	with pytest.raises(utils.InvalidAttrException):
+		await utils.validate_attr(
+			attr_name='test_validate_attr_DICT',
+			attr_type=ATTR.TYPED_DICT(dict={'key1': ATTR.ANY(), 'key2': ATTR.ANY()}),
+			attr_val={
+				'key1': '',  # [DOC] This is accepted
+				'key2': None,  # [DOC] This would fail, raising exception
+			},
+			mode='create',
+		)
+
+
+@pytest.mark.asyncio
+async def test_validate_attr_DICT_simple_dict_Any_default_None_value():
+	dict_attr_val = {
+		'key1': None,
+		'key2': '',
+	}
+	attr_type_any = ATTR.ANY()
+	attr_type_any._default = None
+	attr_val = await utils.validate_attr(
+		attr_name='test_validate_attr_DICT',
+		attr_type=ATTR.TYPED_DICT(dict={'key1': attr_type_any, 'key2': attr_type_any}),
+		attr_val=dict_attr_val,
+		mode='create',
+	)
+	assert attr_val == dict_attr_val
+
+
+@pytest.mark.asyncio
 async def test_validate_attr_DICT_nested_dict_invalid():
 	with pytest.raises(utils.InvalidAttrException):
 		await utils.validate_attr(
