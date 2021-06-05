@@ -60,27 +60,28 @@ async def check_permissions(
 				permission_pass = True
 
 		if permission_pass:
-			query = await _parse_permission_args(
+			query_mod = await _parse_permission_args(
 				skip_events=skip_events,
 				env=env,
 				query=query,
 				doc=doc,
 				permission_args=permission.query_mod,
 			)
-			doc = await _parse_permission_args(
+			doc_mod = await _parse_permission_args(
 				skip_events=skip_events,
 				env=env,
 				query=query,
 				doc=doc,
 				permission_args=permission.doc_mod,
 			)
-			return {'query': query, 'doc': doc}
+
+			return {'query_mod': query_mod, 'doc_mod': doc_mod}
 	# [DOC] If all permission checks fail
 	raise InvalidPermissionsExcpetion()
 
 
 async def _parse_permission_args(
-	skip_events: List[str],
+	skip_events: List[Event],
 	env: NAWAH_ENV,
 	query: Union[NAWAH_QUERY, Query],
 	doc: NAWAH_DOC,

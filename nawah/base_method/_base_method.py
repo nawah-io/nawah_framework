@@ -1,4 +1,4 @@
-from nawah.utils import validate_attr, InvalidAttrException, ConvertAttrException
+from nawah.utils import InvalidAttrException
 from nawah.classes import (
 	MethodException,
 	DictObj,
@@ -18,6 +18,7 @@ from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
 
 from ._check_permissions import check_permissions, InvalidPermissionsExcpetion
+from ._validate_args import validate_args, InvalidCallArgsException
 
 from asyncio import coroutine
 from aiohttp.web import WebSocketResponse
@@ -65,81 +66,6 @@ class BaseMethod:
 		self.watch_method = watch_method
 		self.get_method = get_method
 		self.post_method = post_method
-
-	async def validate_args(
-		self, args: Union[Query, Dict[str, Any]], args_list_label: str
-	):
-		args_list = getattr(self, f'{args_list_label}_args')
-
-		sets_check: List[Dict[str, Literal[True, 'missing', 'invalid', 'convert']]] = []
-
-		for args_set in args_list:
-			set_status = True
-			set_check = len(sets_check)
-			sets_check.append({arg: True for arg in args_set.keys()})
-
-			if args_list_label == 'query':
-				args_check: Iterable = args
-			elif args_list_label == 'doc':
-				args = cast(Dict[str, Any], args)
-				args_check = args.keys()
-
-			for arg in args_set.keys():
-				if arg not in args_check:
-					set_status = False
-					sets_check[set_check][arg] = 'missing'
-				else:
-					try:
-						if args_list_label == 'query' and arg[0] != '$':
-							for i in range(len(args[arg])):
-								if ':' not in arg:
-									args[arg][i] = await validate_attr(
-										mode='create',
-										attr_name=arg,
-										attr_type=args_set[arg],
-										attr_val=args[arg][i],
-									)
-								else:
-									attr_val = args[arg][i]
-									if (arg_oper := arg.split(':')[1]) in ['*', '$eq']:
-										if type(args[arg][i]) and arg_oper in args[arg][i].keys():
-											attr_val = args[arg][i][arg_oper]
-									attr_val = await validate_attr(
-										mode='create',
-										attr_name=arg,
-										attr_type=args_set[arg],
-										attr_val=attr_val,
-									)
-									if arg_oper in ['*', '$eq']:
-										args[arg][i] = attr_val
-									else:
-										args[arg][i] = {arg_oper: attr_val}
-
-						elif args_list_label == 'query' and arg[0] == '$':
-							args[arg] = await validate_attr(
-								mode='create',
-								attr_name=arg,
-								attr_type=args_set[arg],
-								attr_val=args[arg],
-							)
-						elif args_list_label == 'doc':
-							args[arg] = await validate_attr(
-								mode='create',
-								attr_name=arg,
-								attr_type=args_set[arg],
-								attr_val=args[arg],
-							)
-					except InvalidAttrException:
-						set_status = False
-						sets_check[set_check][arg] = 'invalid'
-					except ConvertAttrException:
-						set_status = False
-						sets_check[set_check][arg] = 'convert'
-
-			if set_status:
-				return True
-
-		return sets_check
 
 	async def __call__(
 		self,
@@ -281,14 +207,14 @@ class BaseMethod:
 					call_id=call_id,
 				)
 			else:
-				if type(permissions_check['query']) == dict:
-					permissions_check['query'] = [permissions_check['query']]
-				for i in range(len(permissions_check['query'])):
+				if type(permissions_check['query_mod']) == dict:
+					permissions_check['query_mod'] = [permissions_check['query_mod']]
+				for i in range(len(permissions_check['query_mod'])):
 					# [DOC] attempt to process query_set as nested-list (OR) even if it's dict
-					if type(permissions_check['query'][i]) == dict:
-						query_set_list = [permissions_check['query'][i]]
-					elif type(permissions_check['query'][i]) == list:
-						query_set_list = permissions_check['query'][i]
+					if type(permissions_check['query_mod'][i]) == dict:
+						query_set_list = [permissions_check['query_mod'][i]]
+					elif type(permissions_check['query_mod'][i]) == list:
+						query_set_list = permissions_check['query_mod'][i]
 					# [DOC] loop over query_set_list, query_set
 					for query_set in query_set_list:
 						del_args = []
@@ -300,85 +226,87 @@ class BaseMethod:
 						for attr in del_args:
 							del query_set[attr]
 				# [DOC] Append query permissions args to query
-				query.append(permissions_check['query'])
+				query.append(permissions_check['query_mod'])
 
 				del_args = []
-				for attr in permissions_check['doc'].keys():
+				for attr in permissions_check['doc_mod'].keys():
 					# [DOC] Replace None value with NONE_VALUE to bypass later validate step
-					if permissions_check['doc'][attr] == None:
-						permissions_check['doc'][attr] = NAWAH_VALUES.NONE_VALUE
+					if permissions_check['doc_mod'][attr] == None:
+						permissions_check['doc_mod'][attr] = NAWAH_VALUES.NONE_VALUE
 				for attr in del_args:
-					del permissions_check['doc'][attr]
+					del permissions_check['doc_mod'][attr]
 				# [DOC] Update doc with doc permissions args
-				doc.update(permissions_check['doc'])
+				doc.update(permissions_check['doc_mod'])
 				doc = {
 					attr: doc[attr] for attr in doc.keys() if doc[attr] != NAWAH_VALUES.NONE_VALUE
 				}
 
 		if Event.ARGS not in skip_events:
-			if self.query_args:
-				test_query = await self.validate_args(query, 'query')
-				if test_query != True:
-					for i in range(len(test_query)):
-						test_query[i] = (
-							'['
-							+ ', '.join(
-								[
-									f'\'{arg}\': {val.capitalize()}'
-									for arg, val in test_query[i].items()
-									if val != True
-								]
-							)
-							+ ']'
+			try:
+				await validate_args(args=query, args_list_label='query', args_list=self.query_args)
+			except InvalidCallArgsException as e:
+				test_query = e.args[0]
+				for i in range(len(test_query)):
+					test_query[i] = (
+						'['
+						+ ', '.join(
+							[
+								f'\'{arg}\': {val.capitalize()}'
+								for arg, val in test_query[i].items()
+								if val != True
+							]
 						)
-					return await self.return_results(
-						ws=env['ws'] if 'ws' in env.keys() else None,
-						results=DictObj(
-							{
-								'status': 400,
-								'msg': 'Could not match query with any of the required query_args. Failed sets:'
-								+ ', '.join(test_query),
-								'args': DictObj(
-									{
-										'code': f'{self.module.package_name.upper()}_{self.module.module_name.upper()}_INVALID_QUERY'
-									}
-								),
-							}
-						),
-						call_id=call_id,
+						+ ']'
 					)
+				return await self.return_results(
+					ws=env['ws'] if 'ws' in env.keys() else None,
+					results=DictObj(
+						{
+							'status': 400,
+							'msg': 'Could not match query with any of the required query_args. Failed sets:'
+							+ ', '.join(test_query),
+							'args': DictObj(
+								{
+									'code': f'{self.module.package_name.upper()}_{self.module.module_name.upper()}_INVALID_QUERY'
+								}
+							),
+						}
+					),
+					call_id=call_id,
+				)
 
-			if self.doc_args:
-				test_doc = await self.validate_args(doc, 'doc')
-				if test_doc != True:
-					for i in range(len(test_doc)):
-						test_doc[i] = (
-							'['
-							+ ', '.join(
-								[
-									f'\'{arg}\': {val.capitalize()}'
-									for arg, val in test_doc[i].items()
-									if val != True
-								]
-							)
-							+ ']'
+			try:
+				await validate_args(args=doc, args_list_label='doc', args_list=self.doc_args)
+			except InvalidCallArgsException as e:
+				test_doc = e.args[0]
+				for i in range(len(test_doc)):
+					test_doc[i] = (
+						'['
+						+ ', '.join(
+							[
+								f'\'{arg}\': {val.capitalize()}'
+								for arg, val in test_doc[i].items()
+								if val != True
+							]
 						)
-					return await self.return_results(
-						ws=env['ws'] if 'ws' in env.keys() else None,
-						results=DictObj(
-							{
-								'status': 400,
-								'msg': 'Could not match doc with any of the required doc_args. Failed sets:'
-								+ ', '.join(test_doc),
-								'args': DictObj(
-									{
-										'code': f'{self.module.package_name.upper()}_{self.module.module_name.upper()}_INVALID_DOC'
-									}
-								),
-							}
-						),
-						call_id=call_id,
+						+ ']'
 					)
+				return await self.return_results(
+					ws=env['ws'] if 'ws' in env.keys() else None,
+					results=DictObj(
+						{
+							'status': 400,
+							'msg': 'Could not match doc with any of the required doc_args. Failed sets:'
+							+ ', '.join(test_doc),
+							'args': DictObj(
+								{
+									'code': f'{self.module.package_name.upper()}_{self.module.module_name.upper()}_INVALID_DOC'
+								}
+							),
+						}
+					),
+					call_id=call_id,
+				)
 
 		for arg in doc.keys():
 			if type(doc[arg]) == BaseModel:
