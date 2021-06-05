@@ -1,6 +1,5 @@
 import nawah
 from nawah.config import Config, process_config
-from nawah.test import TEST
 from nawah.classes import L10N, ATTR
 from nawah.utils import validate_attr
 
@@ -35,14 +34,10 @@ async def import_modules():
 		# [DOC] Iterate over python modules in package
 		package_prefix = package.__name__ + '.'
 		for _, modname, ispkg in pkgutil.iter_modules(package.__path__, package_prefix):
-			# [DOC] Iterate over python classes in module
+			# [DOC] Iterate over Python modules in package
 			module = __import__(modname, fromlist='*')
-			if modname.endswith('__tests__'):
-				for test_name in dir(module):
-					if type(getattr(module, test_name)) == TEST:
-						Config.tests[test_name] = getattr(module, test_name)
-				continue
-			elif modname.endswith('__l10n__'):
+			# [DOC] For __l10n__ Python module, extract all l10n dicts and skip processing
+			if modname.endswith('__l10n__'):
 				for l10n_name in dir(module):
 					if type(getattr(module, l10n_name)) == L10N:
 						if l10n_name not in Config.l10n.keys():

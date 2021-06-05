@@ -13,7 +13,6 @@ async def run_app():
 	from nawah.enums import Event
 	from nawah.config import Config
 	from nawah import data as Data
-	from nawah.test import Test
 
 	from bson import ObjectId
 	from passlib.hash import pbkdf2_sha512

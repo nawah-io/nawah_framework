@@ -36,7 +36,6 @@ from passlib.hash import pbkdf2_sha512
 import os, logging, datetime, time, requests
 
 if TYPE_CHECKING:
-	from nawah.test import STEP
 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
@@ -122,13 +121,6 @@ class Config:
 	_app_packages: Dict[str, str]
 
 	test: bool = False
-	test_name: str
-	test_skip_flush: bool = False
-	test_force: bool = False
-	test_env: bool = False
-	test_breakpoint: bool = False
-	test_collections: bool = False
-	tests: Dict[str, List['STEP']] = {}
 
 	emulate_test: bool = False
 	force_admin_check: bool = False
@@ -400,32 +392,26 @@ class Config:
 					logger.error(err)
 
 		# [DOC] Check test mode
-		if cls.test or cls.test_collections:
-			logger.debug('Test mode or Test Collections Mode detected.')
+		if cls.test:
+			logger.debug('Test mode detected.')
 			__location__ = os.path.realpath(os.path.join('.'))
 			if not os.path.exists(os.path.join(__location__, 'tests')):
 				os.makedirs(os.path.join(__location__, 'tests'))
-			if not cls.test_env:
-				for module in cls.modules.keys():
-					module_collection = cls.modules[module].collection
-					if module_collection:
-						logger.debug(
-							f'Updating collection name \'{module_collection}\' of module {module}'
+			for module in cls.modules.keys():
+				module_collection = cls.modules[module].collection
+				if module_collection:
+					logger.debug(
+						f'Updating collection name \'{module_collection}\' of module {module}'
+					)
+					module_collection = cls.modules[module].collection = f'test_{module_collection}'
+					if cls.test:
+						logger.debug(f'Flushing test collection \'{module_collection}\'')
+						await Data.drop(
+							env=cls._sys_env,
+							collection_name=module_collection,
 						)
-						module_collection = cls.modules[module].collection = f'test_{module_collection}'
-						if cls.test and not cls.test_skip_flush:
-							logger.debug(f'Flushing test collection \'{module_collection}\'')
-							await Data.drop(
-								env=cls._sys_env,
-								collection_name=module_collection,
-							)
-					else:
-						logger.debug(f'Skipping service module {module}')
-			else:
-				logger.warning(
-					f'Testing on \'{cls.env}\' env. Nawah would be sleeping for 5sec to give you chance to abort test workflow if this was a mistake.'
-				)
-				time.sleep(5)
+				else:
+					logger.debug(f'Skipping service module {module}')
 
 		logger.debug('Testing realm mode.')
 		if cls.realm:
@@ -847,18 +833,6 @@ class Config:
 					logger.error('Config step failed. Exiting.')
 					exit(1)
 			cls._sys_docs[ObjectId(doc_results.args.docs[0]._id)] = SYS_DOC(module=doc.module)
-
-		# [DOC] Check for test mode
-		if cls.test:
-			from nawah.test import Test
-
-			logger.debug('Running tests')
-			anon_session = cls.compile_anon_session()
-			anon_session['user'] = DictObj(cls.compile_anon_user())
-			Test.session = DictObj(anon_session)
-			Test.env = cls._sys_env
-			await Test.run_test(test_name=cls.test_name)
-			exit(1)
 
 		# [DOC] Check for emulate_test mode
 		if cls.emulate_test:

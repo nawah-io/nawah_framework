@@ -50,35 +50,6 @@ def nawah_cli():
 		help='Force ADMIN doc checked and updated, if ADMIN doc is changed',
 		action='store_true',
 	)
-	parser_launch.add_argument(
-		'--test-collections', help='Enable Test Collections Mode', action='store_true'
-	)
-
-	parser_test = subparsers.add_parser('test', help='Test Nawah app')
-	parser_test.set_defaults(func=test)
-	parser_test.add_argument('test_name', type=str, help='Name of the test to run')
-	parser_test.add_argument('--env', help='Choose specific env')
-	parser_test.add_argument(
-		'--skip-flush',
-		help='Skip flushing previous test data collections',
-		action='store_true',
-	)
-	parser_test.add_argument(
-		'--force',
-		help='Force running all test steps even if one is failed',
-		action='store_true',
-	)
-	parser_test.add_argument(
-		'--use-env',
-		help='Run tests on selected env rather than sandbox env',
-		action='store_true',
-	)
-	parser_test.add_argument(
-		'--breakpoint',
-		help='Create debugger breakpoint upon failure of test',
-		action='store_true',
-	)
-	parser_test.add_argument('--debug', help='Enable debug mode', action='store_true')
 
 	parser_packages = subparsers.add_parser('packages', help='Manage Nawah app packages')
 	parser_packages.set_defaults(func=lambda _: None)
@@ -172,7 +143,6 @@ def launch(
 	if custom_launch not in ['generate_ref', 'generate_models']:
 		Config.env = args.env
 	if not custom_launch:
-		Config.test_collections = args.test_collections
 		Config.force_admin_check = args.force_admin_check
 
 	# [DOC] Check for debug CLI Arg
@@ -418,20 +388,8 @@ def launch(
 		logger.error('Exiting.')
 		exit(1)
 
-	asyncio.run(run_app())
-
-
-def test(args: argparse.Namespace):
-	# [DOC] Update Config with Nawah framework CLI args
-	from nawah.config import Config
-
-	Config.test = True
-	Config.test_name = args.test_name
-	Config.test_skip_flush = args.skip_flush
-	Config.test_force = args.force
-	Config.test_env = args.use_env
-	Config.test_breakpoint = args.breakpoint
-	launch(args=args, custom_launch='test')
+	if not custom_launch:
+		asyncio.run(run_app())
 
 
 def packages_install(args: argparse.Namespace):
