@@ -1,12 +1,12 @@
-aiohttp==3.7.3
-croniter==0.3.36
+aiohttp==3.7.4.post0
+croniter==1.0.13
 dnspython==2.0.0
-motor==2.3.0
+motor==2.4.0
 nest-asyncio==1.4.3
 passlib==1.7.4
-Pillow==8.0.1
-PyJWT==2.0.0
-pymongo==3.11.2
+Pillow==8.1.2
+PyJWT==2.1.0
+pymongo==3.11.4
 requests==2.25.1
 requests-toolbelt==0.9.1
 
