@@ -1,24 +1,9 @@
 from nawah.config import Config
+from nawah.classes import UnexpectedGatewayException, InvalidGatewayException
 
 import logging, traceback
 
 logger = logging.getLogger('nawah')
-
-
-class InvalidGatewayException(Exception):
-	def __init__(self, *, gateway):
-		self.gateway = gateway
-
-	def __str__(self):
-		return f'Gateway \'{self.gateway}\' is invalid.'
-
-
-class UnexpectedGatewayException(Exception):
-	def __init__(self, *, gateway):
-		self.gateway = gateway
-
-	def __str__(self):
-		return f'An unexpected gateway exception occurred when attempted to call \'{self.gateway}\'.'
 
 
 class Gateway:

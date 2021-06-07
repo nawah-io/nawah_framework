@@ -1,7 +1,6 @@
 from nawah.config import Config
 from nawah.enums import DELETE_STRATEGY
-from nawah.classes import NAWAH_ENV, ATTR
-from ._classes import UnknownDeleteStrategyException
+from nawah.classes import NAWAH_ENV, ATTR, UnknownDeleteStrategyException
 
 from bson import ObjectId
 from typing import Dict, List, Any, Union

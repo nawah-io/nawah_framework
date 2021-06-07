@@ -1,7 +1,15 @@
 from nawah.config import Config
 from nawah.enums import LOCALE_STRATEGY, Event
-from nawah.utils import extract_attr, InvalidAttrException
-from nawah.classes import NAWAH_ENV, ATTR, Query, BaseModel, NAWAH_DOC, EXTN
+from nawah.utils import extract_attr
+from nawah.classes import (
+	NAWAH_ENV,
+	ATTR,
+	Query,
+	BaseModel,
+	NAWAH_DOC,
+	EXTN,
+	InvalidAttrException,
+)
 from ._query import _compile_query
 
 from motor.motor_asyncio import AsyncIOMotorCollection

@@ -19,6 +19,11 @@ from typing import (
 import datetime, logging, re, inspect
 
 from ._package import SYS_DOC
+from ._exceptions import (
+	InvalidAttrTypeException,
+	InvalidAttrTypeArgException,
+	InvalidAttrTypeArgsException,
+)
 
 if TYPE_CHECKING:
 	from ._module import EXTN
@@ -98,32 +103,6 @@ class ATTR_TYPE_CALLABLE_TYPE(Protocol):
 		scope: Optional['NAWAH_DOC'],
 	) -> Any:
 		...
-
-
-class InvalidAttrTypeException(Exception):
-	def __init__(self, *, attr_type: Any):
-		self.attr_type = attr_type
-
-	def __str__(self):
-		return f'Unknown or invalid Attr Type \'{self.attr_type}\'.'
-
-
-class InvalidAttrTypeArgException(Exception):
-	def __init__(self, *, arg_name: str, arg_type: Any, arg_val: Any):
-		self.arg_name = arg_name
-		self.arg_type = arg_type
-		self.arg_val = arg_val
-
-	def __str__(self):
-		return f'Invalid Attr Type Arg for \'{self.arg_name}\' expecting type \'{self.arg_type}\' but got \'{self.arg_val}\'.'
-
-
-class InvalidAttrTypeArgsException(Exception):
-	def __init__(self, *, msg: str):
-		self.msg = msg
-
-	def __str__(self):
-		return self.msg
 
 
 ATTRS_TYPES_TYPE = Literal[

@@ -1,5 +1,5 @@
 from nawah.config import Config
-from nawah.classes import SYS_DOC
+from nawah.classes import SYS_DOC, InvalidModuleException, InvalidLocaleException, InvalidLocaleTermException, InvalidVarException
 
 from typing import Dict, List, Any, TYPE_CHECKING
 
@@ -9,43 +9,6 @@ if TYPE_CHECKING:
 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
-
-
-class InvalidModuleException(Exception):
-	def __init__(self, *, module):
-		self.module = module
-		logger.debug(f'InvalidModuleException: {str(self)}')
-
-	def __str__(self):
-		return f'Invalid module \'{self.module}\''
-
-
-class InvalidLocaleException(Exception):
-	def __init__(self, *, locale):
-		self.locale = locale
-		logger.debug(f'InvalidLocaleException: {str(self)}')
-
-	def __str__(self):
-		return f'Invalid locale \'{self.locale}\''
-
-
-class InvalidLocaleTermException(Exception):
-	def __init__(self, *, locale, term):
-		self.locale = locale
-		self.term = term
-		logger.debug(f'InvalidLocaleTermException: {str(self)}')
-
-	def __str__(self):
-		return f'Invalid term \'{self.term}\' of locale \'{self.locale}\''
-
-
-class InvalidVarException(Exception):
-	def __init__(self, *, var):
-		self.var = var
-		logger.debug(f'InvalidVarException: {str(self)}')
-
-	def __str__(self):
-		return f'Invalid var \'{self.var}\''
 
 
 class Registry:

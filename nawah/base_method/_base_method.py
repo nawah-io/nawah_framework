@@ -1,6 +1,4 @@
-from nawah.utils import InvalidAttrException
 from nawah.classes import (
-	MethodException,
 	DictObj,
 	BaseModel,
 	Query,
@@ -13,12 +11,15 @@ from nawah.classes import (
 	PERM,
 	WATCH_TASK,
 	METHOD,
+	MethodException,
+	InvalidAttrException,
+	InvalidCallArgsException,
 )
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
 
 from ._check_permissions import check_permissions, InvalidPermissionsExcpetion
-from ._validate_args import validate_args, InvalidCallArgsException
+from ._validate_args import validate_args
 
 from asyncio import coroutine
 from aiohttp.web import WebSocketResponse

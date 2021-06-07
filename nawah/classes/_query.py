@@ -14,67 +14,10 @@ import copy
 
 from ._attr import SPECIAL_ATTRS
 from ._dictobj import DictObj
+from ._exceptions import InvalidQueryArgException, UnknownQueryArgException
 
 if TYPE_CHECKING:
 	from ._types import NAWAH_QUERY, NAWAH_QUERY_SPECIAL
-
-
-class InvalidQueryArgException(Exception):
-	def __init__(
-		self,
-		*,
-		arg_name: str,
-		arg_oper: Literal[
-			'$ne',
-			'$eq',
-			'$gt',
-			'$gte',
-			'$lt',
-			'$lte',
-			'$bet',
-			'$all',
-			'$in',
-			'$nin',
-			'$regex',
-		],
-		arg_type: Any,
-		arg_val: Any,
-	):
-		self.arg_name = arg_name
-		self.arg_oper = arg_oper
-		self.arg_type = arg_type
-		self.arg_val = arg_val
-
-	def __str__(self):
-		return f'Invalid value for Query Arg \'{self.arg_name}\' with Query Arg Oper \'{self.arg_oper}\' expecting type \'{self.arg_type}\' but got \'{self.arg_val}\'.'
-
-
-class UnknownQueryArgException(Exception):
-	def __init__(
-		self,
-		*,
-		arg_name: str,
-		arg_oper: Literal[
-			'$ne',
-			'$eq',
-			'$gt',
-			'$gte',
-			'$lt',
-			'$lte',
-			'$bet',
-			'$all',
-			'$in',
-			'$nin',
-			'$regex',
-		],
-	):
-		self.arg_name = arg_name
-		self.arg_oper = arg_oper
-
-	def __str__(self):
-		return (
-			f'Unknown Query Arg Oper \'{self.arg_oper}\' for Query Arg \'{self.arg_name}\'.'
-		)
 
 
 QUERY_INDEX_RECORD = TypedDict(

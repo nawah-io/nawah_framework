@@ -10,8 +10,11 @@ from nawah.classes import (
 	BaseModel,
 	DictObj,
 	ATTRS_TYPES_ARGS,
-	InvalidAttrTypeException,
 	NAWAH_EVENTS,
+	InvalidAttrTypeException,
+	MissingAttrException,
+	InvalidAttrException,
+	ConvertAttrException,
 )
 
 from bson import binary, ObjectId
@@ -61,37 +64,6 @@ async def process_file_obj(
 				await process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
 		elif type(doc[j]) == list:  # type: ignore
 			await process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
-
-
-class MissingAttrException(Exception):
-	def __init__(self, *, attr_name):
-		self.attr_name = attr_name
-		logger.debug(f'MissingAttrException: {str(self)}')
-
-	def __str__(self):
-		return f'Missing attr \'{self.attr_name}\''
-
-
-class InvalidAttrException(Exception):
-	def __init__(self, *, attr_name, attr_type, val_type):
-		self.attr_name = attr_name
-		self.attr_type = attr_type
-		self.val_type = val_type
-		logger.debug(f'InvalidAttrException: {str(self)}')
-
-	def __str__(self):
-		return f'Invalid attr \'{self.attr_name}\' of type \'{self.val_type}\' with required type \'{self.attr_type}\''
-
-
-class ConvertAttrException(Exception):
-	def __init__(self, *, attr_name, attr_type, val_type):
-		self.attr_name = attr_name
-		self.attr_type = attr_type
-		self.val_type = val_type
-		logger.debug(f'ConvertAttrException: {str(self)}')
-
-	def __str__(self):
-		return f'Can\'t convert attr \'{self.attr_name}\' of type \'{self.val_type}\' to type \'{self.attr_type._type}\''
 
 
 async def validate_doc(

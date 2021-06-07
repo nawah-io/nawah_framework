@@ -1,7 +1,5 @@
 from nawah.config import Config
-from nawah.classes import ATTR, Query, NAWAH_QUERY_SPECIAL_GROUP
-
-from ._classes import InvalidQueryException
+from nawah.classes import ATTR, Query, NAWAH_QUERY_SPECIAL_GROUP, InvalidQueryException
 
 from typing import Dict, List, Any, Union, Tuple, Optional, cast, TypedDict
 from bson import ObjectId

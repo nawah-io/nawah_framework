@@ -1,6 +1,15 @@
 from nawah.registry import Registry
-from nawah.classes import NAWAH_ENV, NAWAH_QUERY, Query, NAWAH_DOC, PERM, ATTR
-from nawah.utils import extract_attr, validate_attr, InvalidAttrException
+from nawah.classes import (
+	NAWAH_ENV,
+	NAWAH_QUERY,
+	Query,
+	NAWAH_DOC,
+	PERM,
+	ATTR,
+	InvalidPermissionsExcpetion,
+	InvalidAttrException,
+)
+from nawah.utils import extract_attr, validate_attr
 from nawah.enums import Event
 
 from typing import List, Dict, Union, Any, Iterable, TYPE_CHECKING
@@ -11,10 +20,6 @@ if TYPE_CHECKING:
 	from nawah.base_module import BaseModule
 
 logger = logging.getLogger('nawah')
-
-
-class InvalidPermissionsExcpetion(Exception):
-	pass
 
 
 async def check_permissions(

@@ -1,11 +1,13 @@
-from nawah.classes import Query, ATTR
-from nawah.utils import validate_attr, InvalidAttrException, ConvertAttrException
+from nawah.classes import (
+	Query,
+	ATTR,
+	InvalidCallArgsException,
+	InvalidAttrException,
+	ConvertAttrException,
+)
+from nawah.utils import validate_attr
 
 from typing import Union, Dict, Any, List, Literal, Iterable, cast
-
-
-class InvalidCallArgsException(Exception):
-	pass
 
 
 async def validate_args(

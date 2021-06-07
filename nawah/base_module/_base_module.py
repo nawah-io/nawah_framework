@@ -3,19 +3,13 @@ from nawah.enums import Event, DELETE_STRATEGY, NAWAH_VALUES
 from nawah import data as Data
 from nawah.utils import (
 	validate_doc,
-	InvalidAttrException,
-	MissingAttrException,
-	ConvertAttrException,
-	update_attr_values,
 	expand_attr,
+	update_attr_values,
 )
 from nawah.classes import (
-	MethodException,
 	DictObj,
 	BaseModel,
 	Query,
-	InvalidAttrTypeException,
-	InvalidAttrTypeArgException,
 	NAWAH_EVENTS,
 	NAWAH_ENV,
 	Query,
@@ -30,6 +24,12 @@ from nawah.classes import (
 	ANALYTIC,
 	PRE_HANDLER_RETURN,
 	ON_HANDLER_RETURN,
+	MethodException,
+	InvalidAttrTypeException,
+	InvalidAttrTypeArgException,
+	InvalidAttrException,
+	MissingAttrException,
+	ConvertAttrException,
 )
 from nawah.base_method import BaseMethod
 

@@ -1,7 +1,7 @@
 from nawah.base_module import BaseModule
 from nawah.enums import Event
-from nawah.classes import ATTR, PERM, EXTN, METHOD
-from nawah.utils import InvalidAttrException, validate_doc, generate_dynamic_attr
+from nawah.classes import ATTR, PERM, EXTN, METHOD, InvalidAttrException
+from nawah.utils import validate_doc, generate_dynamic_attr
 from nawah.config import Config
 
 

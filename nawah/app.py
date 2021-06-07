@@ -1,14 +1,22 @@
 from typing import Dict, Any, Union, List, cast
 
+
 async def run_app():
 	from nawah.utils import (
 		import_modules,
 		process_file_obj,
 		validate_doc,
+	)
+	from nawah.classes import (
+		JSONEncoder,
+		DictObj,
+		NAWAH_ENV,
+		BaseModel,
+		IP_QUOTA,
+		ATTR,
 		InvalidAttrException,
 		ConvertAttrException,
 	)
-	from nawah.classes import JSONEncoder, DictObj, NAWAH_ENV, BaseModel, IP_QUOTA, ATTR
 	from nawah.base_module import BaseModule
 	from nawah.enums import Event
 	from nawah.config import Config

@@ -17,6 +17,8 @@ from typing import (
 
 import datetime
 
+from ._exceptions import MethodException
+
 if TYPE_CHECKING:
 	from nawah.base_method import BaseMethod
 	from ._attr import ATTR
@@ -37,10 +39,6 @@ PERM_QUERY_MOD = Union[PERM_QUERY_MOD_UNIT, 'NAWAH_QUERY', List['PERM_QUERY_MOD'
 
 PERM_DOC_MOD_UNIT = Dict[str, Union['ATTR', Literal['$__date', '$__user'], Any]]
 PERM_DOC_MOD = Union[PERM_DOC_MOD_UNIT, 'NAWAH_DOC']
-
-
-class MethodException(Exception):
-	pass
 
 
 class PERM:
