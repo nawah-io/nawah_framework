@@ -24,6 +24,7 @@ nawah/classes/__init__.py
 nawah/classes/_attr.py
 nawah/classes/_base_model.py
 nawah/classes/_dictobj.py
+nawah/classes/_exceptions.py
 nawah/classes/_json_encoder.py
 nawah/classes/_module.py
 nawah/classes/_package.py
@@ -34,7 +35,6 @@ nawah/config/__init__.py
 nawah/config/_config.py
 nawah/config/py.typed
 nawah/data/__init__.py
-nawah/data/_classes.py
 nawah/data/_conn.py
 nawah/data/_create.py
 nawah/data/_delete.py
