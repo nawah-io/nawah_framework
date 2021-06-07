@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_BOOL_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_BOOL',
 			attr_type=ATTR.BOOL(),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_BOOL_None():
 @pytest.mark.asyncio
 async def test_validate_attr_BOOL_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_BOOL',
 			attr_type=ATTR.BOOL(),
 			attr_val=1,
@@ -28,7 +28,7 @@ async def test_validate_attr_BOOL_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_BOOL_bool():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_BOOL',
 		attr_type=ATTR.BOOL(),
 		attr_val=False,
@@ -39,7 +39,7 @@ async def test_validate_attr_BOOL_bool():
 
 @pytest.mark.asyncio
 async def test_validate_attr_BOOL_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_BOOL',
 		attr_type=ATTR.BOOL(),
 		attr_val=None,
@@ -52,7 +52,7 @@ async def test_validate_attr_BOOL_None_allow_none():
 async def test_validate_attr_BOOL_default_None():
 	attr_type = ATTR.BOOL()
 	attr_type._default = 'test_validate_attr_BOOL'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_BOOL',
 		attr_type=attr_type,
 		attr_val=None,
@@ -65,7 +65,7 @@ async def test_validate_attr_BOOL_default_None():
 async def test_validate_attr_BOOL_default_int():
 	attr_type = ATTR.STR()
 	attr_type._default = 'test_validate_attr_BOOL'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_BOOL',
 		attr_type=attr_type,
 		attr_val=1,
@@ -78,7 +78,7 @@ async def test_validate_attr_BOOL_default_int():
 async def test_validate_attr_BOOL_default_int_allow_none():
 	attr_type = ATTR.STR()
 	attr_type._default = 'test_validate_attr_BOOL'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_BOOL',
 		attr_type=attr_type,
 		attr_val=1,

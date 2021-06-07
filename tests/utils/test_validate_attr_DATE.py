@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_DATE_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DATE',
 			attr_type=ATTR.DATE(),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_DATE_None():
 @pytest.mark.asyncio
 async def test_validate_attr_DATE_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DATE',
 			attr_type=ATTR.DATE(),
 			attr_val=1,
@@ -29,7 +29,7 @@ async def test_validate_attr_DATE_int():
 @pytest.mark.asyncio
 async def test_validate_attr_DATE_str_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DATE',
 			attr_type=ATTR.DATE(),
 			attr_val='20200202',
@@ -39,7 +39,7 @@ async def test_validate_attr_DATE_str_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DATE_date():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DATE',
 		attr_type=ATTR.DATE(),
 		attr_val='2020-02-02',
@@ -50,7 +50,7 @@ async def test_validate_attr_DATE_date():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DATE_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DATE',
 		attr_type=ATTR.DATE(),
 		attr_val=None,
@@ -63,7 +63,7 @@ async def test_validate_attr_DATE_None_allow_none():
 async def test_validate_attr_DATE_default_None():
 	attr_type = ATTR.DATE()
 	attr_type._default = 'test_validate_attr_DATE'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DATE',
 		attr_type=attr_type,
 		attr_val=None,
@@ -76,7 +76,7 @@ async def test_validate_attr_DATE_default_None():
 async def test_validate_attr_DATE_default_int():
 	attr_type = ATTR.DATE()
 	attr_type._default = 'test_validate_attr_DATE'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DATE',
 		attr_type=attr_type,
 		attr_val=1,
@@ -89,7 +89,7 @@ async def test_validate_attr_DATE_default_int():
 async def test_validate_attr_DATE_default_int_allow_none():
 	attr_type = ATTR.DATE()
 	attr_type._default = 'test_validate_attr_DATE'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DATE',
 		attr_type=attr_type,
 		attr_val=1,

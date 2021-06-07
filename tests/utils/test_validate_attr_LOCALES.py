@@ -1,5 +1,6 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils, config
+from nawah.utils import validate_attr
+from nawah import config
 
 import pytest
 
@@ -10,7 +11,7 @@ async def test_validate_attr_LOCALES_None(preserve_state):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
 		with pytest.raises(InvalidAttrException):
-			await utils.validate_attr(
+			await validate_attr(
 				attr_name='test_validate_attr_LOCALES',
 				attr_type=ATTR.LOCALES(),
 				attr_val=None,
@@ -24,7 +25,7 @@ async def test_validate_attr_LOCALES_str_invalid(preserve_state):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
 		with pytest.raises(InvalidAttrException):
-			await utils.validate_attr(
+			await validate_attr(
 				attr_name='test_validate_attr_LOCALES',
 				attr_type=ATTR.LOCALES(),
 				attr_val='ar',
@@ -37,7 +38,7 @@ async def test_validate_attr_LOCALES_locale(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		attr_val = await utils.validate_attr(
+		attr_val = await validate_attr(
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=ATTR.LOCALES(),
 			attr_val='en_AE',
@@ -51,7 +52,7 @@ async def test_validate_attr_LOCALES_None_allow_none(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		attr_val = await utils.validate_attr(
+		attr_val = await validate_attr(
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=ATTR.LOCALES(),
 			attr_val=None,
@@ -67,7 +68,7 @@ async def test_validate_attr_LOCALES_default_None(preserve_state):
 		config.Config.locale = 'ar_AE'
 		attr_type = ATTR.LOCALES()
 		attr_type._default = 'test_validate_attr_LOCALES'
-		attr_val = await utils.validate_attr(
+		attr_val = await validate_attr(
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=attr_type,
 			attr_val=None,
@@ -83,7 +84,7 @@ async def test_validate_attr_LOCALES_default_int(preserve_state):
 		config.Config.locale = 'ar_AE'
 		attr_type = ATTR.LOCALES()
 		attr_type._default = 'test_validate_attr_LOCALES'
-		attr_val = await utils.validate_attr(
+		attr_val = await validate_attr(
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=attr_type,
 			attr_val=1,
@@ -99,7 +100,7 @@ async def test_validate_attr_LOCALES_default_int_allow_none(preserve_state):
 		config.Config.locale = 'ar_AE'
 		attr_type = ATTR.LOCALES()
 		attr_type._default = 'test_validate_attr_LOCALES'
-		attr_val = await utils.validate_attr(
+		attr_val = await validate_attr(
 			attr_name='test_validate_attr_LOCALES',
 			attr_type=attr_type,
 			attr_val=1,

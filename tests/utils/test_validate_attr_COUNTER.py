@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrTypeException
-from nawah import utils
+from nawah.utils import validate_attr
 
 from bson import ObjectId
 from tests.conftest import Module
@@ -49,7 +49,7 @@ async def test_validate_attr_COUNTER_values(
 				lambda skip_events, env, query, doc: 24,
 			],
 		)
-		attr_val = await utils.validate_attr(
+		attr_val = await validate_attr(
 			attr_name='test_validate_attr_COUNTER',
 			attr_type=attr_type,
 			attr_val=None,

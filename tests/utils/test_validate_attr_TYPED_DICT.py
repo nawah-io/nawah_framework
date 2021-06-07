@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.TYPED_DICT(dict={'key': ATTR.STR()}),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_DICT_None():
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.TYPED_DICT(dict={'key': ATTR.STR()}),
 			attr_val=1,
@@ -29,7 +29,7 @@ async def test_validate_attr_DICT_int():
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.TYPED_DICT(dict={'key': ATTR.STR()}),
 			attr_val={
@@ -46,7 +46,7 @@ async def test_validate_attr_DICT_simple_dict():
 		'key1': 'value',
 		'key2': 2,
 	}
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=ATTR.TYPED_DICT(dict={'key1': ATTR.STR(), 'key2': ATTR.INT()}),
 		attr_val=dict_attr_val,
@@ -58,7 +58,7 @@ async def test_validate_attr_DICT_simple_dict():
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_simple_dict_Any_None_value():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.TYPED_DICT(dict={'key1': ATTR.ANY(), 'key2': ATTR.ANY()}),
 			attr_val={
@@ -77,7 +77,7 @@ async def test_validate_attr_DICT_simple_dict_Any_default_None_value():
 	}
 	attr_type_any = ATTR.ANY()
 	attr_type_any._default = None
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=ATTR.TYPED_DICT(dict={'key1': attr_type_any, 'key2': attr_type_any}),
 		attr_val=dict_attr_val,
@@ -89,7 +89,7 @@ async def test_validate_attr_DICT_simple_dict_Any_default_None_value():
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_nested_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.TYPED_DICT(
 				dict={
@@ -111,7 +111,7 @@ async def test_validate_attr_DICT_nested_dict():
 		'key1': 'value',
 		'key2': {'child_key': 2},
 	}
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=ATTR.TYPED_DICT(
 			dict={
@@ -128,7 +128,7 @@ async def test_validate_attr_DICT_nested_dict():
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_nested_list_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.TYPED_DICT(
 				dict={
@@ -146,7 +146,7 @@ async def test_validate_attr_DICT_nested_list_dict_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_nested_list_dict():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=ATTR.TYPED_DICT(
 			dict={
@@ -165,7 +165,7 @@ async def test_validate_attr_DICT_nested_list_dict():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=ATTR.TYPED_DICT(dict={'key': ATTR.STR()}),
 		attr_val=None,
@@ -181,7 +181,7 @@ async def test_validate_attr_DICT_None_allow_none():
 async def test_validate_attr_DICT_default_None():
 	attr_type = ATTR.TYPED_DICT(dict={'key': ATTR.STR()})
 	attr_type._default = 'test_validate_attr_DICT'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=attr_type,
 		attr_val=None,
@@ -194,7 +194,7 @@ async def test_validate_attr_DICT_default_None():
 async def test_validate_attr_DICT_default_int():
 	attr_type = ATTR.TYPED_DICT(dict={'key': ATTR.STR()})
 	attr_type._default = 'test_validate_attr_DICT'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=attr_type,
 		attr_val=1,
@@ -207,7 +207,7 @@ async def test_validate_attr_DICT_default_int():
 async def test_validate_attr_DICT_default_int_allow_none():
 	attr_type = ATTR.TYPED_DICT(dict={'key': ATTR.STR()})
 	attr_type._default = 'test_validate_attr_DICT'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_DICT',
 		attr_type=attr_type,
 		attr_val=1,

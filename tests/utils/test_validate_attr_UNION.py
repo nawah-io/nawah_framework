@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_UNION',
 			attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_UNION_None():
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_float():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_UNION',
 			attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),
 			attr_val=1.1,
@@ -28,7 +28,7 @@ async def test_validate_attr_UNION_float():
 
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_str():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_UNION',
 		attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),
 		attr_val='str',
@@ -39,7 +39,7 @@ async def test_validate_attr_UNION_str():
 
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_int():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_UNION',
 		attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),
 		attr_val=1,
@@ -50,7 +50,7 @@ async def test_validate_attr_UNION_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_UNION',
 		attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),
 		attr_val=None,
@@ -63,7 +63,7 @@ async def test_validate_attr_UNION_None_allow_none():
 async def test_validate_attr_UNION_default_None():
 	attr_type = ATTR.UNION(union=[ATTR.STR(), ATTR.INT()])
 	attr_type._default = 'test_validate_attr_UNION'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_UNION',
 		attr_type=attr_type,
 		attr_val=None,
@@ -76,7 +76,7 @@ async def test_validate_attr_UNION_default_None():
 async def test_validate_attr_UNION_default_float():
 	attr_type = ATTR.UNION(union=[ATTR.STR(), ATTR.INT()])
 	attr_type._default = 'test_validate_attr_UNION'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_UNION',
 		attr_type=attr_type,
 		attr_val=1.1,
@@ -89,7 +89,7 @@ async def test_validate_attr_UNION_default_float():
 async def test_validate_attr_UNION_default_float_allow_none():
 	attr_type = ATTR.UNION(union=[ATTR.STR(), ATTR.INT()])
 	attr_type._default = 'test_validate_attr_UNION'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_UNION',
 		attr_type=attr_type,
 		attr_val=1.1,

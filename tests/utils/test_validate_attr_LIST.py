@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.STR()]),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_LIST_None():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.STR()]),
 			attr_val=1,
@@ -29,7 +29,7 @@ async def test_validate_attr_LIST_int():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.STR()]),
 			attr_val={
@@ -43,7 +43,7 @@ async def test_validate_attr_LIST_dict_invalid():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_simple_list():
 	list_attr_val = ['str', 'str', 'str']
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=ATTR.LIST(list=[ATTR.STR()]),
 		attr_val=list_attr_val,
@@ -55,7 +55,7 @@ async def test_validate_attr_LIST_simple_list():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_nested_list_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.LIST(list=[ATTR.STR()])]),
 			attr_val=['str', 'str', ['str']],
@@ -66,7 +66,7 @@ async def test_validate_attr_LIST_nested_list_invalid():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_nested_list():
 	list_attr_val = [['str'], ['str', 'str'], ['str']]
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=ATTR.LIST(list=[ATTR.LIST(list=[ATTR.STR()])]),
 		attr_val=list_attr_val,
@@ -78,7 +78,7 @@ async def test_validate_attr_LIST_nested_list():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_nested_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.INT())]),
 			attr_val=[{'key': 1}, {'key': 'val'}],
@@ -88,7 +88,7 @@ async def test_validate_attr_LIST_nested_dict_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_nested_dict():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=ATTR.LIST(list=[ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.INT())]),
 		attr_val=[{'key': 1}, {'key': '2'}],
@@ -100,7 +100,7 @@ async def test_validate_attr_LIST_nested_dict():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_muti_list_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.EMAIL(), ATTR.URI_WEB()]),
 			attr_val=['info@nawah.masaar.com', 'http://sub.example.com', '1'],
@@ -111,7 +111,7 @@ async def test_validate_attr_LIST_muti_list_invalid():
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_multi_list_invalid_count():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_LIST',
 			attr_type=ATTR.LIST(list=[ATTR.EMAIL(), ATTR.URI_WEB()], min=1, max=2),
 			attr_val=[
@@ -130,7 +130,7 @@ async def test_validate_attr_LIST_typed_dict():
 		'http://sub.example.com',
 		'https://sub.domain.com',
 	]
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=ATTR.LIST(list=[ATTR.EMAIL(), ATTR.URI_WEB()], min=1, max=3),
 		attr_val=list_attr_val,
@@ -141,7 +141,7 @@ async def test_validate_attr_LIST_typed_dict():
 
 @pytest.mark.asyncio
 async def test_validate_attr_LIST_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=ATTR.LIST(list=[ATTR.STR()]),
 		attr_val=None,
@@ -157,7 +157,7 @@ async def test_validate_attr_LIST_None_allow_none():
 async def test_validate_attr_LIST_default_None():
 	attr_type = ATTR.LIST(list=[ATTR.STR()])
 	attr_type._default = 'test_validate_attr_LIST'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=attr_type,
 		attr_val=None,
@@ -170,7 +170,7 @@ async def test_validate_attr_LIST_default_None():
 async def test_validate_attr_LIST_default_int():
 	attr_type = ATTR.LIST(list=[ATTR.STR()])
 	attr_type._default = 'test_validate_attr_LIST'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=attr_type,
 		attr_val=[1],
@@ -183,7 +183,7 @@ async def test_validate_attr_LIST_default_int():
 async def test_validate_attr_LIST_default_int_allow_none():
 	attr_type = ATTR.LIST(list=[ATTR.STR()])
 	attr_type._default = 'test_validate_attr_LIST'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_LIST',
 		attr_type=attr_type,
 		attr_val=[1],

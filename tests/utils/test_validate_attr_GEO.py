@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_GEO_None():
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val=1,
@@ -29,7 +29,7 @@ async def test_validate_attr_GEO_int():
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val={'key': 'value'},
@@ -40,7 +40,7 @@ async def test_validate_attr_GEO_dict_invalid():
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_geo():
 	geo_attr_val = {'type': 'Point', 'coordinates': [21.422507, 39.826181]}
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_GEO',
 		attr_type=ATTR.GEO(),
 		attr_val=geo_attr_val,
@@ -52,7 +52,7 @@ async def test_validate_attr_GEO_geo():
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_geo_as_str():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
 			attr_val={'type': 'Point', 'coordinates': ['21.422507', '39.826181']},
@@ -62,7 +62,7 @@ async def test_validate_attr_GEO_geo_as_str():
 
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_GEO',
 		attr_type=ATTR.GEO(),
 		attr_val=None,
@@ -75,7 +75,7 @@ async def test_validate_attr_GEO_None_allow_none():
 async def test_validate_attr_GEO_default_None():
 	attr_type = ATTR.GEO()
 	attr_type._default = 'test_validate_attr_GEO'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_GEO',
 		attr_type=attr_type,
 		attr_val=None,
@@ -88,7 +88,7 @@ async def test_validate_attr_GEO_default_None():
 async def test_validate_attr_GEO_default_int():
 	attr_type = ATTR.GEO()
 	attr_type._default = 'test_validate_attr_GEO'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_GEO',
 		attr_type=attr_type,
 		attr_val=1,
@@ -101,7 +101,7 @@ async def test_validate_attr_GEO_default_int():
 async def test_validate_attr_GEO_default_int_allow_none():
 	attr_type = ATTR.GEO()
 	attr_type._default = 'test_validate_attr_GEO'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_GEO',
 		attr_type=attr_type,
 		attr_val=1,

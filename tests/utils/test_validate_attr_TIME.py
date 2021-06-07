@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_TIME_None():
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
 			attr_val=1,
@@ -29,7 +29,7 @@ async def test_validate_attr_TIME_int():
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_str_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
 			attr_val='0000',
@@ -39,7 +39,7 @@ async def test_validate_attr_TIME_str_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_datetime_short():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val='00:00',
@@ -50,7 +50,7 @@ async def test_validate_attr_TIME_datetime_short():
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_datetime_medium():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val='00:00:00',
@@ -61,7 +61,7 @@ async def test_validate_attr_TIME_datetime_medium():
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_datetime_iso():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val='00:00:00.000000',
@@ -72,7 +72,7 @@ async def test_validate_attr_TIME_datetime_iso():
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=ATTR.TIME(),
 		attr_val=None,
@@ -85,7 +85,7 @@ async def test_validate_attr_TIME_None_allow_none():
 async def test_validate_attr_TIME_default_None():
 	attr_type = ATTR.TIME()
 	attr_type._default = 'test_validate_attr_TIME'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=attr_type,
 		attr_val=None,
@@ -98,7 +98,7 @@ async def test_validate_attr_TIME_default_None():
 async def test_validate_attr_TIME_default_int():
 	attr_type = ATTR.TIME()
 	attr_type._default = 'test_validate_attr_TIME'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=attr_type,
 		attr_val=1,
@@ -111,7 +111,7 @@ async def test_validate_attr_TIME_default_int():
 async def test_validate_attr_TIME_default_int_allow_none():
 	attr_type = ATTR.TIME()
 	attr_type._default = 'test_validate_attr_TIME'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_TIME',
 		attr_type=attr_type,
 		attr_val=1,

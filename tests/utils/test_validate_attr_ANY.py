@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_ANY_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_ANY',
 			attr_type=ATTR.ANY(),
 			attr_val=None,
@@ -17,7 +17,7 @@ async def test_validate_attr_ANY_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_ANY_str():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_ANY',
 		attr_type=ATTR.ANY(),
 		attr_val='test_validate_attr_ANY',
@@ -30,7 +30,7 @@ async def test_validate_attr_ANY_str():
 async def test_validate_attr_ANY_default_None():
 	attr_type = ATTR.ANY()
 	attr_type._default = 'test_validate_attr_ANY'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_ANY',
 		attr_type=attr_type,
 		attr_val=None,

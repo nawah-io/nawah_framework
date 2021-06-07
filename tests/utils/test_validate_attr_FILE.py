@@ -1,5 +1,5 @@
 from nawah.classes import ATTR, InvalidAttrException
-from nawah import utils
+from nawah.utils import validate_attr
 
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_validate_attr_FILE_None():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_FILE',
 			attr_type=ATTR.FILE(),
 			attr_val=None,
@@ -18,7 +18,7 @@ async def test_validate_attr_FILE_None():
 @pytest.mark.asyncio
 async def test_validate_attr_FILE_int():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_FILE',
 			attr_type=ATTR.FILE(),
 			attr_val=1,
@@ -29,7 +29,7 @@ async def test_validate_attr_FILE_int():
 @pytest.mark.asyncio
 async def test_validate_attr_FILE_dict_invalid():
 	with pytest.raises(InvalidAttrException):
-		await utils.validate_attr(
+		await validate_attr(
 			attr_name='test_validate_attr_FILE',
 			attr_type=ATTR.FILE(),
 			attr_val={'key': 'value'},
@@ -46,7 +46,7 @@ async def test_validate_attr_FILE_file():
 		'size': 6,
 		'content': b'__file',
 	}
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_FILE',
 		attr_type=ATTR.FILE(),
 		attr_val=file_attr_val,
@@ -64,7 +64,7 @@ async def test_validate_attr_FILE_file_list():
 		'size': 6,
 		'content': b'__file',
 	}
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_FILE',
 		attr_type=ATTR.FILE(),
 		attr_val=[file_attr_val],
@@ -75,7 +75,7 @@ async def test_validate_attr_FILE_file_list():
 
 @pytest.mark.asyncio
 async def test_validate_attr_FILE_None_allow_none():
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_FILE',
 		attr_type=ATTR.FILE(),
 		attr_val=None,
@@ -88,7 +88,7 @@ async def test_validate_attr_FILE_None_allow_none():
 async def test_validate_attr_FILE_default_None():
 	attr_type = ATTR.FILE()
 	attr_type._default = 'test_validate_attr_FILE'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_FILE',
 		attr_type=attr_type,
 		attr_val=None,
@@ -101,7 +101,7 @@ async def test_validate_attr_FILE_default_None():
 async def test_validate_attr_FILE_default_int():
 	attr_type = ATTR.FILE()
 	attr_type._default = 'test_validate_attr_FILE'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_FILE',
 		attr_type=attr_type,
 		attr_val=1,
@@ -114,7 +114,7 @@ async def test_validate_attr_FILE_default_int():
 async def test_validate_attr_FILE_default_int_allow_none():
 	attr_type = ATTR.FILE()
 	attr_type._default = 'test_validate_attr_FILE'
-	attr_val = await utils.validate_attr(
+	attr_val = await validate_attr(
 		attr_name='test_validate_attr_FILE',
 		attr_type=attr_type,
 		attr_val=1,
