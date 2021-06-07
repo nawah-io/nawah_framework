@@ -1,6 +1,5 @@
-from nawah.classes import Query, ATTR
+from nawah.classes import Query, ATTR, InvalidQueryException
 from nawah.data import _query
-from nawah.data._classes import InvalidQueryException
 
 import pytest
 

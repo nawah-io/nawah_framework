@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils, config
 
 import pytest
@@ -9,7 +9,7 @@ async def test_validate_attr_LOCALES_None(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		with pytest.raises(utils.InvalidAttrException):
+		with pytest.raises(InvalidAttrException):
 			await utils.validate_attr(
 				attr_name='test_validate_attr_LOCALES',
 				attr_type=ATTR.LOCALES(),
@@ -23,7 +23,7 @@ async def test_validate_attr_LOCALES_str_invalid(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		with pytest.raises(utils.InvalidAttrException):
+		with pytest.raises(InvalidAttrException):
 			await utils.validate_attr(
 				attr_name='test_validate_attr_LOCALES',
 				attr_type=ATTR.LOCALES(),

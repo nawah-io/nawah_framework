@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.ANY()),
@@ -17,7 +17,7 @@ async def test_validate_attr_DICT_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_int():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.ANY()),
@@ -28,7 +28,7 @@ async def test_validate_attr_DICT_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_dict_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.INT()),
@@ -57,7 +57,7 @@ async def test_validate_attr_DICT_simple_dict():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_nested_dict_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(
@@ -90,7 +90,7 @@ async def test_validate_attr_DICT_nested_dict():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_nested_list_dict_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.LIST(list=[ATTR.INT()])),
@@ -128,7 +128,7 @@ async def test_validate_attr_DICT_req_dict():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_min_req_dict_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.INT(), min=3, req=['key3']),
@@ -139,7 +139,7 @@ async def test_validate_attr_DICT_min_req_dict_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_DICT_min_req_max_dict_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_DICT',
 			attr_type=ATTR.KV_DICT(key=ATTR.STR(), val=ATTR.INT(), min=3, max=4, req=['key3']),

@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
@@ -17,7 +17,7 @@ async def test_validate_attr_GEO_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_int():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
@@ -28,7 +28,7 @@ async def test_validate_attr_GEO_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_dict_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),
@@ -51,7 +51,7 @@ async def test_validate_attr_GEO_geo():
 
 @pytest.mark.asyncio
 async def test_validate_attr_GEO_geo_as_str():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_GEO',
 			attr_type=ATTR.GEO(),

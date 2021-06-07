@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(),
@@ -17,7 +17,7 @@ async def test_validate_attr_EMAIL_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_int():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(),
@@ -28,7 +28,7 @@ async def test_validate_attr_EMAIL_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_str_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(),
@@ -50,7 +50,7 @@ async def test_validate_attr_EMAIL_email():
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_allowed_domains_email_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(allowed_domains=['foo.com', 'bar.net']),
@@ -61,7 +61,7 @@ async def test_validate_attr_EMAIL_allowed_domains_email_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_allowed_domains_strict_email_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(allowed_domains=['foo.com', 'bar.net'], strict=True),
@@ -94,7 +94,7 @@ async def test_validate_attr_EMAIL_allowed_domains_strict_email():
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_disallowed_domains_email_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(disallowed_domains=['foo.com', 'bar.net']),
@@ -105,7 +105,7 @@ async def test_validate_attr_EMAIL_disallowed_domains_email_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_EMAIL_disallowed_domains_strict_email_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_EMAIL',
 			attr_type=ATTR.EMAIL(disallowed_domains=['foo.com', 'bar.net'], strict=True),

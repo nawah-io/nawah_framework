@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(),
@@ -17,7 +17,7 @@ async def test_validate_attr_URI_WEB_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_int():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(),
@@ -28,7 +28,7 @@ async def test_validate_attr_URI_WEB_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_str_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(),
@@ -74,7 +74,7 @@ async def test_validate_attr_URI_WEB_uri_web_params():
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_allowed_domains_uri_web_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(allowed_domains=['foo.com', 'bar.net']),
@@ -85,7 +85,7 @@ async def test_validate_attr_URI_WEB_allowed_domains_uri_web_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_allowed_domains_strict_uri_web_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(allowed_domains=['foo.com', 'bar.net'], strict=True),
@@ -118,7 +118,7 @@ async def test_validate_attr_URI_WEB_allowed_domains_strict_uri_web():
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_disallowed_domains_uri_web_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(disallowed_domains=['foo.com', 'bar.net']),
@@ -129,7 +129,7 @@ async def test_validate_attr_URI_WEB_disallowed_domains_uri_web_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_URI_WEB_disallowed_domains_strict_uri_web_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_URI_WEB',
 			attr_type=ATTR.URI_WEB(disallowed_domains=['foo.com', 'bar.net'], strict=True),

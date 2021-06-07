@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_LITERAL_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_LITERAL',
 			attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
@@ -17,7 +17,7 @@ async def test_validate_attr_LITERAL_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_LITERAL_str_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_LITERAL',
 			attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),
@@ -28,7 +28,7 @@ async def test_validate_attr_LITERAL_str_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_attr_LITERAL_int_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_LITERAL',
 			attr_type=ATTR.LITERAL(literal=['str', 0, 1.1]),

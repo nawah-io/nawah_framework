@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_UNION',
 			attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),
@@ -17,7 +17,7 @@ async def test_validate_attr_UNION_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_UNION_float():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_UNION',
 			attr_type=ATTR.UNION(union=[ATTR.STR(), ATTR.INT()]),

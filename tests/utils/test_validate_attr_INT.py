@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_INT_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
@@ -17,7 +17,7 @@ async def test_validate_attr_INT_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_INT_str():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
@@ -28,7 +28,7 @@ async def test_validate_attr_INT_str():
 
 @pytest.mark.asyncio
 async def test_validate_attr_INT_float():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
@@ -50,7 +50,7 @@ async def test_validate_attr_INT_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_INT_float_as_str():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(),
@@ -72,7 +72,7 @@ async def test_validate_attr_INT_int_as_str():
 
 @pytest.mark.asyncio
 async def test_validate_attr_INT_range_int_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_INT',
 			attr_type=ATTR.INT(ranges=[[0, 10]]),

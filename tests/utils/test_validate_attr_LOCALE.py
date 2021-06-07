@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah.enums import LOCALE_STRATEGY
 from nawah import utils, config
 
@@ -10,7 +10,7 @@ async def test_validate_attr_LOCALE_None(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		with pytest.raises(utils.InvalidAttrException):
+		with pytest.raises(InvalidAttrException):
 			await utils.validate_attr(
 				attr_name='test_validate_attr_LOCALE',
 				attr_type=ATTR.LOCALE(),
@@ -24,7 +24,7 @@ async def test_validate_attr_LOCALE_dict_invalid(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		with pytest.raises(utils.InvalidAttrException):
+		with pytest.raises(InvalidAttrException):
 			await utils.validate_attr(
 				attr_name='test_validate_attr_LOCALE',
 				attr_type=ATTR.LOCALE(),
@@ -126,7 +126,7 @@ async def test_validate_attr_LOCALE_locale_extra(preserve_state):
 	with preserve_state(config, 'Config'):
 		config.Config.locales = ['ar_AE', 'en_AE', 'de_DE']
 		config.Config.locale = 'ar_AE'
-		with pytest.raises(utils.InvalidAttrException):
+		with pytest.raises(InvalidAttrException):
 			await utils.validate_attr(
 				attr_name='test_validate_attr_LOCALE',
 				attr_type=ATTR.LOCALE(),

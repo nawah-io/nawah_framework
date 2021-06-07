@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException, MissingAttrException
 from nawah import utils, config
 
 import pytest
@@ -22,7 +22,7 @@ async def test_validate_doc_invalid():
 		'attr_int': ATTR.INT(),
 	}
 	doc = {'attr_str': 'str', 'attr_int': 'abc'}
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_doc(mode='create', doc=doc, attrs=attrs)
 
 
@@ -33,7 +33,7 @@ async def test_validate_doc_invalid_none():
 		'attr_int': ATTR.INT(),
 	}
 	doc = {'attr_str': 'str', 'attr_int': None}
-	with pytest.raises(utils.MissingAttrException):
+	with pytest.raises(MissingAttrException):
 		await utils.validate_doc(mode='create', doc=doc, attrs=attrs)
 
 

@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
@@ -17,7 +17,7 @@ async def test_validate_attr_TIME_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_int():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),
@@ -28,7 +28,7 @@ async def test_validate_attr_TIME_int():
 
 @pytest.mark.asyncio
 async def test_validate_attr_TIME_str_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_TIME',
 			attr_type=ATTR.TIME(),

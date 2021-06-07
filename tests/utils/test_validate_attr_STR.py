@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_STR_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_STR',
 			attr_type=ATTR.STR(),
@@ -17,7 +17,7 @@ async def test_validate_attr_STR_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_STR_int():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_STR',
 			attr_type=ATTR.STR(),
@@ -39,7 +39,7 @@ async def test_validate_attr_STR_str():
 
 @pytest.mark.asyncio
 async def test_validate_attr_STR_pattern_str_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_STR',
 			attr_type=ATTR.STR(pattern=r'[a-z_]+'),

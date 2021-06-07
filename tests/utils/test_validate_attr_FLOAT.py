@@ -1,4 +1,4 @@
-from nawah.classes import ATTR
+from nawah.classes import ATTR, InvalidAttrException
 from nawah import utils
 
 import pytest
@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_validate_attr_FLOAT_None():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_FLOAT',
 			attr_type=ATTR.FLOAT(),
@@ -17,7 +17,7 @@ async def test_validate_attr_FLOAT_None():
 
 @pytest.mark.asyncio
 async def test_validate_attr_FLOAT_str():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_FLOAT',
 			attr_type=ATTR.FLOAT(),
@@ -72,7 +72,7 @@ async def test_validate_attr_FLOAT_int_as_str():
 
 @pytest.mark.asyncio
 async def test_validate_attr_FLOAT_range_float_invalid():
-	with pytest.raises(utils.InvalidAttrException):
+	with pytest.raises(InvalidAttrException):
 		await utils.validate_attr(
 			attr_name='test_validate_attr_FLOAT',
 			attr_type=ATTR.FLOAT(ranges=[[0.5, 9.5]]),

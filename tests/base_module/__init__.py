@@ -1,9 +1,9 @@
 from nawah.base_module import BaseModule
 
 
-class TestUtilityModule(BaseModule):
+class MockUtilityModule(BaseModule):
 	pass
 
 
-class TestModule(BaseModule):
+class MockModule(BaseModule):
 	collection = 'test_collection'
