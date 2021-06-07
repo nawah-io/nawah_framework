@@ -1,13 +1,18 @@
-from nawah.classes import Query, DictObj, MethodException
-from nawah.base_method._check_permissions import (
-	check_permissions,
+from nawah.classes import (
+	Query,
+	DictObj,
+	ATTR,
+	BaseModel,
+	MethodException,
 	InvalidPermissionsExcpetion,
+	InvalidCallArgsException,
 )
-from nawah.base_method._validate_args import validate_args, InvalidCallArgsException
+from nawah.base_method._check_permissions import check_permissions
+from nawah.base_method._validate_args import validate_args
 from nawah.enums import Event, NAWAH_VALUES
+from nawah.config import Config
 from nawah import base_module, registry
 
-from contextlib import contextmanager
 from typing import Dict, Any
 from bson import ObjectId
 
@@ -39,7 +44,20 @@ class MockBaseModule:
 		raise NotImplementedError()
 
 	def status(self, *, status, msg, args=None):
-		raise NotImplementedError()
+		status_dict = {'status': status, 'msg': msg, 'args': {}}
+		if args and type(args) == DictObj:
+			if 'code' in args:
+				args[
+					'code'
+				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
+			status_dict['args'] = args
+		elif args and type(args) == dict:
+			if 'code' in args.keys():
+				args[
+					'code'
+				] = f'{self.package_name.upper()}_{self.module_name.upper()}_{args["code"]}'
+			status_dict['args'] = args
+		return DictObj(status_dict)
 
 	def exception(self, *, status, msg, args=None):
 		status_dict = {'status': status, 'msg': msg, 'args': {}}
@@ -133,67 +151,63 @@ class MockBaseModule:
 		raise NotImplementedError('Method update_cache is not implemented')
 
 
-class MockRegistry:
+class MockRegistry(registry.Registry):
 	modules: Dict[str, MockBaseModule] = {}
-	l10n_dicts: Dict[str, Dict[str, str]] = {}
-	vars: Dict[str, Any] = {}
 
 	@staticmethod
 	def module(module):
-		return MockRegistry.modules[module]
-
-	@staticmethod
-	def l10n(*, locale, term):
-		return ''
-
-	@staticmethod
-	def var(var):
-		return ''
+		try:
+			return MockRegistry.modules[module]
+		except KeyError:
+			raise registry.InvalidModuleException(module=module)
 
 
 base_module.BaseModule = MockBaseModule  # type: ignore
 registry.Registry = MockRegistry  # type: ignore
 
 
-@pytest.fixture
-def mock_registry():
-	@contextmanager
-	def mock_registry_manager(*, modules=None, l10n_dicts=None, vars=None):
-		if modules:
-			for module_class in modules.keys():
-				module = module_class()
-				module.package_name = (
-					module.__module__.replace('modules.', '').upper().split('.')[0]
-				)
-				module.module_name = re.sub(
-					r'([A-Z])',
-					r'_\1',
-					module.__class__.__name__[0].lower() + module.__class__.__name__[1:],
-				).lower()
-				for method_name in modules[module_class].keys():
-					mock_method = mock.AsyncMock()
-					mock_method.return_value = modules[module_class][method_name]
-					setattr(module, method_name, mock_method)
+def pytest_configure(config):
+	config.addinivalue_line(
+		'markers',
+		'setup_test(modules, l10n, vars, types): Config mocked environment for testing.',
+	)
 
-				MockRegistry.modules[module.module_name] = module
 
-		if l10n_dicts:
-			MockRegistry.l10n_dicts = l10n_dicts
+def pytest_runtest_setup(item):
+	for marker in item.iter_markers(name='setup_test'):
+		setup_test(**marker.kwargs)
 
-		if vars:
-			MockRegistry.vars = vars
 
-		try:
-			yield
-		finally:
-			MockRegistry.modules = {}
-			MockRegistry.l10n_dicts = {}
-			MockRegistry.vars = {}
+def setup_test(*, modules=None, l10n_dicts=None, vars=None, types=None):
+	MockRegistry.modules = {}
+	Config.l10n = {}
+	Config.vars = {}
+	Config.types = {}
 
-	def _(*, modules=None, l10n_dicts=None, vars=None):
-		return mock_registry_manager(modules=modules, l10n_dicts=l10n_dicts, vars=vars)
+	if modules:
+		for module_class in modules.keys():
+			module = module_class()
+			module.package_name = module.__module__.replace('modules.', '').upper().split('.')[0]
+			module.module_name = re.sub(
+				r'([A-Z])',
+				r'_\1',
+				module.__class__.__name__[0].lower() + module.__class__.__name__[1:],
+			).lower()
+			for method_name in modules[module_class].keys():
+				mock_method = mock.AsyncMock()
+				mock_method.return_value = modules[module_class][method_name]
+				setattr(module, method_name, mock_method)
 
-	return _
+			MockRegistry.modules[module.module_name] = module
+
+	if l10n_dicts:
+		Config.l10n = l10n_dicts
+
+	if vars:
+		Config.vars = vars
+
+	if types:
+		Config.types = types
 
 
 @pytest.fixture
@@ -358,18 +372,34 @@ def call_method(mock_env, call_method_check_permissions, call_method_validate_ar
 			}
 
 		if Event.ARGS not in skip_events:
-			if MockRegistry.modules[module].methods[method].query_args:
+			if (args_list := MockRegistry.modules[module].methods[method].query_args) :
+				if type(args_list) != list:
+					args_list = [args_list]
+
+				# [DOC] Call ATTR.validate_type on query_args to initialise Attr Type TYPE
+				for args_set in args_list:
+					for attr in args_set.keys():
+						ATTR.validate_type(attr_type=args_set[attr])
+
 				await validate_args(
 					args=query,
 					args_list_label='query',
-					args_list=MockRegistry.modules[module].methods[method].permissions.query_args,
+					args_list=args_list,
 				)
 
-			if MockRegistry.modules[module].methods[method].doc_args:
+			if (args_list := MockRegistry.modules[module].methods[method].doc_args) :
+				if type(args_list) != list:
+					args_list = [args_list]
+
+				# [DOC] Call ATTR.validate_type on query_args to initialise Attr Type TYPE
+				for args_set in args_list:
+					for attr in args_set.keys():
+						ATTR.validate_type(attr_type=args_set[attr])
+
 				await validate_args(
 					args=doc,
 					args_list_label='doc',
-					args_list=MockRegistry.modules[module].methods[method].doc_args,
+					args_list=args_list,
 				)
 
 		for arg in doc.keys():
