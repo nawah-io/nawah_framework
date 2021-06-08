@@ -728,15 +728,9 @@ class Config:
 		# [DOC] Test app-specific docs
 		logger.debug('Testing docs.')
 		for doc in cls.docs:
-			# [TODO] Remove with final version
-			if type(doc) == dict:
-				logger.warning(f'Config Attr \'docs\' is using deprecated dict, Update it.')
-				doc = SYS_DOC(
-					module=doc['module'],
-					key=doc['key'] if 'key' in doc.keys() else '_id',
-					skip_args=doc['skip_args'] if 'skip_args' in doc.keys() else False,
-					doc=doc['doc'],
-				)
+			if type(doc) != SYS_DOC:
+				logger.error(f'Invalid Config Attr \'docs\'. Exiting.')
+				exit(1)
 
 			doc_results = await cls.modules[doc.module].read(
 				skip_events=[Event.PERM, Event.PRE, Event.ON, Event.ARGS],
@@ -747,6 +741,7 @@ class Config:
 				skip_events = [Event.PERM]
 				if doc.skip_args == True:
 					skip_events.append(Event.ARGS)
+				doc.doc = cast(NAWAH_DOC, doc.doc)
 				doc_results = await cls.modules[doc.module].create(
 					skip_events=skip_events, env=cls._sys_env, doc=doc.doc
 				)
