@@ -110,14 +110,7 @@ class User(BaseModule):
 
 	async def pre_create(self, skip_events, env, query, doc, payload):
 		if Event.ARGS not in skip_events:
-			if Config.realm:
-				realm_results = await Registry.module('realm').read(
-					skip_events=[Event.PERM], env=env
-				)
-				realm = realm_results.args.docs[0]
-				doc['groups'] = [realm.default]
-			else:
-				doc['groups'] = [ObjectId('f00000000000000000000013')]
+			doc['groups'] = [ObjectId('f00000000000000000000013')]
 		user_settings = {}
 		for attr in Config.user_settings.keys():
 			if Config.user_settings[attr]['type'] == 'user_sys':

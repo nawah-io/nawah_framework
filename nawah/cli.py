@@ -377,7 +377,7 @@ def launch(
 						f'Invalid value type for \'force_admin_check\' Config Attr with value \'{app_config.force_admin_check}\'. Exiting.'
 					)
 					exit(1)
-		# [TODO] Implement realm APP Config Attr checks
+
 		# [DOC] Process other app config attrs as PACKAGE_CONFIG
 		process_config(config=app_config)
 	except:

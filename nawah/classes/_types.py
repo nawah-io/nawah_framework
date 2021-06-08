@@ -58,7 +58,6 @@ NAWAH_ENV = TypedDict(
 		'ws': WebSocketResponse,
 		'watch_tasks': Dict[str, WATCH_TASK],
 		'quota': NAWAH_ENV_QUOTA,
-		'realm': str,
 	},
 	total=False,
 )

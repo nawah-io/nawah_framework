@@ -107,7 +107,6 @@ class Config:
 	_sys_conn: AsyncIOMotorClient
 	_sys_env: NAWAH_ENV
 	_sys_docs: Dict[ObjectId, SYS_DOC] = {}
-	_realms: Dict[str, BaseModel] = {}
 	_jobs_base: datetime.datetime
 
 	_nawah_version: str
@@ -130,8 +129,6 @@ class Config:
 
 	generate_models: bool = False
 	_api_models: str
-
-	realm: bool = False
 
 	vars_types: Dict[str, Union[ATTR, Dict[str, Any]]] = {}
 	vars: Dict[str, Any] = {}
@@ -413,57 +410,6 @@ class Config:
 				else:
 					logger.debug(f'Skipping service module {module}')
 
-		logger.debug('Testing realm mode.')
-		if cls.realm:
-			# [DOC] Append realm to env dict
-			cls._sys_env['realm'] = '__global'
-			# [DOC] Append realm attrs to all modules attrs and set at as required in query_args and doc_args
-			for module in cls.modules.keys():
-				if module != 'realm':
-					logger.debug(f'Updating module \'{module}\' for realm mode.')
-					cls.modules[module].attrs['realm'] = ATTR.STR()
-					for method in cls.modules[module].methods.keys():
-						module_method = cls.modules[module].methods[method]
-						# [DOC] Attempt required changes to query_args to add realm query_arg
-						for query_args_set in cast(List[Dict[str, ATTR]], module_method.query_args):
-							query_args_set['realm'] = ATTR.STR()
-						# [DOC] Attempt required changes to doc_args to add realm doc_arg
-						for doc_args_set in cast(List[Dict[str, ATTR]], module_method.doc_args):
-							doc_args_set['realm'] = ATTR.STR()
-						module_method._callable.query_args = cast(
-							List[Dict[str, ATTR]], module_method.query_args
-						)
-						module_method._callable.doc_args = cast(
-							List[Dict[str, ATTR]], module_method.doc_args
-						)
-			# [DOC] Query all realms to provide access to available realms and to add realm docs to _sys_docs
-			realm_results = await cls.modules['realm'].read(
-				skip_events=[Event.PERM, Event.ARGS], env=cls._sys_env
-			)
-			logger.debug(
-				f'Found {realm_results.args.count} realms. Namely; {[doc.name for doc in realm_results.args.docs]}'
-			)
-			for doc in realm_results.args.docs:
-				cls._realms[doc.name] = doc
-				cls._sys_docs[doc._id] = SYS_DOC(module='realm')
-			# [DOC] Create __global realm
-			if '__global' not in cls._realms:
-				logger.debug('GLOBAL realm not found, creating it.')
-				realm_results = await cls.modules['realm'].create(
-					skip_events=[Event.PERM, Event.PRE],
-					env=cls._sys_env,
-					doc={
-						'_id': ObjectId('f00000000000000000000014'),
-						'user': ObjectId('f00000000000000000000010'),
-						'name': '__global',
-						'default': 'f00000000000000000000013',
-					},
-				)
-				logger.debug(f'GLOBAL realm creation results: {realm_results}')
-				if realm_results.status != 200:
-					logger.error('Config step failed. Exiting.')
-					exit(1)
-
 		# [DOC] Checking users collection
 		# [TODO] Updated sequence to handle users
 		logger.debug('Testing users collection.')
@@ -491,8 +437,6 @@ class Config:
 						'utf-8'
 					)
 				)
-			if cls.realm:
-				admin_create_doc['realm'] = '__global'
 			admin_results = await cls.modules['user'].create(
 				skip_events=[Event.PERM],
 				env=cls._sys_env,
@@ -652,8 +596,6 @@ class Config:
 				'bio': {locale: '__DEFAULT' for locale in cls.locales},
 				'privileges': cls.default_privileges,
 			}
-			if cls.realm:
-				group_create_doc['realm'] = '__global'
 			group_results = await cls.modules['group'].create(
 				skip_events=[Event.PERM, Event.PRE, Event.ON],
 				env=cls._sys_env,
@@ -704,8 +646,6 @@ class Config:
 				logger.debug(
 					f'App-specific group with name \'{group["name"]}\' not found, creating it.'
 				)
-				if cls.realm:
-					group['realm'] = '__global'
 				group_results = await cls.modules['group'].create(
 					skip_events=[Event.PERM, Event.PRE, Event.ON],
 					env=cls._sys_env,
@@ -784,16 +724,6 @@ class Config:
 				cls._sys_conn[cls.data_name][cls.modules[module].collection].create_index(
 					[('__deleted', 1)]
 				)
-		if cls.realm:
-			logger.debug('Creating \'realm\' data indexes for all collections.')
-			for module in cls.modules:
-				if module != 'realm' and cls.modules[module].collection:
-					logger.debug(
-						f'Attempting to create \'realm\' data index for collection: {cls.modules[module].collection}'
-					)
-					cls._sys_conn[cls.data_name][cls.modules[module].collection].create_index(
-						[('realm', 'text')]
-					)
 
 		# [DOC] Test app-specific docs
 		logger.debug('Testing docs.')
@@ -814,8 +744,6 @@ class Config:
 				query=[{doc.key: doc.key_value}],  # type: ignore
 			)
 			if not doc_results.args.count:
-				if cls.realm:
-					doc.doc['realm'] = '__global'
 				skip_events = [Event.PERM]
 				if doc.skip_args == True:
 					skip_events.append(Event.ARGS)
@@ -853,8 +781,6 @@ class Config:
 			anon_doc[attr] = generate_attr(attr_type=cls.user_attrs[attr])
 		for auth_attr in cls.user_attrs.keys():
 			anon_doc[f'{auth_attr}_hash'] = cls.anon_token
-		if cls.realm:
-			anon_doc['realm'] = '__global'
 		return anon_doc
 
 	@classmethod
@@ -869,6 +795,4 @@ class Config:
 			'token': cls.anon_token,
 			'token_hash': cls.anon_token,
 		}
-		if cls.realm:
-			session_doc['realm'] = '__global'
 		return session_doc

@@ -40,7 +40,7 @@ USER_SETTING = TypedDict(
 		'type': Literal['user', 'user_sys'],
 		'val_type': 'ATTR',
 		'default': Optional[Any],
-	}
+	},
 )
 
 ANALYTICS_EVENTS = TypedDict(
@@ -187,5 +187,4 @@ class APP_CONFIG(PACKAGE_CONFIG):
 	port: Optional[int] = None
 	env: Optional[str] = None
 	envs: Optional[Dict[str, PACKAGE_CONFIG]] = None
-	realm: Optional[bool] = None
 	force_admin_check: Optional[bool] = None

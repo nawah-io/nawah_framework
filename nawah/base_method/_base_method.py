@@ -128,25 +128,6 @@ class BaseMethod:
 							f'Failed to create \'Analytic\' doc: {analytic_doc}. Results: {analytic_results}'
 						)
 
-		if Event.ARGS not in skip_events and Config.realm:
-			if self.module.module_name == 'realm':
-				if self.method != 'create':
-					query.append({'name': env['realm']})
-					doc['name'] = env['realm']
-					logger.debug(
-						f'Appended realm name attrs to query, doc: {str(query)[:250]}, {doc.keys()}'
-					)
-				else:
-					logger.debug(
-						'Skipped Appending realm name attrs to query, doc for realm.create call'
-					)
-			else:
-				query.append({'realm': env['realm']})
-				doc['realm'] = env['realm']
-				logger.debug(
-					f'Appended realm attrs to query, doc: {JSONEncoder().encode(query)}, {doc.keys()}'
-				)
-
 		if Event.PERM not in skip_events and env['session']:
 			try:
 				permissions_check = await check_permissions(

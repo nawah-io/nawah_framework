@@ -35,9 +35,6 @@ async def run_app():
 
 	# [DOC] Use import_modules to load and initialise modules
 	await import_modules()
-	# [DOC] If realm mode is not enabled drop realm module.
-	if not Config.realm:
-		del Config.modules['realm']
 	await Config.config_data()
 	# [DOC] Populate get_routes, post_routes
 	get_routes = []
@@ -50,26 +47,16 @@ async def run_app():
 						get_args = f'/{{{"}/{".join(list(get_args_set.keys()))}}}'
 					else:
 						get_args = ''
-					if Config.realm:
-						get_args = get_args.replace('/{realm}', '')
-						get_routes.append(
-							f'/{{realm}}/{module.module_name}/{method._callable.method}{get_args}'
-						)
-					else:
-						get_routes.append(f'/{module.module_name}/{method._callable.method}{get_args}')
+
+					get_routes.append(f'/{module.module_name}/{method._callable.method}{get_args}')
 			elif method.post_method:
 				for post_args_set in method.query_args:
 					if post_args_set:
 						post_args = f'/{{{"}/{".join(list(post_args_set.keys()))}}}'
 					else:
 						post_args = ''
-					if Config.realm:
-						post_args = post_args.replace('/{realm}', '')
-						post_routes.append(
-							f'/{{realm}}/{module.module_name}/{method._callable.method}{post_args}'
-						)
-					else:
-						post_routes.append(f'/{module.module_name}/{method._callable.method}{post_args}')
+
+					post_routes.append(f'/{module.module_name}/{method._callable.method}{post_args}')
 
 	logger.debug(
 		'Loaded modules: %s',
@@ -207,12 +194,8 @@ async def run_app():
 				else:
 					ip_quota[str(request.remote)]['counter'] -= 1
 
-		if Config.realm:
-			module = request.url.parts[2].lower()
-			method = request.url.parts[3].lower()
-		else:
-			module = request.url.parts[1].lower()
-			method = request.url.parts[2].lower()
+		module = request.url.parts[1].lower()
+		method = request.url.parts[2].lower()
 		request_args = dict(request.match_info.items())
 
 		# [DOC] Extract Args Sets based on request.method
@@ -279,8 +262,6 @@ async def run_app():
 		except:
 			env['HTTP_USER_AGENT'] = ''
 			env['HTTP_ORIGIN'] = ''
-		if Config.realm:
-			env['realm'] = request.url.parts[1].lower()
 
 		if 'X-Auth-Bearer' in request.headers or 'X-Auth-Token' in request.headers:
 			logger.debug('Detected \'X-Auth\' header[s].')
@@ -508,26 +489,6 @@ async def run_app():
 		except:
 			env['HTTP_USER_AGENT'] = ''
 			env['HTTP_ORIGIN'] = ''
-
-		if Config.realm:
-			env['realm'] = request.match_info['realm'].lower()
-
-			realm_detected = False
-			for realm in Config._realms.keys():
-				if Config._realms[realm].name == env['realm']:
-					realm_detected = True
-					break
-			if not realm_detected:
-				await ws.send_str(
-					JSONEncoder().encode(
-						{
-							'status': 1008,
-							'msg': 'Connection closed',
-							'args': {'code': 'CORE_CONN_CLOSED'},
-						}
-					)
-				)
-				await ws.close()
 
 		logger.debug(
 			f'Websocket connection #\'{env["id"]}\' ready with client at \'{env["REMOTE_ADDR"]}\''
@@ -1142,10 +1103,7 @@ async def run_app():
 			)
 		)
 		app.router.add_route('GET', '/', root_handler)
-		if Config.realm:
-			app.router.add_route('*', '/ws/{realm}', websocket_handler)
-		else:
-			app.router.add_route('*', '/ws', websocket_handler)
+		app.router.add_route('*', '/ws', websocket_handler)
 		for route in get_routes:
 			app.router.add_route('GET', route, http_handler)
 		for route in post_routes:
