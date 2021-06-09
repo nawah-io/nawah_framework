@@ -34,5 +34,10 @@ def encode_attr_type(*, attr_type: ATTR) -> Dict[str, Any]:
 			encoded_attr_type['args']['union'][i] = encode_attr_type(
 				attr_type=attr_type._args['union'][i]
 			)
+	elif attr_type._type == 'TYPE':
+		if callable(encoded_attr_type['args']['type']):
+			raise Exception('Attr Type TYPE with callable \'type\' can\'t be encoded.')
+
+		del encoded_attr_type['args']['func']
 
 	return encoded_attr_type
