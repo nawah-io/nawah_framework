@@ -519,13 +519,17 @@ class ATTR:
 					arg_name=arg_name, arg_type=arg_type, arg_val=arg_val
 				)
 			for arg_val_child in arg_val:
-				# [DOC] Assert this is validating list items as Attr Type TYPE
 				cls.validate_arg(
 					arg_name=arg_name,
 					arg_type=arg_type.__args__[0],
 					arg_val=arg_val_child,
 					skip_type=skip_type,
 				)
+
+				# [DOC] In Addition to validating as list arg, check for ATTR and validate
+				if type(arg_val_child) == ATTR:
+					ATTR.validate_type(attr_type=arg_val_child, skip_type=skip_type)
+
 			return
 		elif arg_type._name == 'Dict':
 			if type(arg_val) != dict:
