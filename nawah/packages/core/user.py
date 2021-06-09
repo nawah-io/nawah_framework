@@ -102,7 +102,7 @@ class User(BaseModule):
 						user[setting_doc['var']] = setting_doc['val']
 				# [DOC] Forward-compatibility: If user was created before presence of any user_doc_settings, add them with default value
 				for setting_attr in user_doc_settings:
-					user[setting_attr] = Config.user_settings[setting_attr]['default']
+					user[setting_attr] = Config.user_settings[setting_attr].default
 					# [DOC] Set NAWAH_VALUES.NONE_VALUE to None if it was default
 					if user[setting_attr] == NAWAH_VALUES.NONE_VALUE:
 						user[setting_attr] = None
@@ -113,15 +113,15 @@ class User(BaseModule):
 			doc['groups'] = [ObjectId('f00000000000000000000013')]
 		user_settings = {}
 		for attr in Config.user_settings.keys():
-			if Config.user_settings[attr]['type'] == 'user_sys':
-				user_settings[attr] = copy.deepcopy(Config.user_settings[attr]['default'])
+			if Config.user_settings[attr].type == 'user_sys':
+				user_settings[attr] = copy.deepcopy(Config.user_settings[attr].default)
 			else:
 				if attr in doc.keys():
 					try:
 						await validate_attr(
 							mode='create',
 							attr_name=attr,
-							attr_type=Config.user_settings[attr]['val_type'],
+							attr_type=Config.user_settings[attr].val_type,
 							attr_val=doc[attr],
 						)
 						user_settings[attr] = doc[attr]
@@ -133,7 +133,7 @@ class User(BaseModule):
 						)
 
 				else:
-					if Config.user_settings[attr]['default'] == NAWAH_VALUES.NONE_VALUE:
+					if Config.user_settings[attr].default == NAWAH_VALUES.NONE_VALUE:
 						raise self.exception(
 							status=400,
 							msg=f'Missing settings attr \'{attr}\' for \'create\' request on module \'CORE_USER\'',
@@ -141,7 +141,7 @@ class User(BaseModule):
 						)
 
 					else:
-						user_settings[attr] = copy.deepcopy(Config.user_settings[attr]['default'])
+						user_settings[attr] = copy.deepcopy(Config.user_settings[attr].default)
 		payload['user_settings'] = user_settings
 		return (skip_events, env, query, doc, payload)
 
@@ -154,9 +154,9 @@ class User(BaseModule):
 					doc={
 						'user': results['docs'][0]._id,
 						'var': setting,
-						'val_type': encode_attr_type(attr_type=Config.user_settings[setting]['val_type']),
+						'val_type': encode_attr_type(attr_type=Config.user_settings[setting].val_type),
 						'val': payload['user_settings'][setting],
-						'type': Config.user_settings[setting]['type'],
+						'type': Config.user_settings[setting].type,
 					},
 				)
 				if setting_results.status != 200:
