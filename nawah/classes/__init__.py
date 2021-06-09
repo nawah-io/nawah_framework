@@ -24,6 +24,7 @@ from ._package import (
 	L10N,
 	APP_CONFIG,
 	PACKAGE_CONFIG,
+	USER_SETTING,
 	JOB,
 )
 from ._query import Query

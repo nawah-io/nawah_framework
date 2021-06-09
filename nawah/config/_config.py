@@ -10,6 +10,7 @@ from nawah.classes import (
 	CLIENT_APP,
 	ANALYTICS_EVENTS,
 	SYS_DOC,
+	USER_SETTING,
 	JOB,
 )
 
@@ -172,9 +173,7 @@ class Config:
 	anon_privileges: Dict[str, List[str]] = {}
 
 	user_attrs: Dict[str, ATTR] = {}
-	user_settings: Dict[
-		str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]
-	] = {}
+	user_settings: Dict[str, USER_SETTING] = {}
 	user_doc_settings: List[str] = []
 
 	groups: List[Dict[str, Any]] = []
@@ -199,7 +198,7 @@ class Config:
 	async def config_data(cls) -> None:
 		from nawah.utils import generate_attr
 
-		# [TODO] Add validator for user_attrs, user_settings, user_doc_settings
+		# [TODO] Add validator for user_attrs, user_doc_settings
 
 		# [DOC] Check app packages
 		if cls._app_packages or len(cls.packages_versions.keys()) > 2:
@@ -391,6 +390,7 @@ class Config:
 		# [DOC] Check test mode
 		if cls.test:
 			logger.debug('Test mode detected.')
+			logger.setLevel(logging.DEBUG)
 			__location__ = os.path.realpath(os.path.join('.'))
 			if not os.path.exists(os.path.join(__location__, 'tests')):
 				os.makedirs(os.path.join(__location__, 'tests'))
@@ -409,6 +409,20 @@ class Config:
 						)
 				else:
 					logger.debug(f'Skipping service module {module}')
+
+		# [DOC] Test user_settings
+		logger.debug('Testing user_settings.')
+		if cls.user_settings:
+			for user_setting in cls.user_settings.keys():
+				logger.debug(f'Testing {user_setting}')
+				if type(cls.user_settings[user_setting]) != USER_SETTING:
+					logger.error(
+						f'Invalid Config Attr \'user_settings\' with key \'{user_setting}\' of type \'{type(cls.user_settings[user_setting])}\' with required type \'USER_SETTING\'. Exiting.'
+					)
+					exit(1)
+
+				# [DOC] Validate USER_SETTING
+				cls.user_settings[user_setting]._validate()
 
 		# [DOC] Checking users collection
 		# [TODO] Updated sequence to handle users
