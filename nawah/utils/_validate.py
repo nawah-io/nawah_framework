@@ -533,7 +533,7 @@ async def validate_attr(
 				for child_attr_val in attr_val.keys():
 					shadow_attr_val[
 						await validate_attr(
-							mode=mode,
+							mode='create',
 							attr_name=f'{attr_name}.{child_attr_val}',
 							attr_type=attr_type._args['key'],
 							attr_val=child_attr_val,
@@ -544,7 +544,7 @@ async def validate_attr(
 							scope=attr_val,
 						)
 					] = await validate_attr(
-						mode=mode,
+						mode='create',
 						attr_name=f'{attr_name}.{child_attr_val}',
 						attr_type=attr_type._args['val'],
 						attr_val=attr_val[child_attr_val],
@@ -565,7 +565,7 @@ async def validate_attr(
 						attr_val[child_attr_type] = None
 					try:
 						attr_val[child_attr_type] = await validate_attr(
-							mode=mode,
+							mode='create',
 							attr_name=f'{attr_name}.{child_attr_type}',
 							attr_type=attr_type._args['dict'][child_attr_type],
 							attr_val=attr_val[child_attr_type],
@@ -623,7 +623,7 @@ async def validate_attr(
 			if type(attr_val) == list and len(attr_val):
 				try:
 					attr_val = await validate_attr(
-						mode=mode,
+						mode='create',
 						attr_name=attr_name,
 						attr_type=attr_type,
 						attr_val=attr_val[0],
@@ -773,7 +773,7 @@ async def validate_attr(
 					for child_attr_type in attr_type._args['list']:
 						try:
 							attr_val[i] = await validate_attr(
-								mode=mode,
+								mode='create',
 								attr_name=attr_name,
 								attr_type=child_attr_type,
 								attr_val=child_attr_val,
@@ -802,7 +802,7 @@ async def validate_attr(
 
 		elif attr_type._type == 'LOCALE':
 			attr_val = await validate_attr(
-				mode=mode,
+				mode='create',
 				attr_name=attr_name,
 				attr_type=ATTR.KV_DICT(
 					key=ATTR.LITERAL(literal=[locale for locale in Config.locales]),
@@ -936,7 +936,7 @@ async def validate_attr(
 			for child_attr in attr_type._args['union']:
 				try:
 					attr_val = await validate_attr(
-						mode=mode,
+						mode='create',
 						attr_name=attr_name,
 						attr_type=child_attr,
 						attr_val=attr_val,
@@ -959,7 +959,7 @@ async def validate_attr(
 		elif attr_type._type == 'TYPE':
 			try:
 				attr_val = await attr_type._args['func'](
-					mode=mode,
+					mode='create',
 					attr_name=attr_name,
 					attr_type=attr_type,
 					attr_val=attr_val,
@@ -1078,5 +1078,8 @@ def generate_dynamic_attr(
 		dynamic_attr['allow_none'] = False
 	if 'default' not in dynamic_attr.keys():
 		dynamic_attr['default'] = None
+
+	# [DOC] Validate Attr Type for possible Attr Type TYPE presence, to set ATTR._args[func] value
+	ATTR.validate_type(attr_type=dynamic_attr_type)
 
 	return (dynamic_attr_type, dynamic_attr)
