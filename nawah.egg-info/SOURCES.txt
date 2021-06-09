@@ -1,3 +1,4 @@
+LICENSE
 README.md
 setup.py
 nawah/__init__.py
@@ -58,7 +59,6 @@ nawah/packages/core/diff.py
 nawah/packages/core/file.py
 nawah/packages/core/group.py
 nawah/packages/core/py.typed
-nawah/packages/core/realm.py
 nawah/packages/core/session.py
 nawah/packages/core/setting.py
 nawah/packages/core/user.py
