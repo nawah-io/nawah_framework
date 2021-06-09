@@ -34,14 +34,41 @@ CLIENT_APP = TypedDict(
 	},
 )
 
-USER_SETTING = TypedDict(
-	'USER_SETTING',
-	{
-		'type': Literal['user', 'user_sys'],
-		'val_type': 'ATTR',
-		'default': Optional[Any],
-	},
-)
+
+class USER_SETTING:
+	type: Literal['user', 'user_sys']
+	val_type: 'ATTR'
+	default: Optional[Any]
+
+	def __init__(
+		self,
+		*,
+		type: Literal['user', 'user_sys'],
+		val_type: 'ATTR',
+		default: Optional[Any] = None,
+	):
+		self.type = type
+		self.val_type = val_type
+		self.default = default
+
+	def _validate(self):
+		from ._attr import ATTR
+
+		# [DOC] Validate type
+		if type(self.type) != str or self.type not in ['user', 'user_sys']:
+			raise Exception(
+				f'Invalid \'type\' of type \'{type(self.type)}\' with required \'user\', or \'user_sys\'.'
+			)
+
+		# [DOC] Validate val_type
+		if type(self.val_type) != ATTR:
+			raise Exception(
+				f'Invalid \'val_type\' of type \'{type(self.val_type)}\' with required type \'ATTR\'.'
+			)
+
+		# [DOC] Validate val_type Attr Type
+		ATTR.validate_type(attr_type=self.val_type)
+
 
 ANALYTICS_EVENTS = TypedDict(
 	'ANALYTICS_EVENTS',
@@ -165,9 +192,7 @@ class PACKAGE_CONFIG:
 	anon_token: Optional[str] = None
 	anon_privileges: Optional[Dict[str, List[str]]] = None
 	user_attrs: Optional[Dict[str, 'ATTR']] = None
-	user_settings: Optional[
-		Dict[str, Dict[Literal['type', 'val'], Union[Literal['user', 'user_sys'], Any]]]
-	] = None
+	user_settings: Optional[Dict[str, USER_SETTING]] = None
 	user_doc_settings: Optional[List[str]] = None
 	groups: Optional[List[Dict[str, Any]]] = None
 	default_privileges: Optional[Dict[str, List[str]]] = None
