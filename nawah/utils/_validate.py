@@ -196,7 +196,7 @@ async def validate_dot_notated(
 
 async def validate_default(
 	*,
-	mode: Literal['create', 'create_draft', 'update'],
+	mode: Literal['create', 'create_draft', 'update', 'deep'],
 	attr_name: str,
 	attr_type: ATTR,
 	attr_val: Any,
@@ -266,7 +266,7 @@ async def validate_default(
 		return counter_val
 
 	elif attr_val == None:
-		if mode != 'create':
+		if mode == 'update':
 			return attr_val
 		elif attr_type._default != NAWAH_VALUES.NONE_VALUE:
 			return copy.deepcopy(attr_type._default)
@@ -284,7 +284,7 @@ def setting_update_callback_wrapper(counter_name):
 
 async def validate_attr(
 	*,
-	mode: Literal['create', 'create_draft', 'update'],
+	mode: Literal['create', 'create_draft', 'update', 'deep'],
 	attr_name: str,
 	attr_type: ATTR,
 	attr_val: Any,
@@ -533,7 +533,7 @@ async def validate_attr(
 				for child_attr_val in attr_val.keys():
 					shadow_attr_val[
 						await validate_attr(
-							mode='create',
+							mode='deep',
 							attr_name=f'{attr_name}.{child_attr_val}',
 							attr_type=attr_type._args['key'],
 							attr_val=child_attr_val,
@@ -544,7 +544,7 @@ async def validate_attr(
 							scope=attr_val,
 						)
 					] = await validate_attr(
-						mode='create',
+						mode='deep',
 						attr_name=f'{attr_name}.{child_attr_val}',
 						attr_type=attr_type._args['val'],
 						attr_val=attr_val[child_attr_val],
@@ -565,7 +565,7 @@ async def validate_attr(
 						attr_val[child_attr_type] = None
 					try:
 						attr_val[child_attr_type] = await validate_attr(
-							mode='create',
+							mode='deep',
 							attr_name=f'{attr_name}.{child_attr_type}',
 							attr_type=attr_type._args['dict'][child_attr_type],
 							attr_val=attr_val[child_attr_type],
@@ -623,7 +623,7 @@ async def validate_attr(
 			if type(attr_val) == list and len(attr_val):
 				try:
 					attr_val = await validate_attr(
-						mode='create',
+						mode='deep',
 						attr_name=attr_name,
 						attr_type=attr_type,
 						attr_val=attr_val[0],
@@ -773,7 +773,7 @@ async def validate_attr(
 					for child_attr_type in attr_type._args['list']:
 						try:
 							attr_val[i] = await validate_attr(
-								mode='create',
+								mode='deep',
 								attr_name=attr_name,
 								attr_type=child_attr_type,
 								attr_val=child_attr_val,
@@ -802,7 +802,7 @@ async def validate_attr(
 
 		elif attr_type._type == 'LOCALE':
 			attr_val = await validate_attr(
-				mode='create',
+				mode='deep',
 				attr_name=attr_name,
 				attr_type=ATTR.KV_DICT(
 					key=ATTR.LITERAL(literal=[locale for locale in Config.locales]),
@@ -936,7 +936,7 @@ async def validate_attr(
 			for child_attr in attr_type._args['union']:
 				try:
 					attr_val = await validate_attr(
-						mode='create',
+						mode='deep',
 						attr_name=attr_name,
 						attr_type=child_attr,
 						attr_val=attr_val,
@@ -959,7 +959,7 @@ async def validate_attr(
 		elif attr_type._type == 'TYPE':
 			try:
 				attr_val = await attr_type._args['func'](
-					mode='create',
+					mode=mode,
 					attr_name=attr_name,
 					attr_type=attr_type,
 					attr_val=attr_val,
@@ -988,9 +988,11 @@ async def validate_attr(
 		# [DOC] For any other exception, skip for now to raise
 		pass
 
-	if mode != 'create':
+	if mode == 'update':
 		return None
-	elif attr_type._default != NAWAH_VALUES.NONE_VALUE:
+	elif (
+		mode in ['create', 'create_draft'] and attr_type._default != NAWAH_VALUES.NONE_VALUE
+	):
 		return attr_type._default
 	else:
 		try:
