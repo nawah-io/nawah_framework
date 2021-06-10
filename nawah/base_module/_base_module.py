@@ -235,6 +235,9 @@ class BaseModule:
 					f'Invalid method \'{method}\' of module \'{self.module_name}\'. Exiting.'
 				)
 				exit(1)
+			# [DOC] Set Method._module value to create back-link from child to parent
+			method._module = self
+			method._method_name = method_name
 			# [DOC] Check for existence of at least single permissions set per method
 			if not len(method.permissions):
 				logger.error(
@@ -290,12 +293,16 @@ class BaseModule:
 				if not method.query_args:
 					method.query_args = [{}]
 			# [DOC] Check permissions sets for any invalid set
-			for permissions_set in method.permissions:
+			for i in range(len(method.permissions)):
+				permissions_set = method.permissions[i]
 				if type(permissions_set) != PERM:
 					logger.error(
 						f'Invalid permissions set \'{permissions_set}\' of method \'{method}\' of module \'{self.module_name}\'. Exiting.'
 					)
 					exit(1)
+				# [DOC] Set PERM._method value to create back-link from child to parent
+				permissions_set._method = method
+				permissions_set._set_index = i
 				permissions_set = cast(PERM, permissions_set)
 				# [DOC] Add default Doc Modifiers to prevent sys attrs from being modified
 				if method_name == 'update':
@@ -306,29 +313,13 @@ class BaseModule:
 						elif permissions_set.doc_mod[attr] == NAWAH_VALUES.ALLOW_MOD:
 							del permissions_set.doc_mod[attr]
 				# [DOC] Check invalid query_mod, doc_mod Attrs Types
-				for arg_set in ['query_mod', 'doc_mod']:
-					arg_set = cast(Literal['query_mod', 'doc_mod'], arg_set)
-					if getattr(permissions_set, arg_set):
-						permissions_arg_set: Dict[str, Any] = getattr(permissions_set, arg_set)
-						# [TODO] Develop method to iterate over complex query_mod. e.g. Addon.read
-						if False:
-							for attr in permissions_arg_set.keys():
-								if type(permissions_arg_set[attr]) == ATTR:
-									if permissions_arg_set[attr]._type != 'TYPE':
-										logger.error(
-											f'Invalid Attr Type for method {arg_set} \'{attr}\' of module \'{self.module_name}\'. Only Attr Type TYPE is allowed. Exiting.'
-										)
-										exit(1)
-									logger.debug(
-										f'Attempting to validate Attr Type method {arg_set} \'{attr}\' of module \'{self.module_name}\'.'
-									)
 									try:
-										ATTR.validate_type(attr_type=permissions_arg_set[attr])
-									except:
-										logger.error(
-											f'Invalid Attr Type method {arg_set} \'{attr}\' of module \'{self.module_name}\'. Original validation error: {str(e)}. Exiting.'
-										)
+					permissions_set._validate_query_mod()
+					permissions_set._validate_doc_mod()
+				except Exception as e:
+					logger.error(e)
 										exit(1)
+
 			# [DOC] Check invalid query_args, doc_args types
 			for arg_set in ['query_args', 'doc_args']:
 				arg_set = cast(Literal['query_args', 'doc_args'], arg_set)
