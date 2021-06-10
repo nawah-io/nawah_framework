@@ -21,7 +21,6 @@ import pytest, mock, re, datetime
 
 class MockBaseModule:
 	collection = None
-	proxy = None
 	attrs = None
 	diff = None
 	create_draft = None

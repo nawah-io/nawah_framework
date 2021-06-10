@@ -58,7 +58,6 @@ class BaseModule:
 	_nawah_module: bool = True
 
 	collection: Optional[str]
-	proxy: Optional[str]
 	attrs: Dict[str, ATTR]
 	diff: Union[bool, ATTR]
 	create_draft: Union[bool, ATTR]
@@ -77,8 +76,6 @@ class BaseModule:
 	def __init__(self):
 		if not getattr(self, 'collection', None):
 			self.collection = None
-		if not getattr(self, 'proxy', None):
-			self.proxy = None
 		if not getattr(self, 'attrs', None):
 			self.attrs = {}
 		if not getattr(self, 'diff', None):
@@ -116,54 +113,6 @@ class BaseModule:
 	def _initialise(self) -> None:
 		# [DOC] Call _pre_initialise for advanced module initialisation
 		self._pre_initialise()
-		# [DOC] Check for proxy
-		if self.proxy:
-			logger.debug(f'Module \'{self.module_name}\' is a proxy module. Updating.')
-			# [DOC] Copy regular attrs
-			self.collection = Config.modules[self.proxy].collection
-			self.attrs = copy.deepcopy(Config.modules[self.proxy].attrs)
-			self.diff = Config.modules[self.proxy].diff
-			self.defaults = copy.deepcopy(Config.modules[self.proxy].defaults)
-			self.unique_attrs = copy.deepcopy(Config.modules[self.proxy].unique_attrs)
-			self.extns = copy.deepcopy(Config.modules[self.proxy].extns)
-			self.privileges = copy.deepcopy(Config.modules[self.proxy].privileges)
-			# [DOC] Update methods from original module
-			for proxy_method_name in Config.modules[self.proxy].methods.keys():
-				# [DOC] Copy method attrs if not present in proxy
-				if proxy_method_name not in self.methods.keys():
-					if type(Config.modules[self.proxy].methods[proxy_method_name]) == dict:
-						self.methods[proxy_method_name] = copy.deepcopy(
-							Config.modules[self.proxy].methods[proxy_method_name]
-						)
-					elif type(Config.modules[self.proxy].methods[proxy_method_name]) == BaseMethod:
-						self.methods[proxy_method_name] = {
-							'permissions': copy.deepcopy(
-								Config.modules[self.proxy].methods[proxy_method_name].permissions  # type: ignore
-							),
-							'query_args': copy.deepcopy(
-								Config.modules[self.proxy].methods[proxy_method_name].query_args
-							),
-							'doc_args': copy.deepcopy(
-								Config.modules[self.proxy].methods[proxy_method_name].doc_args
-							),
-							'get_method': Config.modules[self.proxy].methods[proxy_method_name].get_method,
-						}
-				# [DOC] Create methods functions in proxy module if not present
-				# [TODO] Validate this is working
-				if not getattr(self, proxy_method_name, None):
-					setattr(
-						self,
-						proxy_method_name,
-						lambda self=self, skip_events=[], env={}, query=[], doc={}: getattr(
-							Config.modules[self.proxy], proxy_method_name
-						)(
-							skip_events=skip_events,
-							env=env,
-							query=query,
-							doc=doc,
-							payload={},
-						),
-					)
 		# [DOC] Check attrs for any invalid type
 		for attr in self.attrs.keys():
 			try:
@@ -313,12 +262,12 @@ class BaseModule:
 						elif permissions_set.doc_mod[attr] == NAWAH_VALUES.ALLOW_MOD:
 							del permissions_set.doc_mod[attr]
 				# [DOC] Check invalid query_mod, doc_mod Attrs Types
-									try:
+				try:
 					permissions_set._validate_query_mod()
 					permissions_set._validate_doc_mod()
 				except Exception as e:
 					logger.error(e)
-										exit(1)
+					exit(1)
 
 			# [DOC] Check invalid query_args, doc_args types
 			for arg_set in ['query_args', 'doc_args']:
@@ -535,13 +484,6 @@ class BaseModule:
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module pre_read
-				proxy_pre_read = await Config.modules[self.proxy].pre_read(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
-				)
-				skip_events, env, query, doc, payload = proxy_pre_read
 			pre_read = await self.pre_read(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
@@ -603,18 +545,6 @@ class BaseModule:
 				skip_extn='$extn' in query or Event.EXTN in skip_events,
 			)
 		if Event.ON not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module on_read
-				proxy_on_read = await Config.modules[self.proxy].on_read(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = proxy_on_read
 			on_read = await self.on_read(
 				results=results,
 				skip_events=skip_events,
@@ -678,13 +608,6 @@ class BaseModule:
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module pre_watch
-				proxy_pre_watch = await Config.modules[self.proxy].pre_watch(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
-				)
-				skip_events, env, query, doc, payload = proxy_pre_watch
 			pre_watch = await self.pre_watch(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
@@ -708,18 +631,6 @@ class BaseModule:
 				continue
 
 			if Event.ON not in skip_events:
-				# [DOC] Check proxy module
-				if self.proxy:
-					# [DOC] Call original module on_watch
-					proxy_on_watch = await Config.modules[self.proxy].on_watch(
-						results=results,
-						skip_events=skip_events,
-						env=env,
-						query=query,
-						doc=doc,
-						payload=payload,
-					)
-					results, skip_events, env, query, doc, payload = proxy_on_watch
 				on_watch = await self.on_watch(
 					results=results,
 					skip_events=skip_events,
@@ -816,13 +727,6 @@ class BaseModule:
 			del doc['_id']
 
 		if Event.PRE not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module pre_create
-				proxy_pre_create = await Config.modules[self.proxy].pre_create(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
-				)
-				skip_events, env, query, doc, payload = proxy_pre_create
 			pre_create = await self.pre_create(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
@@ -999,18 +903,6 @@ class BaseModule:
 				)
 
 		if Event.ON not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module on_create
-				proxy_on_create = await Config.modules[self.proxy].on_create(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = proxy_on_create
 			on_create = await self.on_create(
 				results=results,
 				skip_events=skip_events,
@@ -1111,14 +1003,6 @@ class BaseModule:
 			del doc['_id']
 
 		if Event.PRE not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module pre_update
-				proxy_pre_update = await Config.modules[self.proxy].pre_update(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
-				)
-				skip_events, env, query, doc, payload = proxy_pre_update
-
 			pre_update = await self.pre_update(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
@@ -1267,19 +1151,6 @@ class BaseModule:
 				)
 
 		if Event.ON not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module on_update
-				proxy_on_update = await Config.modules[self.proxy].on_update(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = proxy_on_update
-
 			on_update = await self.on_update(
 				results=results,
 				skip_events=skip_events,
@@ -1379,14 +1250,6 @@ class BaseModule:
 		query = cast(Query, query)
 
 		if Event.PRE not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module pre_delete
-				proxy_pre_delete = await Config.modules[self.proxy].pre_delete(
-					skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
-				)
-				skip_events, env, query, doc, payload = proxy_pre_delete
-
 			pre_delete = await self.pre_delete(
 				skip_events=skip_events, env=env, query=query, doc=doc, payload=payload
 			)
@@ -1421,19 +1284,6 @@ class BaseModule:
 			strategy=strategy,
 		)
 		if Event.ON not in skip_events:
-			# [DOC] Check proxy module
-			if self.proxy:
-				# [DOC] Call original module on_delete
-				proxy_on_delete = await Config.modules[self.proxy].on_delete(
-					results=results,
-					skip_events=skip_events,
-					env=env,
-					query=query,
-					doc=doc,
-					payload=payload,
-				)
-				results, skip_events, env, query, doc, payload = proxy_on_delete
-
 			on_delete = await self.on_delete(
 				results=results,
 				skip_events=skip_events,

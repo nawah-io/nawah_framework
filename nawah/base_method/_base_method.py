@@ -305,14 +305,7 @@ class BaseMethod:
 			del query['$extn']
 
 		try:
-			# [DOC] Check for proxy module
-			if self.module.proxy:
-				if not getattr(self.module, f'_method_{self.method}', None):
-					method = getattr(Config.modules[self.module.proxy], f'_method_{self.method}')
-				else:
-					method = getattr(self.module, f'_method_{self.method}')
-			else:
-				method = getattr(self.module, f'_method_{self.method}')
+			method = getattr(self.module, f'_method_{self.method}')
 			# [DOC] Call method function
 			if self.watch_method:
 				await env['ws'].send_str(

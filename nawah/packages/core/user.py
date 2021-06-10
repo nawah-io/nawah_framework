@@ -11,7 +11,7 @@ import copy
 
 
 class User(BaseModule):
-	'''`User` module provides data type and controller for users in Nawah eco-system. This module is supposed to be used for internal calls only, however it has wide-access permissions in order to allow admins, proxy modules to easily expose the methods.'''
+	'''`User` module provides data type and controller for users in Nawah eco-system. The permissions of the module methods are designed to be as secure for exposed calls, and as flexible for privileged-access.'''
 
 	collection = 'users'
 	attrs = {

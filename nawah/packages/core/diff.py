@@ -7,7 +7,7 @@ from bson import ObjectId
 
 
 class Diff(BaseModule):
-	'''`Diff` module provides data type and controller for `Diff Workflow`. It is meant for use by internal calls only. Best practice to accessing diff docs is by creating proxy modules or writing Nawah methods that expose the diff docs.'''
+	'''`Diff` module provides data type and controller for `Diff Workflow`. It is meant for use by internal calls only.'''
 
 	collection = 'diff'
 	attrs = {
