@@ -2,8 +2,7 @@ name: Python Package Build
 
 on:
   push:
-    branches:
-      - master
+  pull_request:
 
 jobs:
   build:
@@ -11,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -27,10 +26,6 @@ jobs:
         pip install -r requirements.txt
         pip install -r dev_requirements.txt
 
-    - name: Test with pytest
+    - name: Build framework package
       run: |
-        pytest --cov=./
-
-    - name: Upload Codecov report
-      run: |
-        codecov -t ${{ secrets.CODECOV_REPO_TOKEN }}
+        python setup.py sdist bdist_wheel
