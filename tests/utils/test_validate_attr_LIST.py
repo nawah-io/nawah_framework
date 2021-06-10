@@ -189,4 +189,30 @@ async def test_validate_attr_LIST_default_int_allow_none():
 		attr_val=[1],
 		mode='update',
 	)
-	assert attr_val == [None]
+	assert attr_val == None
+
+
+@pytest.mark.asyncio
+async def test_validate_attr_LIST_nested_default_int():
+	attr_type = ATTR.LIST(list=[ATTR.STR()])
+	attr_type._args['list'][0]._default = 'test_validate_attr_LIST'
+	with pytest.raises(InvalidAttrException):
+		await validate_attr(
+			attr_name='test_validate_attr_LIST',
+			attr_type=attr_type,
+			attr_val=[1],
+			mode='create',
+		)
+
+
+@pytest.mark.asyncio
+async def test_validate_attr_LIST_nested_default_int_allow_none():
+	attr_type = ATTR.LIST(list=[ATTR.STR()])
+	attr_type._args['list'][0]._default = 'test_validate_attr_LIST'
+	attr_val = await validate_attr(
+		attr_name='test_validate_attr_LIST',
+		attr_type=attr_type,
+		attr_val=[1],
+		mode='update',
+	)
+	assert attr_val == None
