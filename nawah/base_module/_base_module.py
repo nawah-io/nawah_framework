@@ -100,7 +100,7 @@ class BaseModule:
 			self.analytics = []
 
 		# [DOC] Populate package and module names for in-context use.
-		self.package_name = self.__module__.replace('modules.', '').upper().split('.')[0]
+		self.package_name = self.__module__.replace('modules.', '').upper().split('.')[-2]
 		self.module_name = re.sub(
 			r'([A-Z])',
 			r'_\1',

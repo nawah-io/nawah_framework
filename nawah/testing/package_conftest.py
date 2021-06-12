@@ -186,7 +186,9 @@ def setup_test(*, modules=None, l10n_dicts=None, vars=None, types=None):
 	if modules:
 		for module_class in modules.keys():
 			module = module_class()
-			module.package_name = module.__module__.replace('modules.', '').upper().split('.')[0]
+			module.package_name = (
+				module.__module__.replace('modules.', '').upper().split('.')[-2]
+			)
 			module.module_name = re.sub(
 				r'([A-Z])',
 				r'_\1',
@@ -371,7 +373,7 @@ def call_method(mock_env, call_method_check_permissions, call_method_validate_ar
 			}
 
 		if Event.ARGS not in skip_events:
-			if (args_list := MockRegistry.modules[module].methods[method].query_args) :
+			if args_list := MockRegistry.modules[module].methods[method].query_args:
 				if type(args_list) != list:
 					args_list = [args_list]
 
@@ -386,7 +388,7 @@ def call_method(mock_env, call_method_check_permissions, call_method_validate_ar
 					args_list=args_list,
 				)
 
-			if (args_list := MockRegistry.modules[module].methods[method].doc_args) :
+			if args_list := MockRegistry.modules[module].methods[method].doc_args:
 				if type(args_list) != list:
 					args_list = [args_list]
 
