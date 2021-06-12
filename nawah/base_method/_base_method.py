@@ -305,6 +305,7 @@ class BaseMethod:
 			del query['$extn']
 
 		try:
+			# [DOC] Use getattr to get the method implementation as module._method_METHOD_NAME, which is a fake name that allows BaseModule.__getattribute__ to correctly return the implementation rather than BaseMethod
 			method = getattr(self.module, f'_method_{self.method}')
 			# [DOC] Call method function
 			if self.watch_method:

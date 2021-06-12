@@ -187,117 +187,13 @@ class BaseModule:
 			# [DOC] Set Method._module value to create back-link from child to parent
 			method._module = self
 			method._method_name = method_name
-			# [DOC] Check for existence of at least single permissions set per method
-			if not len(method.permissions):
-				logger.error(
-					f'No permissions sets for method \'{method}\' of module \'{self.module_name}\'. Exiting.'
-				)
+			# [DOC] Check valid method (and initialise it)
+			try:
+				method._validate()
+			except Exception as e:
+				logger.error(e)
+				logger.error('Exiting.')
 				exit(1)
-			# [DOC] Check method query_args attr, set it or update it if required.
-			if not method.query_args:
-				if method_name == 'create_file':
-					method.query_args = [{'_id': ATTR.ID(), 'attr': ATTR.STR()}]
-				elif method_name == 'delete_file':
-					method.query_args = [
-						{
-							'_id': ATTR.ID(),
-							'attr': ATTR.STR(),
-							'index': ATTR.INT(),
-							'name': ATTR.STR(),
-						}
-					]
-			elif type(method.query_args) == dict:
-				method_query_args = method.query_args
-				method_query_args = cast(Dict[str, ATTR], method_query_args)
-				method.query_args = [method_query_args]
-			# [DOC] Check method doc_args attr, set it or update it if required.
-			if not method.doc_args:
-				if method_name == 'create_file':
-					method.doc_args = [{'file': ATTR.FILE()}]
-			elif type(method.doc_args) == dict:
-				method_doc_args = method.doc_args
-				method_doc_args = cast(Dict[str, ATTR], method_doc_args)
-				method.doc_args = [method_doc_args]
-			# [DOC] Check method get_method attr, update it if required.
-			if method.get_method == True:
-				if not method.query_args:
-					if method_name == 'retrieve_file':
-						method.query_args = [
-							{
-								'_id': ATTR.ID(),
-								'attr': ATTR.STR(),
-								'filename': ATTR.STR(),
-							},
-							{
-								'_id': ATTR.ID(),
-								'attr': ATTR.STR(),
-								'thumb': ATTR.STR(pattern=r'[0-9]+x[0-9]+'),
-								'filename': ATTR.STR(),
-							},
-						]
-					else:
-						method.query_args = [{}]
-			# [DOC] Check method post_method attr, update it if required.
-			if method.post_method == True:
-				if not method.query_args:
-					method.query_args = [{}]
-			# [DOC] Check permissions sets for any invalid set
-			for i in range(len(method.permissions)):
-				permissions_set = method.permissions[i]
-				if type(permissions_set) != PERM:
-					logger.error(
-						f'Invalid permissions set \'{permissions_set}\' of method \'{method}\' of module \'{self.module_name}\'. Exiting.'
-					)
-					exit(1)
-				# [DOC] Set PERM._method value to create back-link from child to parent
-				permissions_set._method = method
-				permissions_set._set_index = i
-				permissions_set = cast(PERM, permissions_set)
-				# [DOC] Add default Doc Modifiers to prevent sys attrs from being modified
-				if method_name == 'update':
-					for attr in ['user', 'create_time']:
-						if attr not in permissions_set.doc_mod.keys():
-							permissions_set.doc_mod[attr] = None
-						# [TODO] Assert this is behaving correctly
-						elif permissions_set.doc_mod[attr] == NAWAH_VALUES.ALLOW_MOD:
-							del permissions_set.doc_mod[attr]
-				# [DOC] Check invalid query_mod, doc_mod Attrs Types
-				try:
-					permissions_set._validate_query_mod()
-					permissions_set._validate_doc_mod()
-				except Exception as e:
-					logger.error(e)
-					exit(1)
-
-			# [DOC] Check invalid query_args, doc_args types
-			for arg_set in ['query_args', 'doc_args']:
-				arg_set = cast(Literal['query_args', 'doc_args'], arg_set)
-				if getattr(method, arg_set):
-					method_arg_set: List[Dict[str, ATTR]] = getattr(method, arg_set)
-					for args_set in method_arg_set:
-						for attr in args_set.keys():
-							try:
-								ATTR.validate_type(attr_type=args_set[attr])
-							except:
-								logger.error(
-									f'Invalid \'{arg_set}\' attr type for \'{attr}\' of set \'{args_set}\' of method \'{method}\' of module \'{self.module_name}\'. Exiting.'
-								)
-								exit(1)
-			# [DOC] Initialise method as BaseMethod
-			method_query_args = method.query_args  # type: ignore
-			method_query_args = cast(List[Dict[str, ATTR]], method_query_args)
-			method_doc_args = method.doc_args  # type: ignore
-			method_doc_args = cast(List[Dict[str, ATTR]], method_doc_args)
-			self.methods[method_name]._callable = BaseMethod(
-				module=self,
-				method=method_name,
-				permissions=method.permissions,
-				query_args=method_query_args,
-				doc_args=method_doc_args,
-				watch_method=method.watch_method,
-				get_method=method.get_method,
-				post_method=method.post_method,
-			)
 		# [DOC] Check extns for invalid extended attrs
 		for attr in self.extns.keys():
 			if type(self.extns[attr]) not in [EXTN, ATTR]:
