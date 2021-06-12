@@ -1,4 +1,4 @@
-from nawah.enums import Event
+from nawah.enums import Event, NAWAH_VALUES
 
 from typing import (
 	Tuple,
@@ -13,6 +13,7 @@ from typing import (
 	Literal,
 	Protocol,
 	TypedDict,
+	cast,
 )
 
 import datetime, logging
@@ -70,6 +71,45 @@ class PERM:
 		self.query_mod = query_mod
 		self.doc_mod = doc_mod
 
+	def _validate(self):
+		# [DOC] Validate privilege is listed in BaseModule.privileges to detect typos, missing privileges, but skip *, __sys
+		if self.privilege not in ['*', '__sys']:
+			# [DOC] Check for cross-module privilege
+			if '.' in self.privilege:
+				from nawah.config import Config
+
+				# [DOC] Validate correct format of cross-platform privilege: module_name.privilege
+				try:
+					module_name, privilege = self.privilege.split('.')
+				except ValueError:
+					raise Exception(
+						f'Permission Set \'{self._set_index}\' of method \'{self._method._method_name}\' of module \'{self._method._module.module_name}\' requires invalid privilege \'{self.privilege}\'.'
+					)
+
+				module = Config.modules[module_name]
+			else:
+				module_name = self._method._module.module_name
+				module = self._method._module
+				privilege = self.privilege
+
+			if privilege not in module.privileges:
+				raise Exception(
+					f'Permission Set \'{self._set_index}\' of method \'{self._method._method_name}\' of module \'{self._method._module.module_name}\' requires unknown privilege \'{module_name}.{privilege}\'.'
+				)
+
+		# [DOC] Add default Doc Modifiers to prevent sys attrs from being modified
+		if self._method._method_name == 'update':
+			for attr in ['user', 'create_time']:
+				if attr not in self.doc_mod.keys():
+					self.doc_mod[attr] = None
+				# [TODO] Assert this is behaving correctly
+				elif self.doc_mod[attr] == NAWAH_VALUES.ALLOW_MOD:
+					del self.doc_mod[attr]
+
+		# [DOC] Validate query_mod, doc_mod
+		self._validate_query_mod()
+		self._validate_doc_mod()
+
 	def _validate_query_mod(self):
 		if self.query_mod:
 			logger.debug(
@@ -93,7 +133,7 @@ class PERM:
 		elif type(obj) == dict:
 			obj_iter = list(obj.keys())
 		else:
-			Exception(f'Can\'t validate permission obj {obj} of type {type(obj)}.')
+			raise Exception(f'Can\'t validate permission obj {obj} of type {type(obj)}.')
 
 		logger.debug(f'Found \'{obj}\' to validate. Iterating.')
 
@@ -104,7 +144,7 @@ class PERM:
 				self.__validate_obj(obj[j])
 			elif type(obj[j]) == ATTR:
 				if obj[j]._type != 'TYPE':
-					Exception(f'Attr Type \'{j}\' of TYPE \'{obj[j]._type}\' is not allowed.')
+					raise Exception(f'Attr Type \'{j}\' of TYPE \'{obj[j]._type}\' is not allowed.')
 
 				ATTR.validate_type(attr_type=obj[j])
 
@@ -186,6 +226,115 @@ class METHOD:
 
 	def __call__(self, **kwargs):
 		return self._callable(**kwargs)
+
+	def _validate(self):
+		from nawah.base_method import BaseMethod
+		from ._attr import ATTR
+
+		# [DOC] Check for existence of at least single permissions set per method
+		if not len(self.permissions):
+			raise Exception(
+				f'No permissions sets for method \'{self._method_name}\' of module \'{self._module.module_name}\'.'
+			)
+		# [DOC] Check method query_args attr, set it or update it if required.
+		if not self.query_args:
+			if self._method_name == 'create_file':
+				self.query_args = [{'_id': ATTR.ID(), 'attr': ATTR.STR()}]
+			elif self._method_name == 'delete_file':
+				self.query_args = [
+					{
+						'_id': ATTR.ID(),
+						'attr': ATTR.STR(),
+						'index': ATTR.INT(),
+						'name': ATTR.STR(),
+					}
+				]
+		elif type(self.query_args) == dict:
+			method_query_args = self.query_args
+			method_query_args = cast(Dict[str, ATTR], method_query_args)
+			self.query_args = [method_query_args]
+		# [DOC] Check method doc_args attr, set it or update it if required.
+		if not self.doc_args:
+			if self._method_name == 'create_file':
+				self.doc_args = [{'file': ATTR.FILE()}]
+		elif type(self.doc_args) == dict:
+			method_doc_args = self.doc_args
+			method_doc_args = cast(Dict[str, ATTR], method_doc_args)
+			self.doc_args = [method_doc_args]
+		# [DOC] Check method get_method attr, update it if required.
+		if self.get_method == True:
+			if not self.query_args:
+				if self._method_name == 'retrieve_file':
+					self.query_args = [
+						{
+							'_id': ATTR.ID(),
+							'attr': ATTR.STR(),
+							'filename': ATTR.STR(),
+						},
+						{
+							'_id': ATTR.ID(),
+							'attr': ATTR.STR(),
+							'thumb': ATTR.STR(pattern=r'[0-9]+x[0-9]+'),
+							'filename': ATTR.STR(),
+						},
+					]
+				else:
+					self.query_args = [{}]
+		# [DOC] Check method post_method attr, update it if required.
+		if self.post_method == True:
+			if not self.query_args:
+				self.query_args = [{}]
+		# [DOC] Check permissions sets for any invalid set
+		for i in range(len(self.permissions)):
+			permissions_set = self.permissions[i]
+			if type(permissions_set) != PERM:
+				raise Exception(
+					f'Invalid permissions set \'{permissions_set}\' of method \'{self._method_name}\' of module \'{self._module.module_name}\'.'
+				)
+			# [DOC] Set PERM._method value to create back-link from child to parent
+			permissions_set._method = self
+			permissions_set._set_index = i
+			permissions_set = cast(PERM, permissions_set)
+			# [DOC] Check valida Permission Set
+			permissions_set._validate()
+
+		# [DOC] Check invalid query_args, doc_args types
+		for arg_set in ['query_args', 'doc_args']:
+			arg_set = cast(Literal['query_args', 'doc_args'], arg_set)
+			if getattr(self, arg_set):
+				method_arg_set: List[Dict[str, ATTR]] = getattr(self, arg_set)
+				for args_set in method_arg_set:
+					for attr in args_set.keys():
+						try:
+							ATTR.validate_type(attr_type=args_set[attr])
+						except:
+							raise Exception(
+								f'Invalid \'{arg_set}\' attr type for \'{attr}\' of set \'{args_set}\' of method \'{self._method_name}\' of module \'{self._module.module_name}\'.'
+							)
+		# [DOC] Initialise method as BaseMethod
+		method_query_args = self.query_args  # type: ignore
+		method_query_args = cast(List[Dict[str, ATTR]], method_query_args)
+		method_doc_args = self.doc_args  # type: ignore
+		method_doc_args = cast(List[Dict[str, ATTR]], method_doc_args)
+
+		# [DOC] Validate method implementation exist in the class
+		try:
+			getattr(self._module, f'_method_{self._method_name}')
+		except AttributeError:
+			raise Exception(
+				f'Method \'{self._method_name}\' of module \'{self._module.module_name}\' is defined but not implemented.'
+			)
+
+		self._callable = BaseMethod(
+			module=self._module,
+			method=self._method_name,
+			permissions=self.permissions,
+			query_args=method_query_args,
+			doc_args=method_doc_args,
+			watch_method=self.watch_method,
+			get_method=self.get_method,
+			post_method=self.post_method,
+		)
 
 
 class CACHE_CONDITION(Protocol):
