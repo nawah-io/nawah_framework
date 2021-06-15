@@ -12,7 +12,13 @@ from ._validate import (
 	process_file_obj,
 	generate_dynamic_attr,
 )
-from ._import_modules import import_modules
-from ._generate_ref import generate_ref, extract_lambda_body
-from ._generate_models import generate_models
+from ._import_modules import _import_modules
+from ._generate_ref import _generate_ref, _extract_lambda_body
+from ._generate_models import _generate_models
 from ._encode_attr_type import encode_attr_type
+from ._config import (
+	_process_config,
+	_config_data,
+	_compile_anon_user,
+	_compile_anon_session,
+)
