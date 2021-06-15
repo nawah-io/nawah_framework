@@ -1,4 +1,4 @@
-from nawah.base_method._check_permissions import check_permissions
+from nawah.base_method._check_permissions import _check_permissions
 from nawah.base_method._validate_args import _validate_args
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
@@ -305,7 +305,7 @@ def call_method_check_permissions(mock_env):
 			env = mock_env()
 		query = Query(query)
 
-		permissions = await check_permissions(
+		permissions = await _check_permissions(
 			skip_events=skip_events,
 			env=env,
 			query=query,
@@ -382,7 +382,7 @@ def call_method(mock_env, call_method_check_permissions, call_method_validate_ar
 					for attr in args_set.keys():
 						ATTR.validate_type(attr_type=args_set[attr])
 
-				await validate_args(
+				await _validate_args(
 					args=query,
 					args_list_label='query',
 					args_list=args_list,
@@ -397,7 +397,7 @@ def call_method(mock_env, call_method_check_permissions, call_method_validate_ar
 					for attr in args_set.keys():
 						ATTR.validate_type(attr_type=args_set[attr])
 
-				await validate_args(
+				await _validate_args(
 					args=doc,
 					args_list_label='doc',
 					args_list=args_list,

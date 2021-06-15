@@ -19,7 +19,7 @@ from nawah.classes import (
 	InvalidCallArgsException,
 )
 
-from ._check_permissions import check_permissions, InvalidPermissionsExcpetion
+from ._check_permissions import _check_permissions, InvalidPermissionsExcpetion
 from ._validate_args import _validate_args
 
 from asyncio import coroutine
@@ -131,7 +131,7 @@ class BaseMethod:
 
 		if Event.PERM not in skip_events and env['session']:
 			try:
-				permissions_check = await check_permissions(
+				permissions_check = await _check_permissions(
 					skip_events=skip_events,
 					env=env,
 					query=query,

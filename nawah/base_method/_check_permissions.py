@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger('nawah')
 
 
-async def check_permissions(
+async def _check_permissions(
 	skip_events: List[Event],
 	env: NAWAH_ENV,
 	query: Union[NAWAH_QUERY, Query],
