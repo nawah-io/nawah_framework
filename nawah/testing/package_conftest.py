@@ -1,3 +1,8 @@
+from nawah.base_method._check_permissions import check_permissions
+from nawah.base_method._validate_args import _validate_args
+from nawah.enums import Event, NAWAH_VALUES
+from nawah.config import Config
+from nawah import base_module, registry
 from nawah.classes import (
 	Query,
 	DictObj,
@@ -7,11 +12,6 @@ from nawah.classes import (
 	InvalidPermissionsExcpetion,
 	InvalidCallArgsException,
 )
-from nawah.base_method._check_permissions import check_permissions
-from nawah.base_method._validate_args import validate_args
-from nawah.enums import Event, NAWAH_VALUES
-from nawah.config import Config
-from nawah import base_module, registry
 
 from typing import Dict, Any
 from bson import ObjectId
@@ -322,7 +322,7 @@ def call_method_check_permissions(mock_env):
 @pytest.fixture
 def call_method_validate_args():
 	async def _(*, args, args_list_label, args_list):
-		await validate_args(
+		await _validate_args(
 			args=args,
 			args_list_label=args_list_label,
 			args_list=args_list,

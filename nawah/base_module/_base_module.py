@@ -3,8 +3,8 @@ from nawah.enums import Event, DELETE_STRATEGY, NAWAH_VALUES
 from nawah import data as Data
 from nawah.utils import (
 	validate_doc,
-	expand_attr,
-	update_attr_values,
+	_expand_attr,
+	_update_attr_values,
 )
 from nawah.classes import (
 	DictObj,
@@ -159,7 +159,7 @@ class BaseModule:
 					logger.debug(
 						f'Updating default value for attr \'{attr}\' to: \'{self.defaults[default]}\''
 					)
-					update_attr_values(
+					_update_attr_values(
 						attr=ATTR.TYPED_DICT(dict=self.attrs),
 						value='default',
 						value_path=default,
@@ -169,7 +169,7 @@ class BaseModule:
 			for extn in self.extns.keys():
 				if extn == attr or extn.startswith(f'{attr}.') or extn.startswith(f'{attr}:'):
 					logger.debug(f'Updating extn value for attr \'{extn}\' to: \'{self.extns[extn]}\'')
-					update_attr_values(
+					_update_attr_values(
 						attr=ATTR.TYPED_DICT(dict=self.attrs),
 						value='extn',
 						value_path=extn,
@@ -633,7 +633,7 @@ class BaseModule:
 				return payload['__results']
 
 		# [DOC] Expant dot-notated keys onto dicts
-		doc = expand_attr(doc=doc)
+		doc = _expand_attr(doc=doc)
 		# [DOC] Deleted all extra doc args
 		doc = {
 			attr: doc[attr]

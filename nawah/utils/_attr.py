@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger('nawah')
 
 
-def extract_attr(*, scope: MutableMapping[str, Any], attr_path: str):
+def _extract_attr(*, scope: MutableMapping[str, Any], attr_path: str):
 	if attr_path.startswith('$__'):
 		attr_path_parts = attr_path[3:].split('.')
 	else:
@@ -30,7 +30,7 @@ def extract_attr(*, scope: MutableMapping[str, Any], attr_path: str):
 	return attr
 
 
-def set_attr(*, scope: Dict[str, Any], attr_path: str, value: Any):
+def _set_attr(*, scope: Dict[str, Any], attr_path: str, value: Any):
 	if attr_path.startswith('$__'):
 		attr_path_parts = attr_path[3:].split('.')
 	else:
@@ -59,12 +59,12 @@ def set_attr(*, scope: Dict[str, Any], attr_path: str, value: Any):
 		attr[attr_path_parts[-1]] = value
 
 
-def expand_attr(*, doc: Dict[str, Any], expanded_doc: Dict[str, Any] = None):
+def _expand_attr(*, doc: Dict[str, Any], expanded_doc: Dict[str, Any] = None):
 	if not expanded_doc:
 		expanded_doc = {}
 	for attr in doc.keys():
 		if type(doc[attr]) == dict:
-			doc[attr] = expand_attr(doc=doc[attr])
+			doc[attr] = _expand_attr(doc=doc[attr])
 		if '.' in attr:
 			attr_path = attr.split('.')
 			scope = expanded_doc
@@ -81,7 +81,7 @@ def expand_attr(*, doc: Dict[str, Any], expanded_doc: Dict[str, Any] = None):
 	return expanded_doc
 
 
-def deep_update(*, target: Union[List, Dict], new_values: Union[List, Dict]):
+def _deep_update(*, target: Union[List, Dict], new_values: Union[List, Dict]):
 	if type(target) != type(new_values):
 		logger.error(
 			f'Type \'{type(target)}\' of \'target\' is not the same as \'{type(new_values)}\' of \'new_values\'. Exiting.'
@@ -94,7 +94,7 @@ def deep_update(*, target: Union[List, Dict], new_values: Union[List, Dict]):
 			if k not in target.keys():
 				target[k] = new_values[k]
 			else:
-				deep_update(target=target[k], new_values=new_values[k])
+				_deep_update(target=target[k], new_values=new_values[k])
 	elif type(new_values) == list:
 		for j in new_values:
 			target = cast(list, target)
@@ -102,7 +102,7 @@ def deep_update(*, target: Union[List, Dict], new_values: Union[List, Dict]):
 				target.append(j)
 
 
-def update_attr_values(
+def _update_attr_values(
 	*, attr: ATTR, value: Literal['default', 'extn'], value_path: str, value_val: Any
 ):
 

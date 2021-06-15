@@ -10,7 +10,7 @@ from nawah.utils import validate_attr
 from typing import Union, Dict, Any, List, Literal, Iterable, cast
 
 
-async def validate_args(
+async def _validate_args(
 	*,
 	args: Union[Query, Dict[str, Any]],
 	args_list_label: str,

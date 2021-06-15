@@ -1,6 +1,5 @@
 from nawah.config import Config
 from nawah.enums import LOCALE_STRATEGY, Event
-from nawah.utils import extract_attr
 from nawah.classes import NAWAH_ENV, ATTR, Query, BaseModel, NAWAH_DOC, EXTN
 from ._query import _compile_query
 from ._read import _process_results_doc

@@ -2,10 +2,17 @@ from typing import Dict, Any, Union, List, cast
 
 
 async def run_app():
+	from nawah.base_module import BaseModule
+	from nawah.enums import Event
+	from nawah.config import Config
+	from nawah import data as Data
 	from nawah.utils import (
-		import_modules,
-		process_file_obj,
+		_import_modules,
+		_process_file_obj,
 		validate_doc,
+		_config_data,
+		_compile_anon_user,
+		_compile_anon_session,
 	)
 	from nawah.classes import (
 		JSONEncoder,
@@ -17,10 +24,6 @@ async def run_app():
 		InvalidAttrException,
 		ConvertAttrException,
 	)
-	from nawah.base_module import BaseModule
-	from nawah.enums import Event
-	from nawah.config import Config
-	from nawah import data as Data
 
 	from bson import ObjectId
 	from passlib.hash import pbkdf2_sha512
@@ -34,8 +37,8 @@ async def run_app():
 	logger = logging.getLogger('nawah')
 
 	# [DOC] Use import_modules to load and initialise modules
-	await import_modules()
-	await Config.config_data()
+	await _import_modules()
+	await _config_data()
 	# [DOC] Populate get_routes, post_routes
 	get_routes = []
 	post_routes = []
@@ -390,8 +393,8 @@ async def run_app():
 				else:
 					session = session_results.args.session
 		else:
-			anon_user = Config.compile_anon_user()
-			anon_session = Config.compile_anon_session()
+			anon_user = _compile_anon_user()
+			anon_session = _compile_anon_session()
 			anon_session['user'] = DictObj(anon_user)
 			session = DictObj(anon_session)
 
@@ -577,8 +580,8 @@ async def run_app():
 			try:
 				env['session'].token
 			except Exception:
-				anon_user = Config.compile_anon_user()
-				anon_session = Config.compile_anon_session()
+				anon_user = _compile_anon_user()
+				anon_session = _compile_anon_session()
 				anon_session['user'] = DictObj(anon_user)
 				env['session'] = BaseModel(anon_session)
 			res = json.loads(msg.data)
@@ -920,7 +923,7 @@ async def run_app():
 			method = Config.modules[module].methods[request['path'][1].lower()]
 			query = request['query']
 			doc = request['doc']
-			await process_file_obj(doc=doc, modules=Config.modules, env=env)
+			await _process_file_obj(doc=doc, modules=Config.modules, env=env)
 			asyncio.create_task(
 				method(
 					skip_events=[],

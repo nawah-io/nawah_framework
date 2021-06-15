@@ -9,7 +9,7 @@ from nawah.classes import (
 	InvalidPermissionsExcpetion,
 	InvalidAttrException,
 )
-from nawah.utils import extract_attr, validate_attr
+from nawah.utils import _extract_attr, validate_attr
 from nawah.enums import Event
 
 from typing import List, Dict, Union, Any, Iterable, TYPE_CHECKING
@@ -187,7 +187,7 @@ async def _parse_permission_args(
 				permission_args[j] = user._id
 			elif permission_args[j].startswith('$__user.'):
 				try:
-					permission_args[j] = extract_attr(
+					permission_args[j] = _extract_attr(
 						scope=user,
 						attr_path=permission_args[j].replace('$__user.', '$__'),
 					)

@@ -1,5 +1,5 @@
 from nawah.config import Config
-from nawah.classes import EXTN
+from nawah.classes import ATTR, EXTN
 
 from typing import Dict, List
 
@@ -8,8 +8,7 @@ import logging, datetime, re, inspect
 logger = logging.getLogger('nawah')
 
 
-def generate_ref():
-	# [TODO] Update function to replace ATTR_MOD checks with Attr Type TYPE
+def _generate_ref():
 	# [DOC] Initialise _api_ref Config Attr
 	Config._api_ref = '# API Reference\n'
 	# [DOC] Iterate over packages in ascending order
@@ -38,15 +37,11 @@ def generate_ref():
 						or default_attr.startswith(f'{attr}.')
 						or default_attr.startswith(f'{attr}:')
 					):
-						# if type(Config.modules[module].defaults[default_attr]) == ATTR_MOD:
-						# 	attr_ref += f'  * Default [{default_attr}]:\n'
-						# 	attr_ref += f'	* ATTR_MOD condition: `{extract_lambda_body(Config.modules[module].defaults[default_attr].condition)}`\n'
-						# 	if callable(Config.modules[module].defaults[default_attr].default):
-						# 		attr_ref += f'	* ATTR_MOD default: `{extract_lambda_body(Config.modules[module].defaults[default_attr].default)}`\n'
-						# 	else:
-						# 		attr_ref += f'	* ATTR_MOD default: {Config.modules[module].defaults[default_attr].default}\n'
-						# else:
-						attr_ref += f'  * Default [{default_attr}]: {Config.modules[module].defaults[default_attr]}\n'
+						if type(Config.modules[module].defaults[default_attr]) == ATTR:
+							attr_ref += f'  * Default [{default_attr}]:\n'
+							attr_ref += f'	* Attr Type TYPE: `{Config.modules[module].defaults[default_attr]._args["type"]}`\n'
+						else:
+							attr_ref += f'  * Default [{default_attr}]: {Config.modules[module].defaults[default_attr]}\n'
 				Config._api_ref += attr_ref
 			if Config.modules[module].diff:
 				Config._api_ref += f'#### Attrs Diff: {Config.modules[module].diff}\n'
@@ -69,15 +64,11 @@ def generate_ref():
 								Config._api_ref += f'		* List: {permission.query_mod[i]}\n'
 								continue
 							for attr in permission.query_mod[i].keys():
-								if type(permission.query_mod[i][attr]) == ATTR_MOD:
+								if type(permission.query_mod[i][attr]) == ATTR:
 									Config._api_ref += f'		* {attr}:\n'
-									Config._api_ref += f'		  * ATTR_MOD condition: {extract_lambda_body(permission.query_mod[i][attr].condition)}\n'
-									if callable(permission.query_mod[i][attr].default):
-										Config._api_ref += f'		  * ATTR_MOD default: {extract_lambda_body(permission.query_mod[i][attr].default)}\n'
-									else:
-										Config._api_ref += (
-											f'		  * ATTR_MOD default: {permission.query_mod[i][attr].default}\n'
-										)
+									Config._api_ref += (
+										f'		  * Attr Type TYPE: {permission.query_mod[i][attr]._args["type"]}\n'
+									)
 								else:
 									Config._api_ref += f'		* {attr}: {permission.query_mod[i][attr]}\n'
 					else:
@@ -90,15 +81,11 @@ def generate_ref():
 						for i in range(len(permission.doc_mod)):
 							Config._api_ref += f'	  * Set {i}:\n'
 							for attr in permission.doc_mod[i].keys():
-								if type(permission.doc_mod[i][attr]) == ATTR_MOD:
+								if type(permission.doc_mod[i][attr]) == ATTR:
 									Config._api_ref += f'		* {attr}:\n'
-									Config._api_ref += f'		  * ATTR_MOD condition: `{extract_lambda_body(permission.doc_mod[i][attr].condition)}`\n'
-									if callable(permission.doc_mod[i][attr].default):
-										Config._api_ref += f'		  * ATTR_MOD default: {extract_lambda_body(permission.doc_mod[i][attr].default)}\n'
-									else:
-										Config._api_ref += (
-											f'		  * ATTR_MOD default: {permission.doc_mod[i][attr].default}\n'
-										)
+									Config._api_ref += (
+										f'		  * Attr Type TYPE: `{permission.doc_mod[i][attr]._args["type"]}`\n'
+									)
 								else:
 									Config._api_ref += f'		* {attr}: {permission.doc_mod[i][attr]}\n'
 					else:
@@ -130,9 +117,10 @@ def generate_ref():
 							f'  * Extend Attrs: \'{Config.modules[module].extns[attr].attrs}\'\n'
 						)
 						Config._api_ref += f'  * Force: \'{Config.modules[module].extns[attr].force}\'\n'
-					elif type(Config.modules[module].extns[attr]) == ATTR_MOD:
-						Config._api_ref += f'  * ATTR_MOD condition: `{extract_lambda_body(Config.modules[module].extns[attr].condition)}`\n'
-						Config._api_ref += f'  * ATTR_MOD default: `{extract_lambda_body(Config.modules[module].extns[attr].default)}`\n'
+					elif type(Config.modules[module].extns[attr]) == ATTR:
+						Config._api_ref += (
+							f'  * Attr Type TYPE: `{Config.modules[module].extns[attr]._args["type"]}`\n'
+						)
 			else:
 				Config._api_ref += '#### Extended Attrs: None\n'
 			# [DOC] Add module cache sets
@@ -166,7 +154,7 @@ def generate_ref():
 		exit(0)
 
 
-def extract_lambda_body(lambda_func):
+def _extract_lambda_body(lambda_func):
 	lambda_body = re.sub(
 		r'^[a-z]+\s*=\s*lambda\s', '', inspect.getsource(lambda_func).strip()
 	)

@@ -1,6 +1,6 @@
 from nawah.config import Config
 from nawah.enums import LOCALE_STRATEGY, Event
-from nawah.utils import extract_attr
+from nawah.utils import _extract_attr
 from nawah.classes import (
 	NAWAH_ENV,
 	ATTR,
@@ -343,14 +343,14 @@ async def _extend_doc(
 	# [DOC] Check if extn module is dynamic value
 	if extn.module.startswith('$__'):
 		extn_module = Config.modules[
-			extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.module)
+			_extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.module)
 		]
 	else:
 		extn_module = Config.modules[extn.module]
 	# [DOC] Check if extn attr set to fetch all or specific attrs
 	if type(extn.attrs) == str and extn.attrs.startswith('$__'):  # type: ignore
 		extn.attrs = cast(str, extn.attrs)
-		extn_attrs = extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.attrs)
+		extn_attrs = _extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.attrs)
 		if extn_attrs[0] == '*':
 			extn_attrs = {attr: extn_module.attrs[attr] for attr in extn_module.attrs.keys()}
 	elif extn.attrs[0] == '*':
@@ -366,7 +366,7 @@ async def _extend_doc(
 		skip_events.append(Event.EXTN)
 	elif type(extn.force) == str and extn.force.startswith('$__'):  # type: ignore
 		extn.force = cast(str, extn.force)
-		if not extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.force):
+		if not _extract_attr(scope={'doc': doc, 'attr': attr}, attr_path=extn.force):
 			skip_events.append(Event.EXTN)
 	# [DOC] Read doc if not in extn_models
 	if str(extn_id) not in extn_models.keys():

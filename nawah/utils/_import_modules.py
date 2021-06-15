@@ -1,14 +1,16 @@
 import nawah
-from nawah.config import Config, process_config
+from nawah.config import Config
 from nawah.classes import L10N, ATTR
-from nawah.utils import validate_attr
 
 import logging, sys, os.path, pkgutil, inspect, re
+
+from ._validate import validate_attr
+from ._config import _process_config
 
 logger = logging.getLogger('nawah')
 
 
-async def import_modules():
+async def _import_modules():
 	sys.path.append(os.path.join(nawah.__path__[0], 'packages'))
 	sys.path.append(os.path.join(Config._app_path, 'packages'))
 
@@ -26,7 +28,7 @@ async def import_modules():
 
 		# [DOC] Load package and attempt to load config
 		package = __import__(pkgname, fromlist='*')
-		process_config(config=package.config, pkgname=pkgname)
+		_process_config(config=package.config, pkgname=pkgname)
 
 		# [DOC] Add package to loaded packages dict
 		Config.modules_packages[pkgname] = []
@@ -117,13 +119,3 @@ async def import_modules():
 	# [DOC] Call update_modules, effectively finalise initialising modules
 	for module in Config.modules.values():
 		module._initialise()
-	# [DOC] Write api_ref if generate_ref mode
-	if Config.generate_ref:
-		from nawah.utils import generate_ref
-
-		generate_ref()
-	# [DOC] Write api_models if generate_models mode
-	if Config.generate_models:
-		from nawah.utils import generate_models
-
-		generate_models()

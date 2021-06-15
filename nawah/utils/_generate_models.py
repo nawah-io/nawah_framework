@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger('nawah')
 
 
-def generate_models():
+def _generate_models():
 	# [DOC] Initialise _api_models Config Attr
 	Config._api_models = '// Nawah Models\n'
 	# [DOC] Add interface for DOC, LOCALE, LOCALES, FILE typing
@@ -157,6 +157,7 @@ def _generate_model_typing(*, module: 'BaseModule', attr_name: str, attr_type: A
 
 	elif attr_type._type == 'ID':
 		for attr in module.extns.keys():
+			# [TODO] Validate whether Extension Instructions as ATTR breaks this code
 			if attr.split('.')[0].split(':')[0] == attr_name:
 				# [REF]: https://dev.to/rrampage/snake-case-to-camel-case-and-back-using-regular-expressions-and-python-m9j
 

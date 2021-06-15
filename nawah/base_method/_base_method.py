@@ -1,3 +1,6 @@
+from nawah.enums import Event, NAWAH_VALUES
+from nawah.config import Config
+from nawah.utils import _compile_anon_user, _compile_anon_session
 from nawah.classes import (
 	DictObj,
 	BaseModel,
@@ -15,11 +18,9 @@ from nawah.classes import (
 	InvalidAttrException,
 	InvalidCallArgsException,
 )
-from nawah.enums import Event, NAWAH_VALUES
-from nawah.config import Config
 
 from ._check_permissions import check_permissions, InvalidPermissionsExcpetion
-from ._validate_args import validate_args
+from ._validate_args import _validate_args
 
 from asyncio import coroutine
 from aiohttp.web import WebSocketResponse
@@ -225,7 +226,7 @@ class BaseMethod:
 
 		if Event.ARGS not in skip_events:
 			try:
-				await validate_args(args=query, args_list_label='query', args_list=self.query_args)
+				await _validate_args(args=query, args_list_label='query', args_list=self.query_args)
 			except InvalidCallArgsException as e:
 				test_query = e.args[0]
 				for i in range(len(test_query)):
@@ -258,7 +259,7 @@ class BaseMethod:
 				)
 
 			try:
-				await validate_args(args=doc, args_list_label='doc', args_list=self.doc_args)
+				await _validate_args(args=doc, args_list_label='doc', args_list=self.doc_args)
 			except InvalidCallArgsException as e:
 				test_doc = e.args[0]
 				for i in range(len(test_doc)):
@@ -351,8 +352,8 @@ class BaseMethod:
 				if 'session' in results.args:
 					if results.args.session._id == 'f00000000000000000000012':
 						# [DOC] Updating session to __ANON
-						anon_user = Config.compile_anon_user()
-						anon_session = Config.compile_anon_session()
+						anon_user = _compile_anon_user()
+						anon_session = _compile_anon_session()
 						anon_session['user'] = DictObj(anon_user)
 						env['session'] = BaseModel(anon_session)
 					else:

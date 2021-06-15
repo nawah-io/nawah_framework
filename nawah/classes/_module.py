@@ -1,4 +1,5 @@
 from nawah.enums import Event, NAWAH_VALUES
+from nawah.config import Config
 
 from typing import (
 	Tuple,
@@ -76,8 +77,6 @@ class PERM:
 		if self.privilege not in ['*', '__sys']:
 			# [DOC] Check for cross-module privilege
 			if '.' in self.privilege:
-				from nawah.config import Config
-
 				# [DOC] Validate correct format of cross-platform privilege: module_name.privilege
 				try:
 					module_name, privilege = self.privilege.split('.')

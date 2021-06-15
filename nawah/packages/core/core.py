@@ -2,7 +2,7 @@ from nawah.base_module import BaseModule
 from nawah.classes import ATTR, PERM, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
-from nawah.utils import extract_lambda_body
+from nawah.utils import _extract_lambda_body
 
 
 class Core(BaseModule):
@@ -44,7 +44,7 @@ class Core(BaseModule):
 			msg='Module Cache Sets retrieved.',
 			args={
 				'sets': [
-					extract_lambda_body(cache_set.condition)
+					_extract_lambda_body(cache_set.condition)
 					for cache_set in Registry.module(query['module'][0]).cache
 				]
 			},

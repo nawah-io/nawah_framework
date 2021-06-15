@@ -1,5 +1,13 @@
 from nawah.config import Config
-from nawah.classes import SYS_DOC, InvalidModuleException, InvalidLocaleException, InvalidLocaleTermException, InvalidVarException
+from nawah.utils import _extract_attr
+from nawah.classes import (
+	SYS_DOC,
+	JOB,
+	InvalidModuleException,
+	InvalidLocaleException,
+	InvalidLocaleTermException,
+	InvalidVarException,
+)
 
 from typing import Dict, List, Any, TYPE_CHECKING
 
@@ -13,7 +21,7 @@ logger = logging.getLogger('nawah')
 
 class Registry:
 	docs: List[SYS_DOC] = Config.docs
-	jobs: List[Dict[str, Any]] = Config.jobs
+	jobs: Dict[str, JOB] = Config.jobs
 
 	@staticmethod
 	def module(module: str) -> 'BaseModule':
@@ -29,9 +37,7 @@ class Registry:
 
 		try:
 			if '.' in term:
-				from nawah.utils import extract_attr
-
-				return extract_attr(scope=Config.l10n[locale], attr_path=term)
+				return _extract_attr(scope=Config.l10n[locale], attr_path=term)
 			else:
 				return Config.l10n[locale][term]
 		except (KeyError, TypeError):
@@ -41,9 +47,7 @@ class Registry:
 	def var(var: str):
 		try:
 			if '.' in var:
-				from nawah.utils import extract_attr
-
-				return extract_attr(scope=Config.vars, attr_path=var)
+				return _extract_attr(scope=Config.vars, attr_path=var)
 			else:
 				return Config.vars[var]
 		except (KeyError, TypeError):

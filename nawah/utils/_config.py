@@ -18,12 +18,12 @@ from passlib.hash import pbkdf2_sha512
 
 import os, logging, datetime, time, requests
 
+from ._attr import _deep_update
+
 logger = logging.getLogger('nawah')
 
 
 def _process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str = None):
-	from nawah.utils import deep_update
-
 	if type(config) not in [APP_CONFIG, PACKAGE_CONFIG]:
 		logger.error(f'Config object of type \'{type(config)}\' is invalid. Exiting.')
 		exit(1)
@@ -74,7 +74,7 @@ def _process_config(*, config: Union[APP_CONFIG, PACKAGE_CONFIG], pkgname: str =
 		elif type(config_attr_val) == dict:
 			if not getattr(Config, config_attr):
 				setattr(Config, config_attr, {})
-			deep_update(target=getattr(Config, config_attr), new_values=config_attr_val)
+			_deep_update(target=getattr(Config, config_attr), new_values=config_attr_val)
 		else:
 			setattr(Config, config_attr, config_attr_val)
 

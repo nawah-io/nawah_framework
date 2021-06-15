@@ -137,7 +137,8 @@ def launch(
 	global handler
 
 	# [DOC] Update Config with Nawah CLI args
-	from nawah.config import Config, process_config
+	from nawah.config import Config
+	from nawah.utils import _process_config
 
 	Config._nawah_version = __version__
 	if custom_launch not in ['generate_ref', 'generate_models']:
@@ -379,7 +380,7 @@ def launch(
 					exit(1)
 
 		# [DOC] Process other app config attrs as PACKAGE_CONFIG
-		process_config(config=app_config)
+		_process_config(config=app_config)
 	except:
 		logger.error(
 			'An unexpected exception happened while attempting to process Nawah app. Exception details:'
@@ -390,6 +391,24 @@ def launch(
 
 	if not custom_launch:
 		asyncio.run(run_app())
+	elif custom_launch == 'generate_ref':
+
+		async def _():
+			from nawah.utils import _import_modules, _generate_ref
+
+			await _import_modules()
+			_generate_ref()
+
+		asyncio.run(_())
+	elif custom_launch == 'generate_models':
+
+		async def _():
+			from nawah.utils import _import_modules, _generate_models
+
+			await _import_modules()
+			_generate_models()
+
+		asyncio.run(_())
 
 
 def packages_install(args: argparse.Namespace):

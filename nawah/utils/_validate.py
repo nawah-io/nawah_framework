@@ -1,6 +1,6 @@
 from nawah.config import Config
 from nawah.enums import Event, NAWAH_VALUES, LOCALE_STRATEGY
-from nawah.utils import extract_attr
+from nawah.utils import _extract_attr
 from nawah.classes import (
 	ATTR,
 	NAWAH_ENV,
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger('nawah')
 
 
-async def process_file_obj(
+async def _process_file_obj(
 	*, doc: Union[NAWAH_DOC, dict, list], modules: Dict[str, 'BaseModule'], env: NAWAH_ENV
 ):
 	if type(doc) == dict:
@@ -91,7 +91,7 @@ async def validate_doc(
 		try:
 			env = cast(NAWAH_ENV, env)
 			if mode != 'create' and '.' in attr:
-				doc[attr] = await validate_dot_notated(
+				doc[attr] = await _validate_dot_notated(
 					attr=attr,
 					doc=doc,
 					attrs=attrs,
@@ -120,7 +120,7 @@ async def validate_doc(
 				raise e
 
 
-async def validate_dot_notated(
+async def _validate_dot_notated(
 	attr: str,
 	doc: NAWAH_DOC,
 	attrs: Dict[str, ATTR],
@@ -150,14 +150,14 @@ async def validate_dot_notated(
 					attr_type = attr_type._args['dict'][attr_path[i]]
 				elif attr_type._type == 'KV_DICT':
 					attr_type = attr_type._args['val']
-				# [DOC] However, if list or union, start a new validate_dot_notated call as it is required to check all the provided types
+				# [DOC] However, if list or union, start a new _validate_dot_notated call as it is required to check all the provided types
 				elif attr_type._type in ['LIST', 'UNION']:
 					if attr_type._type == 'LIST':
 						attr_type_iter = attr_type._args['list']
 					else:
 						attr_type_iter = attr_type._args['union']
 					for child_attr_type in attr_type_iter:
-						attr_val = await validate_dot_notated(
+						attr_val = await _validate_dot_notated(
 							attr='.'.join(attr_path[i:]),
 							doc={'.'.join(attr_path[i:]): doc[attr]},
 							attrs={attr_path[i]: child_attr_type},
@@ -194,7 +194,7 @@ async def validate_dot_notated(
 		)
 
 
-async def validate_default(
+async def _validate_default(
 	*,
 	mode: Literal['create', 'create_draft', 'update', 'deep'],
 	attr_name: str,
@@ -300,7 +300,7 @@ async def validate_attr(
 		env = cast(NAWAH_ENV, env)
 		query = cast(Union[NAWAH_QUERY, Query], query)
 		doc = cast(NAWAH_DOC, doc)
-		return await validate_default(
+		return await _validate_default(
 			mode=mode,
 			attr_name=attr_name,
 			attr_type=attr_type,
@@ -489,7 +489,7 @@ async def validate_attr(
 			):
 				doc = cast(Dict[str, Any], doc)
 				setting_query['var'] = setting_query['var'].replace(
-					setting_query_var[0], str(extract_attr(scope=doc, attr_path=setting_query_var[1]))
+					setting_query_var[0], str(_extract_attr(scope=doc, attr_path=setting_query_var[1]))
 				)
 			# [DOC] Read setting val
 			env = cast(NAWAH_ENV, env)
@@ -582,7 +582,7 @@ async def validate_attr(
 						logger.debug(e)
 						raise e
 
-				# [DOC] Match keys _after_ checking child attrs in order to allow validate_default to run on all child attrs
+				# [DOC] Match keys _after_ checking child attrs in order to allow _validate_default to run on all child attrs
 				if set(attr_val.keys()) != set(attr_type._args['dict'].keys()):
 					raise InvalidAttrException(
 						attr_name=attr_name,

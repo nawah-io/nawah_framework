@@ -1,7 +1,7 @@
 from nawah.config import Config
 from nawah.data import create_conn
 from nawah.cli import launch
-from nawah.utils import import_modules, generate_attr
+from nawah.utils import _import_modules, _config_data, generate_attr
 
 import pytest, argparse
 
@@ -23,8 +23,8 @@ def setup_test():
 		Config.test = True
 		launch(args=argparse.Namespace(env=None, debug=True), custom_launch='test')
 
-		await import_modules()
-		await Config.config_data()
+		await _import_modules()
+		await _config_data()
 
 		test_env = Config._sys_env
 

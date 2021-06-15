@@ -1,1 +1,1 @@
-from ._config import Config, process_config
+from ._config import Config

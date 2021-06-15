@@ -14,7 +14,6 @@ from nawah.classes import (
 	DictObj,
 	BaseModel,
 )
-from nawah.utils import extract_attr
 
 from bson import ObjectId
 from passlib.hash import pbkdf2_sha512

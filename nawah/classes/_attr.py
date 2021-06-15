@@ -1,4 +1,5 @@
 from nawah.enums import NAWAH_VALUES
+from nawah.config import Config
 
 from bson import ObjectId
 from typing import (
@@ -343,8 +344,6 @@ class ATTR:
 
 	@classmethod
 	def validate_type(cls, *, attr_type: 'ATTR', skip_type: bool = False):
-		from nawah.config import Config
-
 		# [DOC] Skip validating Attr Type if it is already validated, unless we want to validate TYPE, which could require deep (nested) validation
 		if skip_type and attr_type._valid:
 			return

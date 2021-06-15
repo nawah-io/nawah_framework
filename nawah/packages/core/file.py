@@ -3,7 +3,7 @@ from nawah.enums import Event
 from nawah.classes import ATTR, PERM, METHOD
 from nawah.config import Config
 from nawah.registry import Registry
-from nawah.utils import extract_attr, validate_attr
+from nawah.utils import _extract_attr, validate_attr
 
 from bson import ObjectId
 
@@ -56,7 +56,7 @@ class File(BaseModule):
 			)
 
 		try:
-			attr_type = extract_attr(
+			attr_type = _extract_attr(
 				scope=Registry.module(module).attrs,
 				attr_path='$__' + (attr := doc['__attr'].decode('utf-8')),
 			)

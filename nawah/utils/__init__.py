@@ -1,15 +1,15 @@
 from ._generate_attr import generate_attr
 from ._attr import (
-	deep_update,
-	extract_attr,
-	set_attr,
-	update_attr_values,
-	expand_attr,
+	_deep_update,
+	_extract_attr,
+	_set_attr,
+	_update_attr_values,
+	_expand_attr,
 )
 from ._validate import (
 	validate_doc,
 	validate_attr,
-	process_file_obj,
+	_process_file_obj,
 	generate_dynamic_attr,
 )
 from ._import_modules import _import_modules
