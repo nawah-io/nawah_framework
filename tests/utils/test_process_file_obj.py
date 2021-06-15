@@ -1,4 +1,4 @@
-from nawah.utils import process_file_obj
+from nawah.utils import _process_file_obj
 
 from bson import ObjectId
 
@@ -26,7 +26,7 @@ async def test_process_file_obj(mock_module, mock_call_results):
 		'file': {'__file': '000000000000000000000000'},
 	}
 
-	await process_file_obj(doc=doc, modules=modules, env={})
+	await _process_file_obj(doc=doc, modules=modules, env={})
 
 	assert doc['file']['name'] == 'test_process_file_obj'
 
@@ -39,6 +39,6 @@ async def test_process_file_obj_invalid(mock_module):
 		'file': {'__file': '000000000000000000000000'},
 	}
 
-	await process_file_obj(doc=doc, modules=modules, env={})
+	await _process_file_obj(doc=doc, modules=modules, env={})
 
 	assert doc['file'] == None
