@@ -1,8 +1,8 @@
+from nawah import base_module, registry, testing
 from nawah.base_method._check_permissions import _check_permissions
 from nawah.base_method._validate_args import _validate_args
 from nawah.enums import Event, NAWAH_VALUES
 from nawah.config import Config
-from nawah import base_module, registry
 from nawah.classes import (
 	Query,
 	DictObj,
@@ -18,8 +18,19 @@ from bson import ObjectId
 
 import pytest, mock, re, datetime
 
+if testing.NAWAH_TESTING:
+	import logging
+
+	logger = logging.getLogger('nawah')
+	logger.error('Running both unit and integration tests in one run is not supported.')
+	exit(1)  # Running both unit and integration tests in one run is not supported.
+
+testing.NAWAH_TESTING = 'package'
+
 
 class MockBaseModule:
+	_mock_nawah_module = True
+
 	collection = None
 	attrs = None
 	diff = None
@@ -196,7 +207,17 @@ def setup_test(*, modules=None, l10n_dicts=None, vars=None, types=None):
 			).lower()
 			for method_name in modules[module_class].keys():
 				mock_method = mock.AsyncMock()
-				mock_method.return_value = modules[module_class][method_name]
+				if type(return_value := modules[module_class][method_name]) == dict:
+					if set(return_value.keys()) == {'status', 'msg', 'args'}:
+						return_value = modules[module_class][method_name] = DictObj(
+							status=return_value['status'],
+							msg=return_value['msg'],
+							args=DictObj(return_value['args']),
+						)
+						if 'docs' in return_value.args:
+							return_value.args['docs'] = [DictObj(doc) for doc in return_value.args.docs]
+
+				mock_method.return_value = return_value
 				setattr(module, method_name, mock_method)
 
 			MockRegistry.modules[module.module_name] = module
@@ -286,6 +307,8 @@ def call_handler_on(mock_env):
 		if not env:
 			env = mock_env()
 		query = Query(query)
+		if 'docs' in results.keys():
+			results['docs'] = [DictObj(doc) for doc in results['docs']]
 		return await getattr(MockRegistry.modules[module], handler)(
 			results=results,
 			skip_events=skip_events,
