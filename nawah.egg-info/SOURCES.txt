@@ -66,11 +66,13 @@ nawah/registry/__init__.py
 nawah/registry/_registry.py
 nawah/registry/py.typed
 nawah/testing/__init__.py
+nawah/testing/_globals.py
 nawah/testing/app_conftest.py
 nawah/testing/package_conftest.py
 nawah/testing/py.typed
 nawah/utils/__init__.py
 nawah/utils/_attr.py
+nawah/utils/_config.py
 nawah/utils/_encode_attr_type.py
 nawah/utils/_generate_attr.py
 nawah/utils/_generate_models.py
