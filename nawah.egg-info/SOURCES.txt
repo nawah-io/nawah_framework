@@ -4,7 +4,6 @@ setup.py
 nawah/__init__.py
 nawah/__main__.py
 nawah/app.py
-nawah/cli.py
 nawah/py.typed
 nawah.egg-info/PKG-INFO
 nawah.egg-info/SOURCES.txt
@@ -32,6 +31,16 @@ nawah/classes/_package.py
 nawah/classes/_query.py
 nawah/classes/_types.py
 nawah/classes/py.typed
+nawah/cli/__init__.py
+nawah/cli/_cli.py
+nawah/cli/_create.py
+nawah/cli/_generate.py
+nawah/cli/_globals.py
+nawah/cli/_launch.py
+nawah/cli/_logging.py
+nawah/cli/_packages.py
+nawah/cli/py.typed
+nawah/cli/template.tar.gz
 nawah/config/__init__.py
 nawah/config/_config.py
 nawah/config/py.typed

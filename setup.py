@@ -35,6 +35,7 @@ setuptools.setup(
 	url='https://github.com/nawah-io/nawah_framework',
 	package_data={
 		'nawah': ['py.typed'],
+		'nawah.cli': ['template.tar.gz', 'py.typed'],
 		'nawah.base_method': ['py.typed'],
 		'nawah.base_module': ['py.typed'],
 		'nawah.classes': ['py.typed'],
@@ -50,6 +51,7 @@ setuptools.setup(
 	},
 	packages=[
 		'nawah',
+		'nawah.cli',
 		'nawah.base_method',
 		'nawah.base_module',
 		'nawah.classes',
