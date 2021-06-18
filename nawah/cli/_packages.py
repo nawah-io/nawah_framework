@@ -2,10 +2,9 @@ from nawah import __version__
 
 from typing import Dict, Any, Optional
 
-import argparse, os, sys, json, subprocess, shutil, pkgutil
+import argparse, os, sys, logging, json, subprocess, shutil, pkgutil, traceback
 
-from ._globals import TESTING_COMPATIBILITY
-from ._logging import logger
+logger = logging.getLogger('nawah')
 
 
 def packages_install(args: argparse.Namespace):
@@ -31,10 +30,10 @@ def packages_install(args: argparse.Namespace):
 
 # [DOC] The single underscore to indicate this is not being called directly by argsparser but through a proxy callable
 def _packages_add(*, package_name: str, source: str, version: str, auth: Optional[str]):
+	from . import _set_testing
 	import json
 
-	global TESTING_COMPATIBILITY
-	TESTING_COMPATIBILITY = True
+	_set_testing(True)
 	logger.info('Checking packages conflicts.')
 	app_path = os.path.realpath(os.path.join('.'))
 	packages_path = os.path.realpath(os.path.join('.', 'packages'))
@@ -73,7 +72,7 @@ def _packages_add(*, package_name: str, source: str, version: str, auth: Optiona
 
 		logger.info(f'Package is already installed with correct version.')
 
-		TESTING_COMPATIBILITY = False
+		_set_testing(False)
 
 		return
 
@@ -137,7 +136,8 @@ def _packages_add(*, package_name: str, source: str, version: str, auth: Optiona
 		sys.path.insert(0, os.path.realpath('.'))
 		sys.path.insert(0, packages_path)
 		package = __import__(package_name)
-	except:
+	except Exception as e:
+		logger.error(traceback.format_exc())
 		logger.error('Failed to load package to test compatibility. Exiting.')
 		exit(1)
 
@@ -184,10 +184,12 @@ def _packages_add(*, package_name: str, source: str, version: str, auth: Optiona
 		'Remember to check package docs for any \'vars\' you are required to add to your app.'
 	)
 
-	TESTING_COMPATIBILITY = False
+	_set_testing(False)
 
 
 def _packages_rm(*, package_name: str, confirm: bool = True):
+	from . import _set_testing
+
 	if confirm:
 		confirmation = input(
 			f'Are you sure you want to remove package \'{package_name}\'? [yN] '
@@ -196,8 +198,7 @@ def _packages_rm(*, package_name: str, confirm: bool = True):
 			logger.info(f'Cancelled removing package \'{package_name}\'. Exiting.')
 			exit(0)
 
-	global TESTING_COMPATIBILITY
-	TESTING_COMPATIBILITY = True
+	_set_testing(True)
 
 	try:
 		packages_path = os.path.realpath(os.path.join('.', 'packages'))

@@ -4,16 +4,13 @@ from typing import Dict, Literal, Any, Optional
 
 import argparse, os, logging, datetime, sys, subprocess, asyncio, traceback, shutil, urllib.request, re, tarfile, string, random, tempfile, pkgutil, glob
 
-from ._globals import TESTING_COMPATIBILITY
-from ._logging import logger
-from ._create import create
-from ._launch import launch
-from ._packages import packages_audit, packages_install, _packages_add, _packages_rm
-from ._generate import generate_ref, generate_models
-
 
 def nawah_cli():
-	global sys, os
+	from ._logging import logger
+	from ._create import create
+	from ._launch import launch
+	from ._packages import packages_audit, packages_install, _packages_add, _packages_rm
+	from ._generate import generate_ref, generate_models
 
 	if sys.version_info.major != 3 or sys.version_info.minor < 8:
 		print('Nawah framework CLI can only run with Python >= 3.8. Exiting.')
