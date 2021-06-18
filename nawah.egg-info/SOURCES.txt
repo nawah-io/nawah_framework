@@ -35,7 +35,6 @@ nawah/cli/__init__.py
 nawah/cli/_cli.py
 nawah/cli/_create.py
 nawah/cli/_generate.py
-nawah/cli/_globals.py
 nawah/cli/_launch.py
 nawah/cli/_logging.py
 nawah/cli/_packages.py
