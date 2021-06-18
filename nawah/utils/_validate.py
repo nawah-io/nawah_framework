@@ -61,9 +61,9 @@ async def _process_file_obj(
 					logger.error(e)
 					doc[j] = None  # type: ignore
 			else:
-				await process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
+				await _process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
 		elif type(doc[j]) == list:  # type: ignore
-			await process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
+			await _process_file_obj(doc=doc[j], modules=modules, env=env)  # type: ignore
 
 
 async def validate_doc(
