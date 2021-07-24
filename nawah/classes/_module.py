@@ -19,13 +19,13 @@ from typing import (
 
 import datetime, logging
 
+from ._dictobj import DictObj
 from ._exceptions import MethodException
 
 if TYPE_CHECKING:
 	from nawah.base_module import BaseModule
 	from nawah.base_method import BaseMethod
 	from ._attr import ATTR
-	from ._dictobj import DictObj
 	from ._types import NAWAH_EVENTS, NAWAH_ENV, NAWAH_DOC, NAWAH_QUERY
 	from ._query import Query
 
@@ -369,11 +369,25 @@ class CACHE:
 
 
 class CACHED_QUERY:
-	results: Dict[str, Any]
+	_results: Dict[str, Any]
 	query_time: datetime.datetime
 
+	@property
+	def results(self) -> Dict[str, Any]:
+		results = {k: v for k, v in self._results.items()}
+		if 'docs' in results.keys():
+			results['docs'] = [DictObj(doc._attrs()) for doc in results['docs']]
+
+		return results
+
 	def __init__(self, *, results: Dict[str, Any], query_time: datetime.datetime = None):
-		self.results = results
+		# [DOC] Re-construct results dict to avoid manipulation to cached data by on_read handler
+		results = {k: v for k, v in results.items()}
+		# [DOC] Re-construct BaseModel to avoid manipulation to cached data by on_read handler
+		if 'docs' in results.keys():
+			results['docs'] = [DictObj(doc._attrs()) for doc in results['docs']]
+
+		self._results = results
 		if not query_time:
 			query_time = datetime.datetime.utcnow()
 		self.query_time = query_time

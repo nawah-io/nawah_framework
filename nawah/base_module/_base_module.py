@@ -395,6 +395,8 @@ class BaseModule:
 			for cache_set in self.cache:
 				if cache_set.condition(skip_events=skip_events, env=env, query=query) == True:
 					cache_key = f'{str(query._query)}____{str(query._special)}'
+					if Event.EXTN in skip_events:
+						cache_key += '____EVENT_EXTN'
 					if cache_key in cache_set.queries.keys():
 						if cache_set.period:
 							if (
@@ -407,6 +409,7 @@ class BaseModule:
 										collection_name=self.collection,
 										attrs=self.attrs,
 										query=query,
+										skip_extn='$extn' in query or Event.EXTN in skip_events,
 									)
 								cache_set.queries[cache_key] = CACHED_QUERY(results=results)
 							else:
@@ -422,6 +425,7 @@ class BaseModule:
 								collection_name=self.collection,
 								attrs=self.attrs,
 								query=query,
+								skip_extn='$extn' in query or Event.EXTN in skip_events,
 							)
 						cache_set.queries[cache_key] = CACHED_QUERY(results=results)
 			if not results:
@@ -1552,14 +1556,16 @@ class BaseModule:
 			for cache_set in self.cache:
 				for cache_key in cache_set.queries.keys():
 					del cache_set.queries[cache_key]
-					cache_query: NAWAH_QUERY = eval(cache_key.split('____')[0])
-					cache_special: NAWAH_QUERY = eval(cache_key.split('____')[1])
+					cache_key_split = cache_key.split('____')
+					cache_query: NAWAH_QUERY = eval(cache_key_split[0])
+					cache_special: NAWAH_QUERY = eval(cache_key_split[1])
 					cache_query.append(cache_special)
 					results = await Data.read(
 						env=env,
 						collection_name=self.collection,
 						attrs=self.attrs,
 						query=Query(cache_query),
+						skip_extn=(len(cache_key_split) == 3 and cache_key_split[2] == 'EVENT_EXTN'),
 					)
 					cache_set.queries[cache_key] = CACHED_QUERY(results=results)
 		return self.status(status=200, msg='Cache deleted.', args={})
