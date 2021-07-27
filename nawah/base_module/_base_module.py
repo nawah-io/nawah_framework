@@ -1,5 +1,5 @@
 from nawah.config import Config
-from nawah.enums import Event, DELETE_STRATEGY, NAWAH_VALUES
+from nawah.enums import Event, DELETE_STRATEGY, CACHE_STRATEGY, NAWAH_VALUES
 from nawah import data as Data
 from nawah.utils import (
 	validate_doc,
@@ -1554,6 +1554,11 @@ class BaseModule:
 	) -> DictObj:
 		if self.collection and self.cache:
 			for cache_set in self.cache:
+				# [DOC] Check if Cache Set requires recreating queries, or dismiss them
+				if cache_set.cache_strategy == CACHE_STRATEGY.DISMISS:
+					cache_set.queries = {}
+					continue
+
 				for cache_key in cache_set.queries.keys():
 					del cache_set.queries[cache_key]
 					cache_key_split = cache_key.split('____')

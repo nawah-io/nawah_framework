@@ -1,4 +1,4 @@
-from nawah.enums import Event, NAWAH_VALUES
+from nawah.enums import Event, NAWAH_VALUES, CACHE_STRATEGY
 from nawah.config import Config
 
 from typing import (
@@ -349,6 +349,7 @@ class CACHE_CONDITION(Protocol):
 class CACHE:
 	condition: CACHE_CONDITION
 	period: Optional[int]
+	cache_strategy: CACHE_STRATEGY
 	queries: Dict[str, 'CACHED_QUERY']
 
 	def __repr__(self):
@@ -359,9 +360,11 @@ class CACHE:
 		*,
 		condition: CACHE_CONDITION,
 		period: int = None,
+		cache_strategy: CACHE_STRATEGY = CACHE_STRATEGY.RECREATE,
 	):
-		setattr(self, 'condition', condition)
+		self.condition = condition
 		self.period = period
+		self.cache_strategy = cache_strategy
 		self.queries = {}
 
 	def cache_query(self, *, query_key: str, results: Dict[str, Any]):

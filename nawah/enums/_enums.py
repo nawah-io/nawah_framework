@@ -25,6 +25,11 @@ class LOCALE_STRATEGY(Enum):
 	NONE_VALUE = auto()
 
 
+class CACHE_STRATEGY(Enum):
+	RECREATE = auto()
+	DISMISS = auto()
+
+
 class NAWAH_VALUES(Enum):
 	NONE_VALUE = auto()
 	ALLOW_MOD = auto()
