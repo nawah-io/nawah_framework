@@ -81,7 +81,7 @@ class Setting(BaseModule):
 					privilege='read',
 					query_mod={
 						'user': '$__user',
-						'type': ATTR.TYPE(type=attr_query_mod_type),
+						# 'type': ATTR.TYPE(type=attr_query_mod_type),
 						'$limit': 1,
 					},
 				),
