@@ -230,10 +230,10 @@ async def update(
 									'if': {
 										'$eq': [
 											['$$this'],
-											[{'$arrayElemAt': [f'${attr}', list(doc[attr]['$set_index'].keys())[0]]}],
+											[{'$arrayElemAt': [f'${attr}', doc[attr]['$index']]}],
 										]
 									},
-									'then': [doc[attr]['$set_index'][list(doc[attr]['$set_index'].keys())[0]]],
+									'then': [doc[attr]['$set_index']],
 									'else': ['$$this'],
 								}
 							},
