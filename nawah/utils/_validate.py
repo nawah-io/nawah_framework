@@ -342,7 +342,7 @@ async def validate_attr(
 			attr_val = [attr_val['$append']]
 		elif '$set_index' in attr_val.keys():
 			attr_oper = '$set_index'
-			attr_oper_args['$index'] = attr_val['$set_index']
+			attr_oper_args['$index'] = attr_val['$index']
 			attr_val = [attr_val['$set_index']]
 		elif '$del_val' in attr_val.keys():
 			attr_oper = '$del_val'
