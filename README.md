@@ -36,3 +36,5 @@ Nawah offers module-level Analytics Workflow that allow you developers to insert
 
 # Docs Index
 > Nawah docs are available at [https://github.com/nawah-io/nawah_docs](https://github.com/nawah-io/nawah_docs).
+
+<!-- Security scan triggered at 2025-09-02 04:22:44 -->
